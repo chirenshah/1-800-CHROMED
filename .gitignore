@@ -1,0 +1,10 @@
+# Godot's generated imports, cache, and local editor state.
+.godot/
+
+# Export output and credentials.
+/builds/
+.export/
+export_credentials.cfg
+
+# macOS metadata.
+.DS_Store

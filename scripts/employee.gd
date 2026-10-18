@@ -112,6 +112,6 @@ func show_call(call: Dictionary, state: String, completed: Dictionary = {}) -> v
 		status_label.add_theme_color_override("font_color",
 			Color(0.29, 0.94, 0.82) if state == "LIVE" else Color(0.98, 0.72, 0.25))
 		call_progress.max_value = call["duration"]
-		call_progress.value = int(call["duration"]) - int(call["remaining"])
+		call_progress.value = float(call["duration"]) - float(call["remaining"])
 		tooltip_text = "Call #%03d · Potential sale $%d" % [call["id"], call["value"]]
 

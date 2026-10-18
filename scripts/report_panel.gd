@@ -41,8 +41,8 @@ func show_results(day: int, revenue: int, calls: int, sales: int, received: int,
 		row.text = "Seat %02d · %s\nAssigned %d · Handled %d\nSales %d · $%s\nBusy %.1fs · Idle %.1fs" % [
 			int(employee["seat"]) + 1, employee["name"], employee["assigned"], employee["handled"],
 			employee["sales"], _format_number(int(employee["revenue"])),
-			int(employee["busy_ticks"]) * CallQueueSimulation.TICK_SECONDS,
-			int(employee["idle_ticks"]) * CallQueueSimulation.TICK_SECONDS,
+			float(employee["busy_ticks"]) * CallQueueSimulation.TICK_SECONDS,
+			float(employee["idle_ticks"]) * CallQueueSimulation.TICK_SECONDS,
 		]
 		employee_rows.add_child(row)
 	# Each new day opens at the aggregate results, even after scrolling an old report.

@@ -20,6 +20,7 @@ func _check(condition: bool, message: String) -> void:
 func _run() -> void:
 	_test_model()
 	await _test_scene()
+	await _test_timer_scheduling()
 	if failures.is_empty():
 		print("PASS: queue accounting, FIFO and seat priority, pause, closing report, next day, and responsive layout.")
 	quit(0 if failures.is_empty() else 1)
@@ -27,15 +28,19 @@ func _run() -> void:
 
 func _test_model() -> void:
 	var model := MODEL.new()
-	model.reset(["nina", "zip", "", "victoria", "", "", "", "", ""])
-	model.advance()
+	model.reset(["nina", "zip", "", "victoria", "", "", "", "", ""], 123)
+	model.next_arrival_seconds = INF
+	model.receive_call()
+	model.receive_call()
 	_check(model.active[0]["id"] == 1 and model.active[1]["id"] == 2,
 		"The oldest callers must reach the earliest available staffed seats.")
 	_check(model.handled == 0, "Assigning a call must not count it as handled.")
-	model.advance()
+	model.receive_call()
+	model.receive_call()
 	_check(model.active[3]["id"] == 3 and model.waiting[0]["id"] == 4,
 		"Busy seats must be skipped while older callers keep their place.")
 	for step in range(100):
+		model.receive_call()
 		model.advance()
 		_check(model.received == model.handled + model.abandoned + model.active.size() + model.waiting.size(),
 			"Every received call must be handled, abandoned, active, or waiting exactly once.")
@@ -51,11 +56,11 @@ func _test_model() -> void:
 			_check(not ids.has(call["id"]), "A caller must not be both waiting and active.")
 			ids.append(call["id"])
 		_check(model.sales <= model.handled, "Only a completed interaction can produce a sale.")
-	model.reset([])
+	model.reset([], 321)
 	_check(model.received == 0 and model.handled == 0 and model.revenue == 0
 		and model.sales == 0 and model.active.is_empty() and model.waiting.is_empty()
 		and model.last_dispatch.is_empty(), "Reset must clear all daily queue state.")
-	model.advance()
+	model.receive_call()
 	_check(model.active.is_empty() and model.waiting.size() == model.received,
 		"Without staff, incoming calls must remain waiting.")
 
@@ -83,7 +88,7 @@ func _check_bounds(scene, size: Vector2i) -> void:
 
 
 func _queue_snapshot(scene) -> String:
-	return var_to_str([scene.call_queue.elapsed_ticks, scene.call_queue.received,
+	return var_to_str([scene.call_queue.elapsed_seconds, scene.call_queue.next_arrival_seconds, scene.call_queue.elapsed_ticks, scene.call_queue.received,
 		scene.call_queue.handled, scene.call_queue.abandoned, scene.call_queue.active,
 		scene.call_queue.waiting, scene.call_queue.employee_results()])
 
@@ -95,6 +100,8 @@ func _test_scene() -> void:
 	var scene = load("res://scenes/workday.tscn").instantiate()
 	root.add_child(scene)
 	await _settle()
+	# Preserve open-seat UI coverage now that the default floor is fully staffed.
+	scene._bench_employee(2)
 	_check(scene.call_queue.received == 0 and scene.queue_panel.empty_label.visible,
 		"Prepare must start with an empty queue.")
 	_check_bounds(scene, root.size)
@@ -103,8 +110,10 @@ func _test_scene() -> void:
 		root.size = size
 		scene._start_day()
 		scene.day_timer.stop()
-		for step in range(8):
-			scene._simulate_tick()
+		# Explicit fixture load guarantees queue overflow regardless of sampled arrivals.
+		for index in range(18):
+			scene.call_queue.receive_call()
+		scene._simulate_tick(0.25)
 		await _settle()
 		_check(scene.queue_panel.waiting_label.text == str(scene.call_queue.waiting.size()),
 			"The queue counter must match the waiting calls.")
@@ -123,7 +132,7 @@ func _test_scene() -> void:
 		scene.day_timer.start()
 		await create_timer(0.05).timeout
 		_check(before == _queue_snapshot(scene),
-			"Pause must freeze arrivals, queue patience, handling, counters, and employee workload.")
+			"Pause must freeze the sampled arrival countdown, patience, handling, counters, and employee workload.")
 		_check(scene.queue_panel.state_label.text == "PAUSED", "The queue must visibly indicate pause.")
 		scene.day_timer.stop()
 		scene._toggle_pause()
@@ -149,7 +158,7 @@ func _test_scene() -> void:
 		_check(nina_row.text.contains("Seat 01 · Nina")
 			and nina_row.text.contains("Assigned %d · Handled %d" % [nina["assigned"], nina["handled"]])
 			and nina_row.text.contains("Busy %.1fs · Idle %.1fs" % [
-				int(nina["busy_ticks"]) * MODEL.TICK_SECONDS, int(nina["idle_ticks"]) * MODEL.TICK_SECONDS]),
+				float(nina["busy_ticks"]) * MODEL.TICK_SECONDS, float(nina["idle_ticks"]) * MODEL.TICK_SECONDS]),
 			"Employee report rows must reflect measured assignments and simulation time.")
 		_check(scene.report_panel._format_number(12345) == "12,345", "Report amounts must retain all digits.")
 		_check_bounds(scene, size)
@@ -182,6 +191,9 @@ func _test_scene() -> void:
 	scene._start_day()
 	scene.day_timer.stop()
 	for step in range(scene.DAY_TICKS):
+		# Keep the floor overloaded explicitly; random arrivals may otherwise remain serviceable.
+		for index in range(4):
+			scene.call_queue.receive_call()
 		scene._simulate_tick()
 	_check(scene.phase == scene.Phase.REPORT, "A complete day must automatically reach Report.")
 	_check(scene.call_queue.received == scene.call_queue.handled + scene.call_queue.active.size()
@@ -192,5 +204,59 @@ func _test_scene() -> void:
 		"A full overloaded day must report actual abandonment.")
 	await _settle()
 	await _capture("full-day-report")
+	scene.queue_free()
+	await process_frame
+
+
+func _test_timer_scheduling() -> void:
+	var scene = load("res://scenes/workday.tscn").instantiate()
+	root.add_child(scene)
+	await _settle()
+	scene._start_day()
+	scene.day_timer.stop()
+	scene.call_queue.reset(scene.floor_plan.seats, 31)
+	scene._schedule_next_event()
+	_check(scene.day_timer.one_shot, "The workday timer must schedule one event at a time.")
+	var first_arrival: float = scene.call_queue.next_arrival_seconds
+	_check(not is_zero_approx(fmod(first_arrival, MODEL.TICK_SECONDS)),
+		"The seeded timer fixture must exercise an arrival between display ticks.")
+
+	# Emit the connected signal directly to exercise scheduling without wall-clock waits.
+	scene._toggle_pause()
+	var paused_snapshot := _queue_snapshot(scene)
+	scene.day_timer.stop()
+	scene.day_timer.timeout.emit()
+	_check(paused_snapshot == _queue_snapshot(scene) and scene.day_timer.is_stopped(),
+		"A timeout received while paused must neither advance the model nor restart the timer.")
+	scene._toggle_pause()
+	scene._schedule_next_event()
+	var saw_first_arrival := false
+	var day_seconds: float = scene.DAY_TICKS * MODEL.TICK_SECONDS
+	for event_index in range(500):
+		if scene.phase != scene.Phase.PLAY:
+			break
+		var before: float = scene.call_queue.elapsed_seconds
+		var expected_delay: float = minf(day_seconds - before, scene.call_queue.time_until_next_event())
+		var scheduled_delay: float = scene.day_timer.wait_time
+		_check(not scene.day_timer.is_stopped() and is_equal_approx(scheduled_delay, expected_delay),
+			"Each timer restart must target the next model event or the day boundary.")
+		scene.day_timer.stop()
+		scene.day_timer.timeout.emit()
+		_check(is_equal_approx(scene.call_queue.elapsed_seconds, before + scheduled_delay),
+			"The connected timer timeout must advance by its precise scheduled duration.")
+		if not saw_first_arrival and scene.call_queue.received > 0:
+			saw_first_arrival = true
+			_check(scene.call_queue.received == 1 and is_equal_approx(scene.call_queue.elapsed_seconds, first_arrival),
+				"The timer must receive the first call at its sampled off-tick deadline.")
+		if scene.phase == scene.Phase.PLAY:
+			_check(not scene.day_timer.is_stopped(), "A live timeout must schedule the next event automatically.")
+	_check(saw_first_arrival, "The timer-driven day must process its first sampled arrival.")
+	_check(scene.phase == scene.Phase.REPORT and scene.day_timer.is_stopped()
+		and is_equal_approx(scene.call_queue.elapsed_seconds, day_seconds),
+		"The timer-driven day must close exactly at DAY_TICKS times TICK_SECONDS and stop scheduling.")
+	var closed_snapshot := _queue_snapshot(scene)
+	scene.day_timer.timeout.emit()
+	_check(closed_snapshot == _queue_snapshot(scene) and scene.day_timer.is_stopped(),
+		"A late timeout after closing must leave the report model unchanged and the timer stopped.")
 	scene.queue_free()
 	await process_frame

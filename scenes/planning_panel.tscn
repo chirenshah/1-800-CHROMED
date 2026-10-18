@@ -57,7 +57,7 @@ text = "FLOOR PLANNER"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.62, 0.73, 0.79, 1)
 theme_override_font_sizes/font_size = 12
-text = "3 / 9 seated"
+text = "9 / 9 seated"
 
 [node name="SeatLabel" type="Label" parent="Margin/Content"]
 layout_mode = 2
@@ -77,11 +77,17 @@ theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
 text = "CURRENTLY IN SEAT 01"
 
+[node name="Profiles" type="Label" parent="Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+autowrap_mode = 2
+
 [node name="PreviewNote" type="Label" parent="Margin/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.98, 0.72, 0.4, 1)
-text = "Trait preview. Play uses shared call handling; these abilities are not active yet."
+text = "Base stats are active. Special abilities are previews."
 autowrap_mode = 2
 
 [node name="DetailScroll" type="ScrollContainer" parent="Margin/Content"]
@@ -115,12 +121,6 @@ text = "TRADEOFF"
 [node name="Tradeoff" type="Label" parent="Margin/Content/DetailScroll/Details"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
-autowrap_mode = 2
-
-[node name="Profiles" type="Label" parent="Margin/Content/DetailScroll/Details"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-theme_override_colors/font_color = Color(0.62, 0.73, 0.79, 1)
 autowrap_mode = 2
 
 [node name="Hint" type="Label" parent="Margin/Content/DetailScroll/Details"]

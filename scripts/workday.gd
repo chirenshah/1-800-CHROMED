@@ -3,7 +3,7 @@ extends Control
 enum Phase { PREPARE, PLAY, REPORT }
 
 const EMPLOYEE_SCENE := preload("res://scenes/employee.tscn")
-const DAY_TICKS := 45
+const DAY_TICKS := 40
 
 @onready var prepare_tab: Button = $PageMargin/Page/Tabs/PrepareTab
 @onready var play_tab: Button = $PageMargin/Page/Tabs/PlayTab
@@ -43,7 +43,7 @@ func _ready() -> void:
 	primary_button.pressed.connect(_on_primary_pressed)
 	pause_button.pressed.connect(_toggle_pause)
 	report_panel.next_day_requested.connect(_prepare_next_day)
-	day_timer.timeout.connect(_simulate_tick)
+	day_timer.timeout.connect(_on_day_timer_timeout)
 	resized.connect(_update_layout)
 	_update_layout()
 	_show_phase(Phase.PREPARE)
@@ -161,7 +161,7 @@ func _start_day() -> void:
 	day_timer.paused = false
 	pause_button.text = "Pause"
 	_show_phase(Phase.PLAY)
-	day_timer.start()
+	_schedule_next_event()
 
 
 func _toggle_pause() -> void:
@@ -175,10 +175,22 @@ func _toggle_pause() -> void:
 	_refresh_floor()
 
 
-func _simulate_tick() -> void:
+func _schedule_next_event() -> void:
+	var day_remaining := DAY_TICKS * CallQueueSimulation.TICK_SECONDS - call_queue.elapsed_seconds
+	day_timer.start(maxf(CallQueueSimulation.TIME_EPSILON, minf(day_remaining, call_queue.time_until_next_event())))
+
+
+func _on_day_timer_timeout() -> void:
+	_simulate_tick(day_timer.wait_time)
+	if phase == Phase.PLAY and not paused:
+		_schedule_next_event()
+
+
+func _simulate_tick(seconds: float = CallQueueSimulation.TICK_SECONDS) -> void:
 	if phase != Phase.PLAY or paused:
 		return
-	call_queue.advance()
+	var day_remaining := DAY_TICKS * CallQueueSimulation.TICK_SECONDS - call_queue.elapsed_seconds
+	call_queue.advance(minf(seconds, day_remaining))
 	_refresh_floor()
 	status_label.text = "%d waiting · %d on call · %d finished now" % [
 		call_queue.waiting.size(), call_queue.active.size(), call_queue.completed_this_tick.size()
@@ -230,5 +242,5 @@ func _refresh_floor() -> void:
 	queue_panel.update_queue(
 		call_queue.waiting, call_queue.active.size(), call_queue.handled,
 		call_queue.received, state, call_queue.last_dispatch, call_queue.abandoned,
-		call_queue.elapsed_ticks
+		call_queue.elapsed_seconds / CallQueueSimulation.TICK_SECONDS
 	)

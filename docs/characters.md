@@ -2,7 +2,7 @@
 
 Last updated: October 18, 2026
 
-**Status:** Proposed sales rep system. The foundations below are agreed direction; archetype mechanics, named characters, compositions, and challenges are design hypotheses for testing. The Prepare prototype now supports seating a small test roster and inspecting these proposals; archetype abilities and numerical stat differences are not yet simulated.
+**Status:** Prototype employee baselines are active for all 18 named candidates: Speed (1–5) and Conversion (0–100%). Conditional archetype abilities, source/qualification effects, and adjacency effects remain future proposals. Timing, patience, and outcome rules are prototype tuning placeholders.
 
 Related documents: [game decisions](../decisions.md) and [player persona](../player-persona.md).
 
@@ -25,7 +25,7 @@ From [decisions.md](../decisions.md):
 - Employees occupy a 3×3 floor, with nine available seats.
 - The workday follows **Prepare → Play → Report**.
 - Routine lead handling and employee work operate autonomously.
-- The player can pause to think and inspect performance; exact pause controls remain open.
+- During Play, Pause/Resume freezes simulation time for inspection; seating remains locked.
 - Complementary employees and situational value underpin the “Moneyball for a call center” direction.
 - Employees can receive cybernetic enhancements between days.
 - Leads arrive independently, and lead sources have different characteristics.
@@ -37,24 +37,52 @@ Direction supplied by the current character brief:
 - Use recognizable roles and character behaviors to make composition matter.
 - Focus the working numerical model on **Speed** and **Conversion**. Do not add Expertise as a third primary employee stat.
 - Preserve the **fixed slot-priority routing** baseline specified in the brief. Any extension needs an explicit design decision and a separate test.
+- Position determines opportunity. Employee behavior determines what happens with that opportunity.
 - A successful team does not have to include every archetype.
 
-The six archetypes are proposed. Their exact effects, balance, adjacency rules, lead transfers, qualification actions, and configurable routing policies remain unconfirmed. Stress, morale, relationships, and other human factors are possible future systems.
+The six archetypes are proposed. Current baseline Speed and Conversion values affect handling and sale chance, while conditional abilities, adjacency rules, lead transfers, qualification actions, and configurable routing policies remain future work. Stress, morale, relationships, and other human factors are possible future systems.
 
-**Routing evidence:** The brief names fixed slot priority as established direction, while the design log leaves its exact rules open. The [queue visualization prototype](../scripts/call_queue_simulation.gd) assigns the oldest waiting call to the first available occupied seat in ascending seat order. Prepare supplies the occupied seats; their numbering and priority remain fixed when colleagues move. Its shared handling duration and deterministic outcomes are placeholders, with no patience limit, qualification, transfers, or archetype abilities. This makes queue flow observable; the broader routing rules still need design. See [README.md](../README.md) for the prototype assumptions.
+**Routing evidence:** The [queue simulation](../scripts/call_queue_simulation.gd) assigns the oldest waiting lead to the first available occupied seat in fixed row-major order, positions 1–9; empty and busy seats are skipped. Prepare moves are allowed only before Play, and the lineup locks during Play (including pause) and Report. Waiting leads abandon at the prototype patience deadline; active leads do not abandon. The current simulation has no qualification, transfers, or conditional archetype abilities, and employee baseline stats do not change routing. See [README.md](../README.md) for prototype timing and reporting assumptions.
 
 ### Implemented planning prototype — October 18, 2026
 
-Prepare now offers Nina, Zip, Victoria, Ada, and Dex as a small test roster. Nina, Zip, and Victoria begin in seats 01, 02, and 04; Ada and Dex are available on the bench. Select a workstation and a candidate to assign, move, swap, or bench employees. Each candidate has the proposed strength, tradeoff, and qualitative Speed/Conversion profile from this document, with an explicit notice that abilities are previews. No numerical ratings have been invented.
+Prepare offers all 18 candidates described in this document. The roster order starts Nina, Zip, Victoria, Ada, and Dex, followed by Marcus, Brick, Zero, Mox, Tess, Rook, June, Sable, Patch, Switch, Nyx, Jinx, and Echo. All nine seats begin filled by Nina, Zip, Ada, Victoria, Dex, Marcus, Brick, Zero, and Mox in seats 01–09 respectively; the remaining nine candidates are available on the bench. The planner exposes prototype Speed and Conversion baselines; conditional abilities remain previews.
 
-Seating controls lock during Play, pause, and Report. The lineup carries between days in the current session, while daily calls and counters reset. The planner enforces one seat per named employee and requires at least one occupied seat to start; these are bounded prototype rules, not a finalized hiring, duplicate-hire, or economy design. All occupied employees still use the same simulation baseline, including support roles. Full archetype differentiation and the remaining thirteen candidates are deferred; this UI does not establish adjacency buffs, qualification, transfers, hiring costs, or saving between launches.
+Seating controls lock during Play, pause, and Report. The lineup carries between days in the current session, while daily calls and counters reset. The planner enforces one seat per named employee and requires at least one occupied seat to start; these are bounded prototype rules, not a finalized hiring, duplicate-hire, or economy design. Current Speed and Conversion baselines are active for every occupied employee, including support roles. Conditional archetype differentiation, adjacency buffs, qualification, transfers, hiring costs, and saving between launches remain future work.
 
 ## 3. Proposed character attribute model
 
 | Primary attribute | Meaning | Questions still to test |
 | --- | --- | --- |
-| **Speed** | How quickly an employee processes a sales interaction. | Its displayed scale, conversion to handling time, and minimum interaction duration. |
-| **Conversion** | How effectively an employee closes a sale on a handled opportunity. | Its displayed scale, relationship to outcome probability, and interaction with lead conditions. |
+| **Speed** | Integer baseline from 1–5; higher values mean faster processing. Current prototype handling duration is 18 / Speed seconds. | Scale and duration formula are tuning placeholders. |
+| **Conversion** | Integer baseline from 0–100%; the current value is the seeded sale chance on a completed call. | Values and outcome balance are tuning placeholders; conditional modifiers and lead-condition interactions are future work. |
+
+### Prototype starting baselines
+
+The global handling base is 18 seconds, giving Zip 3.6 seconds per call, Nina 4.5 seconds, and Victoria 18 seconds. It was increased from 6 to create a visible waiting queue with the former three-person starting team; the current default fills all nine seats. Adjusting this common multiplier preserves the relative Speed differences; a flat time addition would compress them. Arrival intervals, six-second waiting patience, and the 30-second workday retain their current tuning.
+
+These are initial values chosen to make the character concepts legible in the prototype, not final balance targets. Speed separates fast capacity employees from deliberately slow closers; Conversion gives high values to closer concepts and lower values to support or high-throughput concepts. Character ability text below remains conditional future design, so only these two baseline stats currently affect simulation. A sale keeps the existing payout; Conversion changes the chance of a sale, not its payout.
+
+| Character | Archetype | Speed (1–5) | Conversion (%) | Baseline rationale |
+| --- | --- | ---: | ---: | --- |
+| Nina | Workhorse | 4 | 58 | Dependable, consistently quick throughput. |
+| Zip | Hustler | 5 | 38 | Fastest baseline, with lower sale chance. |
+| Victoria | Closer | 1 | 92 | Slowest baseline, strongest sale chance. |
+| Ada | Coach | 2 | 35 | Low direct output; proposed support is not active. |
+| Dex | Closer | 2 | 78 | Slow, high-conversion closer. |
+| Marcus | Workhorse | 4 | 52 | Quick capacity; queue reaction remains future work. |
+| Brick | Workhorse | 3 | 55 | Moderate capacity before proposed burst ability. |
+| Zero | Closer | 2 | 80 | Slow, high-conversion closer; cycle bonus remains future work. |
+| Mox | Hustler | 5 | 42 | Very fast baseline; streak remains future work. |
+| Tess | Hustler | 4 | 50 | Fast repeated-work profile; checklist remains future work. |
+| Rook | Coach | 3 | 38 | Moderate speed; coaching remains future work. |
+| June | Coach | 2 | 32 | Low direct output; recovery support remains future work. |
+| Sable | Qualifier | 2 | 45 | Low direct output; review and queue ordering remain future work. |
+| Patch | Qualifier | 3 | 40 | Moderate speed; lead preparation remains future work. |
+| Switch | Qualifier | 3 | 42 | Moderate baseline; diversion remains future work. |
+| Nyx | Wildcard | 2 | 68 | Strong baseline chance; premium offer remains future work. |
+| Jinx | Wildcard | 3 | 52 | Middle baseline; failure cycle remains future work. |
+| Echo | Wildcard | 2 | 45 | Lower baseline; copying remains future work. |
 
 An archetype suggests a performance profile, but its identity must come from behavior. Two characters with similar base attributes should still create different decisions because they respond differently to teammates, positions, or lead conditions.
 
@@ -81,7 +109,7 @@ All descriptions below are proposals.
 
 ## 5. Character examples for every archetype
 
-These 18 characters are illustrative candidates. Qualitative behavior is intentional; numerical values would imply a balance model we have not tested. Additional characters could exist within each archetype. Rules for unique characters or duplicate hires are open.
+These 18 characters are illustrative candidates with prototype baseline stats listed above. Their conditional behaviors remain proposals, and additional characters could exist within each archetype. Rules for unique characters or duplicate hires are open.
 
 ### Workhorses
 
@@ -117,7 +145,7 @@ These 18 characters are illustrative candidates. Qualitative behavior is intenti
 
 ### Qualifiers
 
-Each ability below is a possible extension to baseline routing, rather than behavior that follows automatically from placing a Qualifier on the floor.
+Each ability below is a possible future extension to the current fixed routing baseline, rather than behavior that follows automatically from placing a Qualifier on the floor.
 
 | Character name | Archetype | Proposed behavior and strength | Weakness or tradeoff |
 | --- | --- | --- | --- |
@@ -172,7 +200,7 @@ These are proposed lead environments, not confirmed events, scheduled workday mo
 
 | Environment | Proposed conditions | What it challenges | Possible response and information to provide |
 | --- | --- | --- | --- |
-| **Lead Flood** | Many ordinary leads with short patience timers. | Slow teams and insufficient throughput. Waiting and abandonment require proposed queue rules. | Explore Workhorse capacity and Hustler speed. Preview expected volume and patience before Play. |
+| **Lead Flood** | Many ordinary leads with short patience timers. | Slow teams and insufficient throughput. Prototype waiting leads abandon at their placeholder patience deadline. | Explore Workhorse capacity and Hustler speed. Preview expected volume and patience before Play. |
 | **Whale Season** | Fewer opportunities with high value. Difficulty is a separate condition to specify. | Teams that rely entirely on speed and waste scarce opportunities. | Explore Closers, useful support, and qualification if approved. Preview value, volume, and any expected difficulty separately. |
 | **Unpredictable Market** | Erratic arrivals and varying lead quality. | Fragile teams that depend on one narrow condition or uninterrupted streaks. | Explore reliable capacity and adaptable combinations. Communicate the likely range of conditions while preserving uncertainty about exact arrivals. |
 | **Burnout Crisis** | Sustained lead pressure. | Potentially tests streak-dependent employees and those vulnerable to stress. Actual burnout effects require an unconfirmed human-factor system. | Explore consistent employees and support. Without stress mechanics, test sustained-load behavior and ability recovery only; do not label a hidden penalty as burnout. |
@@ -183,7 +211,7 @@ Where possible, provide meaningful forecasts during Prepare. A forecast can desc
 
 ### Preserve the routing baseline
 
-Fixed slot priority remains the baseline named by the brief. Confirm its exact ordered slots, eligible-employee rules, and fallback behavior before implementing or interpreting an archetype test. Do not quietly substitute best-match routing, random assignment, round robin, or manual assignments.
+Fixed row-major slot priority across seats 1–9 is the current prototype baseline. The oldest waiting lead goes to the first staffed, idle seat; empty and busy seats are skipped. Do not quietly substitute best-match routing, random assignment, round robin, or manual assignments.
 
 Under an unchanged slot-priority system, archetypes affect what happens after assignment through handling time, conversion conditions, and teammate triggers. Their labels do not automatically decide which leads reach them. This constraint is part of the design problem.
 
@@ -205,12 +233,12 @@ Avoid double counting a prepared or transferred lead as a second arrival or a se
 
 ## 10. Open design questions
 
-1. What is the precise fixed slot-priority order, and what makes an employee eligible for assignment? How does rearranging seats interact with that order?
-2. Can leads wait? If so, what determines queue order, capacity, patience, abandonment, and overflow?
+1. Which future conditional abilities can create useful choices while preserving the confirmed fixed row-major priority?
+2. How should queue capacity and patience be tuned around the current FIFO waiting and abandonment prototype?
 3. Must a lead stay with one employee, or can it be prepared or transferred? What time and opportunity costs apply?
 4. Which Qualifier actions are compatible with unchanged routing, and which need an approved extension? Could qualification be useful without selecting a destination?
 5. Are Workhorse and Hustler recognizably different under real play, beyond their two primary attributes?
-6. How do Speed and Conversion map to handling duration and outcomes? Which lead conditions modify them?
+6. How should Speed-to-duration and Conversion-to-sale-chance prototype values be balanced? Which future lead conditions should modify them?
 7. What does “nearby” mean? When do support effects trigger, how do they stack, and what limits prevent compulsory Coach placement?
 8. Which information about leads, traits, risks, and future conditions is visible during Prepare, Play, and Report?
 9. How does the report reveal indirect employee value without overstating causation or counting revenue twice?
@@ -222,16 +250,16 @@ Avoid double counting a prepared or transferred lead as a second arrival or a se
 
 ## 11. Suggested minimal prototype for testing archetype differentiation
 
-This is a proposed testing sequence. No gameplay implementation is part of this documentation task. Start with a small occupied subset of the nine-seat floor; defer the full 18-character roster.
+This is a proposed testing sequence. The prototype now uses all 18 candidates with baseline Speed and Conversion; test those baselines before adding conditional abilities.
 
-1. **Make the baseline measurable.** Record the fixed slot order and availability rules, then build individual lead processing with only Speed and Conversion as primary employee attributes. Any queue rule must be selected explicitly. Use a repeatable arrival schedule, known lead conditions, and repeated outcome seeds. Keep lead value distinct from difficulty.
-2. **Test capacity roles.** Compare Nina, Zip, and a plain baseline employee across steady simple demand, bursty simple demand, and a mixed lead stream. Give the characters comparable starting attributes in a controlled test to isolate their behaviors. Ask whether their benefits and weaknesses create a real choice. Add Brick's burst and recovery only after this distinction is clear.
+1. **Make the baseline measurable.** Use fixed row-major priority, occupied-seat availability, FIFO waiting, and the current patience rule. Compare Speed and Conversion baselines with repeatable arrivals and seeded outcomes. Keep lead value distinct from difficulty.
+2. **Test capacity roles.** Compare Nina, Zip, and other roster candidates across steady simple demand, bursty simple demand, and a mixed lead stream. First measure their actual baseline stats; then compare ability effects separately when implemented. Add Brick's burst and recovery only after this distinction is clear.
 3. **Test a seat spent on support.** With three occupied seats, compare two sellers plus Ada against three sellers. Repeat with useful and unhelpful neighbor placements under an explicitly selected adjacency rule. Check team output and whether a player can explain Ada's contribution. Also test Victoria under scarce valuable demand and under routine-call floods.
 4. **Test one conditional partnership.** Pair Dex with frequent sellers and then with slow sellers, keeping other conditions comparable. Look for a visible teammate interaction beyond independent stat gains. Use those results before adding more chains of triggers.
-5. **Resolve the routing question before testing a Qualifier.** Preserve a baseline with unchanged slot priority. Choose one explicit experimental extension, such as Patch's preparation stage, and compare it with the baseline. Include handling costs and busy-destination behavior. Verify that each lead and sale is accounted for once.
+5. **Preserve routing while testing a Qualifier proposal.** Keep baseline priority unchanged. If an extension such as Patch's preparation stage is later approved, compare it with the baseline, include handling costs and busy-destination behavior, and verify each lead and sale is counted once.
 6. **Add one bounded risk.** Test Nyx's premium offer with readable eligibility, Conversion cost, and payout. Compare repeated outcomes and the player's ability to plan around weak results. Defer multiple Wildcards and complex copying behavior.
 7. **Expand to nine seats once the roles work.** Compare a complementary roster with a roster of individually stronger employees whose roles or triggers fit poorly. Test the three example compositions across multiple environments. Hold the lead schedule constant within comparisons and document the resource assumptions; hiring costs are not yet designed.
 
-Suggested evidence includes completed interactions, conversion by lead condition, revenue, idle and busy time, and support triggers. Add queue losses, abandonment, recovery time, or transfer counts only when their corresponding experimental systems exist.
+Suggested evidence includes completed interactions, conversion by lead condition, revenue, idle and busy time, and support triggers. Track the existing prototype's aggregate abandonment; add recovery-time or transfer counts only when their corresponding future systems exist.
 
 Success means a player can explain why a role helped, identify a situation where it would struggle, and propose a different team for different conditions. We should also be able to demonstrate an average but complementary team beating stronger individuals in an appropriate scenario. If raw Speed and Conversion rankings explain every choice, redesign the interactions before expanding content.

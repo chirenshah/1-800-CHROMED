@@ -18,7 +18,7 @@ const MUTED := Color(0.62, 0.69, 0.8)
 @onready var abandoned_label: Label = $Margin/Content/Abandoned
 
 
-func update_queue(waiting_calls: Array[Dictionary], active_count: int, handled_count: int, received_count: int, state: String, last_dispatch: String, abandoned_count: int, elapsed_ticks: int) -> void:
+func update_queue(waiting_calls: Array[Dictionary], active_count: int, handled_count: int, received_count: int, state: String, last_dispatch: String, abandoned_count: int, elapsed_ticks: float) -> void:
 	waiting_label.text = _format_number(waiting_calls.size())
 	on_call_label.text = _format_number(active_count)
 	handled_label.text = _format_number(handled_count)
@@ -35,7 +35,7 @@ func update_queue(waiting_calls: Array[Dictionary], active_count: int, handled_c
 			var call_label := row.get_node("Margin/Content/CallId") as Label
 			var value_label := row.get_node("Margin/Content/Value") as Label
 			call_label.text = "Call #%03d" % call["id"]
-			var time_left := maxi(0, int(call["patience_ticks"]) - elapsed_ticks + int(call["arrived_tick"]))
+			var time_left := maxf(0.0, float(call["patience_ticks"]) - elapsed_ticks + float(call["arrived_tick"]))
 			call_label.tooltip_text = "%s · Leaves after %.1fs more waiting" % [call_label.text, time_left * CallQueueSimulation.TICK_SECONDS]
 			call_label.add_theme_color_override("font_color", AMBER if time_left <= 2 else Color(0.94, 0.96, 1))
 			value_label.text = "$%s" % _format_number(int(call["value"]))

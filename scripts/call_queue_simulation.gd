@@ -3,8 +3,10 @@ class_name CallQueueSimulation
 ## The workday's sole clock-driven queue model. Presentation never advances work.
 
 const TICK_SECONDS := 0.75
-const HANDLING_TICKS := 4
 const PATIENCE_TICKS := 8
+const MIN_ARRIVAL_SECONDS := 0.75
+const MAX_ARRIVAL_SECONDS := 1.5
+const TIME_EPSILON := 0.00000001
 const ASSIGNMENT := preload("res://scripts/lead_assignment.gd")
 
 var waiting: Array[Dictionary] = []
@@ -16,15 +18,20 @@ var assigned_this_tick: Array[Dictionary] = []
 var completed_this_tick: Dictionary = {}
 var abandoned_this_tick: Array[Dictionary] = []
 var elapsed_ticks := 0
+var elapsed_seconds := 0.0
+var next_arrival_seconds := 0.0
 var received := 0
 var handled := 0
 var abandoned := 0
 var sales := 0
 var revenue := 0
 var last_dispatch := ""
+var roster: EmployeeRoster = preload("res://data/planning_roster.tres")
+var _arrival_rng := RandomNumberGenerator.new()
+var _conversion_rng := RandomNumberGenerator.new()
 
 
-func reset(lineup: Array[String]) -> void:
+func reset(lineup: Array[String], arrival_seed: int = -1) -> void:
 	waiting.clear()
 	active.clear()
 	employees.assign(lineup)
@@ -39,9 +46,18 @@ func reset(lineup: Array[String]) -> void:
 		assert(not employee_stats.has(employee_id), "An employee may only occupy one slot.")
 		employee_stats[employee_id] = {
 			"employee_id": employee_id, "seat": seat, "assigned": 0, "handled": 0,
-			"busy_ticks": 0, "idle_ticks": 0, "sales": 0, "revenue": 0,
+			"busy_ticks": 0.0, "idle_ticks": 0.0, "sales": 0, "revenue": 0,
 		}
 	elapsed_ticks = 0
+	elapsed_seconds = 0.0
+	if arrival_seed == -1:
+		_arrival_rng.randomize()
+		_conversion_rng.randomize()
+	else:
+		_arrival_rng.seed = arrival_seed
+		# Separate streams keep sales rolls from changing incoming lead timing.
+		_conversion_rng.seed = arrival_seed ^ 0x5EED
+	next_arrival_seconds = _arrival_delay()
 	received = 0
 	handled = 0
 	abandoned = 0
@@ -50,27 +66,58 @@ func reset(lineup: Array[String]) -> void:
 	last_dispatch = ""
 
 
-func advance() -> void:
-	elapsed_ticks += 1
+func advance(seconds: float = TICK_SECONDS) -> void:
+	assert(seconds >= 0.0, "Simulation time cannot move backwards.")
 	assigned_this_tick.clear()
 	completed_this_tick.clear()
 	abandoned_this_tick.clear()
-	# Account for the elapsed interval, then finish ALL calls before routing.
-	# Explicit slot order also keeps completion events deterministic.
+	var target_seconds := elapsed_seconds + seconds
+	while elapsed_seconds < target_seconds:
+		# Resolve arrivals and lifecycle deadlines at their exact time, even when
+		# advancing a whole tick or catching up across more than one event.
+		var interval := minf(target_seconds - elapsed_seconds, time_until_next_event())
+		_account_interval(interval)
+		elapsed_seconds += interval
+		elapsed_ticks = floori((elapsed_seconds + TIME_EPSILON) / TICK_SECONDS)
+		_resolve_events()
+
+
+func time_until_next_event() -> float:
+	# Tick boundaries still refresh progress and determine the workday length.
+	var deadline := minf((elapsed_ticks + 1) * TICK_SECONDS, next_arrival_seconds)
+	for call: Dictionary in active.values():
+		deadline = minf(deadline, elapsed_seconds + float(call["remaining"]) * TICK_SECONDS)
+	for call in waiting:
+		deadline = minf(deadline, _patience_deadline(call))
+	return maxf(0.0, deadline - elapsed_seconds)
+
+
+func _account_interval(seconds: float) -> void:
+	var ticks := seconds / TICK_SECONDS
 	for seat in employees.size():
 		if employees[seat].is_empty():
 			continue
 		var stats: Dictionary = employee_stats[employees[seat]]
+		if active.has(seat):
+			stats["busy_ticks"] += ticks
+			active[seat]["remaining"] = maxf(0.0, float(active[seat]["remaining"]) - ticks)
+		else:
+			stats["idle_ticks"] += ticks
+
+
+func _resolve_events() -> void:
+	# Finish ALL calls before routing any newly available employee.
+	# Explicit slot order also keeps completion events deterministic.
+	for seat in employees.size():
 		if not active.has(seat):
-			stats["idle_ticks"] += 1
 			continue
-		stats["busy_ticks"] += 1
+		var stats: Dictionary = employee_stats[employees[seat]]
 		var call: Dictionary = active[seat]
-		call["remaining"] -= 1
-		if call["remaining"] <= 0:
+		if float(call["remaining"]) <= TIME_EPSILON:
 			handled += 1
 			stats["handled"] += 1
-			if _makes_sale(employees[seat], call):
+			call["sold"] = _makes_sale(employees[seat], call)
+			if call["sold"]:
 				sales += 1
 				revenue += int(call["value"])
 				stats["sales"] += 1
@@ -82,21 +129,41 @@ func advance() -> void:
 	# Filter every lead, preserving the relative FIFO order of survivors.
 	var survivors: Array[Dictionary] = []
 	for call in waiting:
-		if elapsed_ticks - int(call["arrived_tick"]) >= int(call["patience_ticks"]):
+		if _patience_deadline(call) <= elapsed_seconds + TIME_EPSILON:
 			abandoned += 1
 			abandoned_this_tick.append(call.duplicate(true))
 		else:
 			survivors.append(call)
 	waiting.assign(survivors)
 
-	# Retain the starter's 2 / 3 / 1 arrival rhythm, now as individual calls.
-	for arrival in range(1 + elapsed_ticks % 3):
-		received += 1
-		waiting.append({
-			"id": received, "value": 180 + received * 15,
-			"arrived_tick": elapsed_ticks, "patience_ticks": PATIENCE_TICKS,
-		})
+	if next_arrival_seconds <= elapsed_seconds + TIME_EPSILON:
+		_enqueue_call()
+		next_arrival_seconds += _arrival_delay()
+	_dispatch_waiting()
 
+
+func receive_call() -> void:
+	_enqueue_call()
+	_dispatch_waiting()
+
+
+func _enqueue_call() -> void:
+	received += 1
+	waiting.append({
+		"id": received, "value": 180 + received * 15,
+		"arrived_tick": elapsed_seconds / TICK_SECONDS, "patience_ticks": PATIENCE_TICKS,
+	})
+
+
+func _arrival_delay() -> float:
+	return _arrival_rng.randf_range(MIN_ARRIVAL_SECONDS, MAX_ARRIVAL_SECONDS)
+
+
+func _patience_deadline(call: Dictionary) -> float:
+	return (float(call["arrived_tick"]) + float(call["patience_ticks"])) * TICK_SECONDS
+
+
+func _dispatch_waiting() -> void:
 	while not waiting.is_empty():
 		var seat := ASSIGNMENT.next_available_seat(employees, active)
 		if seat == -1:
@@ -104,7 +171,7 @@ func advance() -> void:
 		var call: Dictionary = waiting.pop_front()
 		call["employee_id"] = employees[seat]
 		call["seat"] = seat
-		call["duration"] = maxi(1, _handling_ticks(employees[seat], call))
+		call["duration"] = _handling_ticks(employees[seat], call)
 		call["remaining"] = call["duration"]
 		active[seat] = call
 		employee_stats[employees[seat]]["assigned"] += 1
@@ -120,11 +187,13 @@ func employee_results() -> Array[Dictionary]:
 	return results
 
 
-# Behavior hooks are separate from routing. All colleagues share these prototype
-# rules today; future durations/outcomes can use employee_id without changing intake.
-func _handling_ticks(_employee_id: String, _call: Dictionary) -> int:
-	return HANDLING_TICKS
+# Base stats affect handling only. Future conditional behaviors can extend these
+# hooks while intake continues to use fixed slot priority.
+func _handling_ticks(employee_id: String, _call: Dictionary) -> float:
+	return roster.handling_seconds(employee_id) / TICK_SECONDS
 
 
-func _makes_sale(_employee_id: String, call: Dictionary) -> bool:
-	return int(call["id"]) % 3 != 0
+func _makes_sale(employee_id: String, _call: Dictionary) -> bool:
+	var roll := _conversion_rng.randf()
+	var chance := roster.conversion_chance(employee_id)
+	return chance >= 1.0 or roll < chance

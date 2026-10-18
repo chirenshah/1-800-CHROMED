@@ -9,55 +9,182 @@ employees = Array[Dictionary]([
     "id": "nina",
     "name": "Nina",
     "archetype": "Workhorse",
+    "speed": 4,
+    "conversion": 58,
     "purpose": "Capacity, consistency, and absorbing incoming call volume.",
     "strength": "Maintains a consistently quick processing rhythm, providing a dependable capacity baseline.",
     "tradeoff": "Her peak output is lower than other Workhorses when their special conditions activate.",
     "planning_hint": "Consider her as dependable capacity when steady throughput matters.",
-    "speed_profile": "Consistently quick processing rhythm",
-    "conversion_profile": "Unspecified"
+    "speed_profile": "Quick and dependable; active baseline 4/5",
+    "conversion_profile": "Active baseline 58%"
   },
   {
     "id": "zip",
     "name": "Zip",
     "archetype": "Hustler",
+    "speed": 5,
+    "conversion": 38,
     "purpose": "Extremely fast handling of straightforward leads and high-frequency output.",
     "strength": "Keeps interactions very short and rapidly closes straightforward opportunities.",
     "tradeoff": "Ends difficult conversations early, sacrificing chances that a patient seller might convert.",
     "planning_hint": "Consider for plentiful, straightforward opportunities; difficult conversations may favor a patient seller.",
-    "speed_profile": "Very short interactions on straightforward opportunities",
-    "conversion_profile": "Unspecified; difficult conversations are ended early"
+    "speed_profile": "Very short interactions; active baseline 5/5",
+    "conversion_profile": "Active baseline 38%; conditional early exits are future work"
   },
   {
     "id": "victoria",
     "name": "Victoria",
     "archetype": "Closer",
+    "speed": 1,
+    "conversion": 92,
     "purpose": "High Conversion, especially on difficult or valuable opportunities.",
     "strength": "Is particularly effective at converting high-value opportunities.",
     "tradeoff": "Her interactions are very slow, and routine calls can occupy her while better opportunities arrive.",
     "planning_hint": "Consider when high-value opportunities are available; routine calls may occupy her capacity.",
-    "speed_profile": "Very slow",
-    "conversion_profile": "Particularly effective on high-value opportunities"
+    "speed_profile": "Very slow; active baseline 1/5",
+    "conversion_profile": "Active baseline 92%; value-specific effects are future work"
   },
   {
     "id": "ada",
     "name": "Ada",
     "archetype": "Coach",
+    "speed": 2,
+    "conversion": 35,
     "purpose": "Improves nearby employees' Speed, Conversion, or recovery from explicit ability downtime.",
     "strength": "Gives an adjacent teammate a Conversion benefit after that teammate fails a sale, helping the next attempt.",
     "tradeoff": "She has weak personal output, contributes little when neighbors rarely fail, and does not recover the failed lead.",
     "planning_hint": "Consider beside teammates likely to make another attempt after a failed sale; adjacency remains a test rule.",
-    "speed_profile": "Unspecified",
-    "conversion_profile": "Support after an adjacent teammate's missed sale"
+    "speed_profile": "Active baseline 2/5",
+    "conversion_profile": "Active personal baseline 35%; adjacent support is future work"
   },
   {
     "id": "dex",
     "name": "Dex",
     "archetype": "Closer",
+    "speed": 2,
+    "conversion": 78,
     "purpose": "High Conversion, especially on difficult or valuable opportunities.",
     "strength": "Receives a temporary Conversion advantage after nearby teammates make sales.",
     "tradeoff": "He is weaker when neighboring employees struggle or rarely complete sales; trigger duration and stacking remain open.",
     "planning_hint": "Consider with nearby frequent sellers; trigger timing and placement need testing.",
-    "speed_profile": "Unspecified",
-    "conversion_profile": "Temporary advantage after nearby teammates make sales"
+    "speed_profile": "Active baseline 2/5",
+    "conversion_profile": "Active baseline 78%; neighboring sale triggers are future work"
+  },
+  {
+    "id": "marcus", "name": "Marcus", "archetype": "Workhorse", "speed": 4, "conversion": 52,
+    "purpose": "Capacity that responds to rising queue pressure.",
+    "strength": "Picks up the pace as the waiting queue grows.",
+    "tradeoff": "Conversion deteriorates under queue pressure; the ability is future work.",
+    "planning_hint": "Consider for growing queues; queue-pressure behavior is not active yet.",
+    "speed_profile": "Prototype baseline 4/5; proposed queue response is future work",
+    "conversion_profile": "Prototype baseline 52%; proposed pressure penalty is future work"
+  },
+  {
+    "id": "brick", "name": "Brick", "archetype": "Workhorse", "speed": 3, "conversion": 55,
+    "purpose": "Burst capacity for routine leads.",
+    "strength": "Proposed temporary Speed burst clears routine leads.",
+    "tradeoff": "Proposed recovery time can leave the floor short of capacity; ability is future work.",
+    "planning_hint": "Consider baseline Speed 3/5; burst and recovery are not active yet.",
+    "speed_profile": "Prototype baseline 3/5; proposed burst is future work",
+    "conversion_profile": "Prototype baseline 55%"
+  },
+  {
+    "id": "zero", "name": "Zero", "archetype": "Closer", "speed": 2, "conversion": 80,
+    "purpose": "High Conversion with a repeating call-cycle condition.",
+    "strength": "Proposed major Conversion advantage on every third completed call.",
+    "tradeoff": "Proposed intervening calls are less effective; sequence behavior is future work.",
+    "planning_hint": "Consider baseline Conversion 80%; call-cycle ability is not active yet.",
+    "speed_profile": "Prototype baseline 2/5",
+    "conversion_profile": "Prototype baseline 80%; proposed cycle bonus is future work"
+  },
+  {
+    "id": "mox", "name": "Mox", "archetype": "Hustler", "speed": 5, "conversion": 42,
+    "purpose": "Fast routine handling with a proposed success streak.",
+    "strength": "Proposed Speed streak grows through consecutive routine sales.",
+    "tradeoff": "A failed sale or demanding interaction would reset it; ability is future work.",
+    "planning_hint": "Consider baseline Speed 5/5; streak behavior is not active yet.",
+    "speed_profile": "Prototype baseline 5/5; proposed streak is future work",
+    "conversion_profile": "Prototype baseline 42%"
+  },
+  {
+    "id": "tess", "name": "Tess", "archetype": "Hustler", "speed": 4, "conversion": 50,
+    "purpose": "Efficient handling of repeated lead conditions.",
+    "strength": "Proposed checklist speeds up repeated matching leads.",
+    "tradeoff": "Changing conditions would remove the advantage; ability is future work.",
+    "planning_hint": "Consider baseline Speed 4/5; checklist behavior is not active yet.",
+    "speed_profile": "Prototype baseline 4/5; proposed repetition bonus is future work",
+    "conversion_profile": "Prototype baseline 50%"
+  },
+  {
+    "id": "rook", "name": "Rook", "archetype": "Coach", "speed": 3, "conversion": 38,
+    "purpose": "Support adjacent employees through handling-speed coaching.",
+    "strength": "Proposed coaching intervals improve adjacent employees' handling Speed.",
+    "tradeoff": "Coaching delays Rook's next interaction; adjacency and coaching are future work.",
+    "planning_hint": "Consider baseline Speed 3/5; coaching placement effects are not active yet.",
+    "speed_profile": "Prototype baseline 3/5",
+    "conversion_profile": "Prototype baseline 38%"
+  },
+  {
+    "id": "june", "name": "June", "archetype": "Coach", "speed": 2, "conversion": 32,
+    "purpose": "Support recovery from proposed burst abilities.",
+    "strength": "Could help adjacent employees recover from explicit ability downtime.",
+    "tradeoff": "Low direct sales and limited value without recovery windows; ability is future work.",
+    "planning_hint": "Consider baseline stats; support and adjacency are not active yet.",
+    "speed_profile": "Prototype baseline 2/5",
+    "conversion_profile": "Prototype baseline 32%"
+  },
+  {
+    "id": "sable", "name": "Sable", "archetype": "Qualifier", "speed": 2, "conversion": 45,
+    "purpose": "Proposed lead review and queue prioritization.",
+    "strength": "Could move promising high-value opportunities earlier in the queue.",
+    "tradeoff": "Review consumes time and delays ordinary leads; qualification is future work.",
+    "planning_hint": "Consider baseline stats; queue reordering is not active.",
+    "speed_profile": "Prototype baseline 2/5",
+    "conversion_profile": "Prototype baseline 45%"
+  },
+  {
+    "id": "patch", "name": "Patch", "archetype": "Qualifier", "speed": 3, "conversion": 40,
+    "purpose": "Proposed lead preparation before ordinary assignment.",
+    "strength": "Could prepare a lead so its next handler processes it faster.",
+    "tradeoff": "A second stage consumes time and may not pay off on simple leads; ability is future work.",
+    "planning_hint": "Consider baseline stats; lead preparation is not active.",
+    "speed_profile": "Prototype baseline 3/5",
+    "conversion_profile": "Prototype baseline 40%"
+  },
+  {
+    "id": "switch", "name": "Switch", "archetype": "Qualifier", "speed": 3, "conversion": 42,
+    "purpose": "Proposed diversion of routine leads toward suitable capacity.",
+    "strength": "Could preserve Closer capacity by directing routine leads elsewhere.",
+    "tradeoff": "Changes recipient selection and could leave capacity idle; ability is future work.",
+    "planning_hint": "Consider baseline stats; lead diversion is not active.",
+    "speed_profile": "Prototype baseline 3/5",
+    "conversion_profile": "Prototype baseline 42%"
+  },
+  {
+    "id": "nyx", "name": "Nyx", "archetype": "Wildcard", "speed": 2, "conversion": 68,
+    "purpose": "Proposed premium offer on eligible high-value leads.",
+    "strength": "Could increase payout when an automatic premium offer succeeds.",
+    "tradeoff": "Reduced Conversion could lose an otherwise achievable sale; offer ability is future work.",
+    "planning_hint": "Consider baseline stats; premium offers do not change current payout rules.",
+    "speed_profile": "Prototype baseline 2/5",
+    "conversion_profile": "Prototype baseline 68%"
+  },
+  {
+    "id": "jinx", "name": "Jinx", "archetype": "Wildcard", "speed": 3, "conversion": 52,
+    "purpose": "Proposed risk-reward Conversion cycle after personal failures.",
+    "strength": "Could build a Conversion advantage after failed calls and spend it on a success.",
+    "tradeoff": "Several leads may be lost before payoff; cycle is future work.",
+    "planning_hint": "Consider baseline stats; failure-triggered behavior is not active yet.",
+    "speed_profile": "Prototype baseline 3/5",
+    "conversion_profile": "Prototype baseline 52%; proposed failure cycle is future work"
+  },
+  {
+    "id": "echo", "name": "Echo", "archetype": "Wildcard", "speed": 2, "conversion": 45,
+    "purpose": "Proposed temporary benefit copied from a neighboring sale.",
+    "strength": "Could gain a temporary Speed or Conversion benefit from a neighbor.",
+    "tradeoff": "Weak baseline and poorly timed benefits; copying behavior is future work.",
+    "planning_hint": "Consider baseline stats; neighboring effects are not active yet.",
+    "speed_profile": "Prototype baseline 2/5; proposed copying is future work",
+    "conversion_profile": "Prototype baseline 45%; proposed copying is future work"
   }
 ])

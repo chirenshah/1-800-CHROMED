@@ -203,3 +203,4 @@ layout_mode = 2
 
 [node name="DayTimer" type="Timer" parent="." unique_id=779337678]
 wait_time = 0.75
+one_shot = true

@@ -1,12 +1,12 @@
 extends RefCounted
 class_name FloorPlan
-## Session-local seating. Character traits are previews, not simulation rules.
+## Session-local seating. Base stats are active; conditional traits are previews.
 
 const CATALOG := preload("res://data/planning_roster.tres")
 const SEAT_COUNT := 9
 
 var roster: Array[Dictionary] = []
-var seats: Array[String] = ["nina", "zip", "", "victoria", "", "", "", "", ""]
+var seats: Array[String] = ["nina", "zip", "ada", "victoria", "dex", "marcus", "brick", "zero", "mox"]
 var _profiles: Dictionary = {}
 
 

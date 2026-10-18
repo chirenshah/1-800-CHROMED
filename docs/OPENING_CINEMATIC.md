@@ -95,7 +95,7 @@ The staging borrows only the general ideas of dramatic text, upward motion, and 
 
 ## Transition and gameplay boundary
 
-`project.godot` launches the opening. The scene's exported `next_scene` defaults to `res://scenes/main.tscn`, the existing root containing `workday.tscn`. That destination starts in **Prepare**, with the existing nine positions and three staffed prototype seats. The intro never instantiates a hidden workday or starts its timer. Prepare → Play → Report, queue behavior, revenue calculations, pause, and day progression retain their existing implementation. Only the floor's header text gains the CHROMED name and Grade C-7.
+`project.godot` launches the opening. The scene's exported `next_scene` defaults to `res://scenes/main.tscn`, the existing root containing `workday.tscn`. That destination starts in **Prepare**, with all nine positions staffed by the default lineup. The intro never instantiates a hidden workday or starts its timer. Prepare → Play → Report, queue behavior, revenue calculations, pause, and day progression retain their existing implementation. Only the floor's header text gains the CHROMED name and Grade C-7.
 
 Both natural completion and skip use the same guarded, deferred scene replacement, so repeated input cannot launch multiple floors. The destination is loaded after the short fade. There is currently no main menu, so adding one later requires changing only the exported destination path.
 

@@ -11,6 +11,7 @@ Living design log for a cyberpunk call center management game. Keep agreed direc
 - **Management horizon:** The player manages one company for a 60-workday quarter, divided into three months of 20 workdays. Each individual game represents one workday. What persists between days is still to be defined.
 - **Management feel:** Business decisions should have believable consequences and be capable of making or breaking the company.
 - **Engagement pace:** Use a pause-and-think model. The player can pause to consider management decisions. The user prefers this because it fits the intended real-life management feel. Exact pause controls remain undecided.
+- **Core workday flow:** Use a **Prepare → Play → Report** model. Prepare lets the player configure the floor before operation. Play shows the autonomous workday in progress. Report gives the player performance information through a report tab. Prepare and Play may use the same floor screen with editing enabled only during Prepare, but the exact scene and navigation structure remains undecided.
 - **Autonomous operation:** The sales floor must keep functioning without human intervention. Routine lead handling and employee work cannot depend on manual assignments or player approvals. The player builds and improves the system; exact configuration controls remain undecided.
 - **Roster building:** “Moneyball for a call center.” Finding the correct mix of employees matters more than filling every seat with a star performer.
 - **Cybernetics:** The player can modify employees with cybernetic enhancements between days.
@@ -37,18 +38,19 @@ The user considered SimCity and Clash Royale as engagement references, chose pau
 
 Pause remains confirmed. Speed controls, automatic pauses, and the actions available while paused remain open. Whether the player can optionally change operating rules during a day or only between days is undecided. Cybernetic modifications are currently planned between days.
 
-Proposed loop:
+Confirmed workday loop:
 
-- **Configure:** Choose the roster, seating, enhancements, and rules for handling incoming leads.
-- **Operate:** The floor handles incoming work autonomously. The player can observe results and pause to understand bottlenecks.
-- **Grow:** Revenue affects department funding and triggers twists at milestones.
-- **Adapt:** Review results, invest the available budget, and adjust the team for the company's changing needs.
+- **Prepare:** Configure the roster, seating, enhancements, and any available operating rules before the workday.
+- **Play:** Run the autonomous sales floor. The player observes results and can pause to understand bottlenecks.
+- **Report:** Review performance information in a report tab to understand outcomes and inform the next Prepare phase.
+
+Revenue still affects department funding and triggers twists at milestones. The player uses reports to decide how to invest and adjust the team during a later Prepare phase.
 
 For example, a lead-routing policy could decide what happens when the best specialist is busy. The player's decision would be how to configure that policy and build enough capacity, rather than needing to route every difficult call personally.
 
 Possible source of engagement: understanding why a team succeeds, identifying the next bottleneck, and choosing which investment will help. Competing commitments and incomplete information can make planning difficult even with time to think. What information is visible needs to be designed.
 
-The detailed loop, routing policies, reports, session length, and pause controls are proposals, not settled mechanics.
+The three-phase structure is confirmed. The exact preparation controls, routing policies, report contents, session length, pause controls, and whether Prepare and Play share one screen remain undecided.
 
 ### Growth changes what the company needs
 
@@ -189,9 +191,9 @@ Steam facts checked October 15, 2026. Demo scope, platforms, and festival editio
 
 ## Open questions
 
-1. **Planning controls:** Which rules can the player configure, and can they change them during a day or only between days? What information and actions are available while paused?
+1. **Prepare controls:** Which rules can the player configure during Prepare? Do Prepare and Play share the floor screen with editing enabled or disabled by phase, or use separate screens?
 2. **Products and revenue:** Which companies should be playable, and how does each product change the floor? When do one-time purchases, recurring contracts, or longer sales processes count toward daily revenue?
-3. **Between days:** What persists through the confirmed 60-workday quarter, and how long does a workday take to play?
+3. **Between days:** What persists through the confirmed 60-workday quarter, how long does a workday take to play, and when does the next Prepare phase begin?
 4. **Objectives and failure:** Are there daily targets at all? What makes a quarter successful, and what causes the company to fail?
 5. **Customer success:** Is it a distinct employee role, and does it occupy seats in the same 3×3 grid?
 6. **Roster decisions:** What can the player see about candidates, and how do they discover undervalued employees?
@@ -204,6 +206,7 @@ Steam facts checked October 15, 2026. Demo scope, platforms, and festival editio
 13. **Learning sequence:** Which standard systems are available at the start, and what single major concept does each early revenue milestone introduce?
 14. **Development:** Which first Godot exercise should follow project setup? The one-desk simulation remains a proposed learning sequence.
 15. **Steam plan:** Which Next Fest edition is feasible, and which desktop platforms should be supported?
+16. **Reports:** Which results and explanations appear in the Report tab, and can the player inspect it during Play or only after a workday ends?
 
 ## Next design discussion
 

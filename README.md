@@ -1,6 +1,6 @@
 # 1-800-CHROMED
 
-A management game built in Godot, with the working title **Cyberpunk Call Center**. Design decisions are recorded in [decisions.md](decisions.md).
+A management game built in Godot, with the working title **Cyberpunk Call Center**. Design decisions are recorded in [decisions.md](decisions.md). The intended audience and playtest hypotheses are described in [player-persona.md](player-persona.md).
 
 ## Open and run
 
@@ -28,6 +28,7 @@ If you move Godot into Applications later, use `/Applications/Godot.app/Contents
 - `scripts/main.gd` — attached GDScript entry point for UI behavior.
 - `assets/` — source art and other assets.
 - `decisions.md` — the game's design decisions and open questions.
+- `player-persona.md` — the primary player persona, design guidance, and validation questions.
 
 The base viewport is 1280 × 720, with a resizable window and canvas scaling. The project name and icon are placeholders.
 

@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/workday.tscn" id="1_workday"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -9,44 +9,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_main")
 
-[node name="Margin" type="MarginContainer" parent="."]
+[node name="Workday" parent="." instance=ExtResource("1_workday")]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 48
-theme_override_constants/margin_top = 48
-theme_override_constants/margin_right = 48
-theme_override_constants/margin_bottom = 48
-
-[node name="Center" type="CenterContainer" parent="Margin"]
-layout_mode = 2
-
-[node name="Content" type="VBoxContainer" parent="Margin/Center"]
-layout_mode = 2
-theme_override_constants/separation = 20
-
-[node name="Eyebrow" type="Label" parent="Margin/Center/Content"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
-theme_override_font_sizes/font_size = 18
-text = "CYBERPUNK"
-horizontal_alignment = 1
-
-[node name="Title" type="Label" parent="Margin/Center/Content"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
-theme_override_font_sizes/font_size = 56
-text = "CALL CENTER"
-horizontal_alignment = 1
-
-[node name="Tagline" type="Label" parent="Margin/Center/Content"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.62, 0.69, 0.8, 1)
-theme_override_font_sizes/font_size = 22
-text = "Build your team. Run the floor."
-horizontal_alignment = 1

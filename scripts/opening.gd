@@ -27,6 +27,7 @@ const AMBER := Color(1.0, 0.76, 0.46)
 @onready var section_label: Label = $Chrome/SectionLabel
 @onready var footer_label: Label = $Chrome/FooterLabel
 @onready var skip_button: Button = $Chrome/SkipButton
+@onready var music_button: Button = $Chrome/MusicButton
 @onready var fade: ColorRect = $Fade
 
 var stage: Stage = Stage.ESTABLISH
@@ -126,6 +127,10 @@ func _layout() -> void:
 	skip_button.add_theme_font_size_override("font_size", maxi(13, roundi(14.0 * unit)))
 	skip_button.size = Vector2(244.0 * unit, 44.0 * unit)
 	skip_button.position = Vector2(size.x - skip_button.size.x - 40.0 * unit, size.y - skip_button.size.y - 24.0 * unit)
+	music_button.custom_minimum_size = Vector2(128, 36) * unit
+	music_button.size = Vector2(160, 44) * unit
+	music_button.position = skip_button.position - Vector2(176.0 * unit, 0)
+	music_button.add_theme_font_size_override("font_size", maxi(13, roundi(14.0 * unit)))
 	_apply_stage()
 	queue_redraw()
 
@@ -151,7 +156,6 @@ func _process(delta: float) -> void:
 		_set_stage((stage + 1) as Stage)
 		stage_elapsed = remainder
 	_apply_stage()
-	queue_redraw()
 
 
 func _duration() -> float:
@@ -175,6 +179,7 @@ func _set_stage(next_stage: Stage) -> void:
 	archive_label.text = "CHROMED / EMPLOYEE ACCESS" if stage >= Stage.BOOT else "CONTINUITY ARCHIVE / 2189"
 	footer_label.text = "YOUR BODY. OUR BUSINESS." if stage >= Stage.BOOT else "HISTORY, OPTIMIZED."
 	_apply_stage()
+	queue_redraw()
 
 
 func _apply_stage() -> void:
@@ -203,6 +208,9 @@ func _envelope(progress: float, fade_in: float, fade_out: float) -> float:
 
 
 func _input(event: InputEvent) -> void:
+	# Accept activates the focused music control; Escape still skips from anywhere.
+	if event.is_action_pressed("ui_accept") and music_button.has_focus():
+		return
 	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("ui_accept"):
 		get_viewport().set_input_as_handled()
 		skip()

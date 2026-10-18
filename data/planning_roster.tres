@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="EmployeeRoster" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/employee_roster.gd" id="1_roster"]
+
+[resource]
+script = ExtResource("1_roster")
+employees = Array[Dictionary]([
+  {
+    "id": "nina",
+    "name": "Nina",
+    "archetype": "Workhorse",
+    "purpose": "Capacity, consistency, and absorbing incoming call volume.",
+    "strength": "Maintains a consistently quick processing rhythm, providing a dependable capacity baseline.",
+    "tradeoff": "Her peak output is lower than other Workhorses when their special conditions activate.",
+    "planning_hint": "Consider her as dependable capacity when steady throughput matters.",
+    "speed_profile": "Consistently quick processing rhythm",
+    "conversion_profile": "Unspecified"
+  },
+  {
+    "id": "zip",
+    "name": "Zip",
+    "archetype": "Hustler",
+    "purpose": "Extremely fast handling of straightforward leads and high-frequency output.",
+    "strength": "Keeps interactions very short and rapidly closes straightforward opportunities.",
+    "tradeoff": "Ends difficult conversations early, sacrificing chances that a patient seller might convert.",
+    "planning_hint": "Consider for plentiful, straightforward opportunities; difficult conversations may favor a patient seller.",
+    "speed_profile": "Very short interactions on straightforward opportunities",
+    "conversion_profile": "Unspecified; difficult conversations are ended early"
+  },
+  {
+    "id": "victoria",
+    "name": "Victoria",
+    "archetype": "Closer",
+    "purpose": "High Conversion, especially on difficult or valuable opportunities.",
+    "strength": "Is particularly effective at converting high-value opportunities.",
+    "tradeoff": "Her interactions are very slow, and routine calls can occupy her while better opportunities arrive.",
+    "planning_hint": "Consider when high-value opportunities are available; routine calls may occupy her capacity.",
+    "speed_profile": "Very slow",
+    "conversion_profile": "Particularly effective on high-value opportunities"
+  },
+  {
+    "id": "ada",
+    "name": "Ada",
+    "archetype": "Coach",
+    "purpose": "Improves nearby employees' Speed, Conversion, or recovery from explicit ability downtime.",
+    "strength": "Gives an adjacent teammate a Conversion benefit after that teammate fails a sale, helping the next attempt.",
+    "tradeoff": "She has weak personal output, contributes little when neighbors rarely fail, and does not recover the failed lead.",
+    "planning_hint": "Consider beside teammates likely to make another attempt after a failed sale; adjacency remains a test rule.",
+    "speed_profile": "Unspecified",
+    "conversion_profile": "Support after an adjacent teammate's missed sale"
+  },
+  {
+    "id": "dex",
+    "name": "Dex",
+    "archetype": "Closer",
+    "purpose": "High Conversion, especially on difficult or valuable opportunities.",
+    "strength": "Receives a temporary Conversion advantage after nearby teammates make sales.",
+    "tradeoff": "He is weaker when neighboring employees struggle or rarely complete sales; trigger duration and stacking remain open.",
+    "planning_hint": "Consider with nearby frequent sellers; trigger timing and placement need testing.",
+    "speed_profile": "Unspecified",
+    "conversion_profile": "Temporary advantage after nearby teammates make sales"
+  }
+])

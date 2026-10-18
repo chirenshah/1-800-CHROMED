@@ -1,7 +1,8 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/opening.gd" id="1_opening"]
 [ext_resource type="Resource" path="res://data/opening_sequence.tres" id="2_sequence"]
+[ext_resource type="PackedScene" path="res://scenes/music_button.tscn" id="3_music_button"]
 
 [sub_resource type="Gradient" id="Gradient_edges"]
 offsets = PackedFloat32Array(0, 0.12, 0.88, 1)
@@ -173,6 +174,9 @@ theme_override_styles/hover = SubResource("StyleBox_focus")
 theme_override_styles/pressed = SubResource("StyleBox_focus")
 theme_override_styles/focus = SubResource("StyleBox_focus")
 text = "Skip intro  [Esc / Enter]"
+
+[node name="MusicButton" parent="Chrome" instance=ExtResource("3_music_button")]
+layout_mode = 0
 
 [node name="Fade" type="ColorRect" parent="."]
 layout_mode = 1

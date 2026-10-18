@@ -3,6 +3,8 @@
 [ext_resource type="Script" uid="uid://oqlsuo4hvvgd" path="res://scripts/workday.gd" id="1_workday"]
 [ext_resource type="PackedScene" path="res://scenes/report_panel.tscn" id="2_report"]
 [ext_resource type="PackedScene" path="res://scenes/call_queue_panel.tscn" id="3_queue"]
+[ext_resource type="PackedScene" path="res://scenes/planning_panel.tscn" id="4_planning"]
+[ext_resource type="PackedScene" path="res://scenes/music_button.tscn" id="5_music_button"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_floor"]
 bg_color = Color(0.05, 0.067, 0.106, 1)
@@ -53,6 +55,7 @@ theme_override_constants/separation = 18
 
 [node name="Header" type="HBoxContainer" parent="PageMargin/Page" unique_id=1412024122]
 layout_mode = 2
+theme_override_constants/separation = 18
 
 [node name="Brand" type="VBoxContainer" parent="PageMargin/Page/Header" unique_id=1643182848]
 layout_mode = 2
@@ -77,6 +80,10 @@ theme_override_colors/font_color = Color(0.62, 0.69, 0.8, 1)
 theme_override_font_sizes/font_size = 16
 text = "DAY 01 / 60"
 vertical_alignment = 1
+
+[node name="MusicButton" parent="PageMargin/Page/Header" instance=ExtResource("5_music_button")]
+layout_mode = 2
+size_flags_vertical = 4
 
 [node name="Tabs" type="HBoxContainer" parent="PageMargin/Page" unique_id=591088129]
 layout_mode = 2
@@ -130,13 +137,21 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 20
-text = "TEAM LAYOUT"
+text = "FLOOR PLAN"
 
 [node name="RevenueLabel" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader" unique_id=1748836642]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
 theme_override_font_sizes/font_size = 20
 text = "$0"
+
+[node name="PlanningGuide" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.62, 0.73, 0.79, 1)
+text = "Priority: 01 top-left → 09 bottom-right, row by row. Skip busy/empty seats."
+tooltip_text = "Leads go automatically to the first available employee. Select a seat to arrange the team during Prepare."
+autowrap_mode = 2
 
 [node name="FloorScroll" type="ScrollContainer" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent"]
 layout_mode = 2
@@ -176,6 +191,10 @@ layout_mode = 2
 text = "Start Workday"
 
 [node name="CallQueuePanel" parent="PageMargin/Page/Body" instance=ExtResource("3_queue")]
+visible = false
+layout_mode = 2
+
+[node name="PlanningPanel" parent="PageMargin/Page/Body" instance=ExtResource("4_planning")]
 layout_mode = 2
 
 [node name="ReportPanel" parent="PageMargin/Page/Body" unique_id=720570923 instance=ExtResource("2_report")]

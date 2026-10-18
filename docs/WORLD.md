@@ -30,11 +30,22 @@ This document separates **canon** (facts established for the setting) from **opt
 
 “AI didn’t overthrow humanity. Corporations put it in charge of management.”
 
+Examples of established functions, rather than new gameplay systems:
+
+| System | Ordinary responsibility |
+| --- | --- |
+| Executive and middle management | Recommend budgets and restructurings, monitor productivity, issue performance warnings. |
+| HR | Determine hiring, promotion, discipline, and termination. |
+| Healthcare administration | Decide whether treatment is financially justified. |
+| Customer service | Enforce policies that human employees cannot override. |
+| Advertising and sales assistance | Target emotional vulnerabilities, analyze calls, suggest pitches, objection handling, and upsells. |
+| Legal administration | Generate agreements so complex that other AIs must interpret them. |
+
 Decisions pass through a diffuse accountability loop: a human delegates to an algorithm, the algorithm shapes policy, and the policy is then enforced or optimized by another algorithm. There is no single villain who controls the whole system.
 
 The story never confirms or denies whether AI is conscious. Apparent empathy, boredom, or other signs of inner life remain ambiguous and can be read as simulation, learned behavior, or something more.
 
-**Optional ideas:** Individual systems may have recognizable voices and behaviors, but none should resolve the consciousness question or become a secret master antagonist.
+**Optional ideas:** A manager might describe mandatory neural upgrades as employee support. Another system might devote every interaction to improving a coffee machine's profitability. Either could sound helpful, cruel, bored, funny, or depressed without the story establishing an inner life. Individual systems may have recognizable voices and behaviors, but none should resolve the consciousness question or become a secret master antagonist.
 
 ## 5. Everyday life
 
@@ -60,7 +71,7 @@ Its motto is **“Your body. Our business.”** Its marketing presents a custome
 
 **Canon:** The player is newly promoted Regional Sales Floor Manager Grade C-7 at CHROMED. They inherit a 3×3 floor with nine positions, which need not all be filled, after their predecessor was “terminated” for poor performance. Poor performance is the stated reason; what “terminated” means and the predecessor's fate remain deliberately unexplained. The immediate corporate expectation is simple: make the numbers go up.
 
-The player's management purview includes staff, seating, enhancements, budgets, and the floor's autonomous operation, within the existing game design. The opening uses an original dramatic cinematic crawl to introduce the setting, then reveals corporate onboarding as its final beat.
+Corporate management and AI administrative systems supervise the player. The player's management purview includes staff, seating, enhancements, budgets, and the floor's autonomous operation, within the existing game design. Prepare is the planning phase; Play observes the autonomous floor; Report makes results available for the next management decision. The opening uses an original dramatic cinematic crawl to introduce the setting, then reveals corporate onboarding as its final beat.
 
 **Optional ideas:** The predecessor's fate may generate rumors or workplace stories, but the setting does not require a definitive explanation.
 

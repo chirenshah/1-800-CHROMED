@@ -67,6 +67,21 @@ text = "Waiting at close  0"
 layout_mode = 2
 text = "Unfinished calls  0"
 
+[node name="AbandonedLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
+text = "Left while waiting  0"
+
+[node name="EmployeeTitle" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 14
+text = "TEAM WORKLOAD"
+
+[node name="EmployeeRows" type="VBoxContainer" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
 [node name="InsightTitle" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)

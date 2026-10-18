@@ -81,7 +81,7 @@ The interface corners read `CONTINUITY ARCHIVE / 2189`, `HISTORY, OPTIMIZED.`, a
 
 Total default duration is **75.35 seconds**. Each stage has an independent exported duration. The reveal uses normalized timing: appointment fades in at 20–28%, predecessor notice at 38–46%, and the directive at 64–72%. This gives the last line about 2.5 seconds fully visible before exit.
 
-The root scene contains `Establish`, `CrawlWindow` (moving `Text` and an `EdgeFade`), `Boot`, `Reveal`, persistent interface chrome and skip button, and a final fade layer. A small state machine advances these stages with frame delta and carries excess time across boundaries, including slow frames. There are no autoloads, asynchronous timer chains, or changes to the simulation.
+The root scene contains `Establish`, `CrawlWindow` (moving `Text` and an `EdgeFade`), `Boot`, `Reveal`, persistent interface chrome and skip/music buttons, and a final fade layer. A small state machine advances these stages with frame delta and carries excess time across boundaries, including slow frames. A separate `MusicPlayer` autoload supplies continuous background audio; see Background music below.
 
 ## Text animation and visual direction
 
@@ -91,7 +91,7 @@ Text starts below the clipped region and exits above it. A native gradient textu
 
 The layout scales from the project's 1280×720 base and adapts when the window resizes. Body text is 30 logical pixels at the base size and at least 22 at the 960×540 minimum. Nonmoving labels scale with the viewport and remain separate from the skip control. Wider/taller windows center the composition. The crawl keeps its normalized progress when resized. The very small administrative text is secondary; the company, appointment, and core narrative remain prominent.
 
-The staging borrows only the general ideas of dramatic text, upward motion, and a final reveal. All copy, interface marks, colors, and graphics belong to this presentation; no franchise logos, branded imagery, music, or effects are included.
+The staging borrows only the general ideas of dramatic text, upward motion, and a final reveal. All copy, interface marks, colors, and graphics belong to this presentation; no franchise logos or branded imagery are included. The selected music asset and its source credit are recorded in [assets/MUSIC_CREDITS.md](../assets/MUSIC_CREDITS.md).
 
 ## Transition and gameplay boundary
 
@@ -122,20 +122,22 @@ The intro plays on every normal project launch. No saved “seen intro” flag i
 
 To preview the full sequence, enable both settings, open `scenes/opening.tscn`, and press **F6**, or press **F5** to use the project's default startup. Select `data/opening_sequence.tres` in Godot's FileSystem dock to edit all copy and durations in the Inspector. No script rewrite is necessary for copy/timing edits. The authored stage nodes can also be selected in the scene tree; text and responsive positions are populated at runtime.
 
-## Future music and sound
+## Background music
 
-The current sequence is intentionally silent and does not depend on audio resources. A future original or appropriately licensed score could start with a restrained documentary drone, lose its grandeur at “Terms and conditions applied,” and resolve to a small office login chime. Quiet relay ticks or an understated connection sound could accompany authentication. Keep speech/text intelligible, respect future volume controls, and stop any cinematic-only audio on skip and scene exit. These are optional directions, not asset or implementation commitments.
+The selected track, `assets/welcome_mix_110bpm.ogg`, starts through the `MusicPlayer` runtime autoload and loops continuously across the opening-to-workday scene change. The opening and workday both include the reusable **Music: On/Off** button (`scenes/music_button.tscn` and `scripts/music_button.gd`). The starting volume is -18 dB; edit `volume_db` in `scenes/music_player.tscn` with the Inspector. The player uses the dedicated Music bus, leaving other sounds unaffected by mute. Toggling affects the current session. Music continues during the workday pause. Looping is enabled in the track's Import settings; the source audio file is unchanged. See [assets/MUSIC_CREDITS.md](../assets/MUSIC_CREDITS.md) for attribution and the source's listed license.
 
 ## Validation and assumptions
 
-Godot **4.7.2 Standard**, GDScript and the Compatibility renderer are the existing project baseline. No autoloads or menu were present. The company's primary cybernetics business and the player's title are narrative canon; the appointment screen does not select new products, staffing rules, budgets, progression rules, or a failure condition. The existing multi-company gameplay direction's relationship to CHROMED contracts remains open in `decisions.md`.
+Godot **4.7.2 Standard**, GDScript and the Compatibility renderer are the existing project baseline. The music player is a runtime autoload; no main menu is present. The company's primary cybernetics business and the player's title are narrative canon; the appointment screen does not select new products, staffing rules, budgets, progression rules, or a failure condition. The existing multi-company gameplay direction's relationship to CHROMED contracts remains open in `decisions.md`.
 
 The headless opening test covers stage progression, long frames, initial layout, resizing, keyboard skip, button skip at every stage, repeated skip, both enable settings, natural completion, and a fresh Prepare destination. The same test can render visual snapshots; the existing queue suite verifies gameplay behavior separately:
 
 ```sh
 "$HOME/Downloads/Godot.app/Contents/MacOS/Godot" --headless --path . --editor --import --quit
 "$HOME/Downloads/Godot.app/Contents/MacOS/Godot" --headless --path . --script res://tests/test_opening.gd
+"$HOME/Downloads/Godot.app/Contents/MacOS/Godot" --headless --path . --script res://tests/test_opening.gd -- --skip-opening
 "$HOME/Downloads/Godot.app/Contents/MacOS/Godot" --headless --path . --script res://tests/test_call_queue.gd
+"$HOME/Downloads/Godot.app/Contents/MacOS/Godot" --headless --path . --script res://tests/test_music.gd
 "$HOME/Downloads/Godot.app/Contents/MacOS/Godot" --path . --script res://tests/test_opening.gd -- --capture
 ```
 

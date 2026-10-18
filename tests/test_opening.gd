@@ -2,7 +2,6 @@ extends SceneTree
 ## Godot --headless --path . --script res://tests/test_opening.gd
 ## Omit --headless and append -- --capture to render snapshots into /tmp.
 
-const OPENING := preload("res://scenes/opening.tscn")
 
 var failures: Array[String] = []
 
@@ -23,7 +22,7 @@ func _settle() -> void:
 
 
 func _new_opening():
-	var scene = OPENING.instantiate()
+	var scene = load("res://scenes/opening.tscn").instantiate()
 	scene.sequence = scene.sequence.duplicate()
 	root.add_child(scene)
 	current_scene = scene
@@ -77,6 +76,15 @@ func _remove_current() -> void:
 func _run() -> void:
 	root.content_scale_size = Vector2i.ZERO
 	root.size = Vector2i(1280, 720)
+	if OS.get_cmdline_user_args().has("--skip-opening"):
+		_new_opening()
+		await _settle()
+		_check_destination()
+		await _remove_current()
+		if failures.is_empty():
+			print("PASS: command-line bypass reaches fresh Prepare immediately.")
+		quit(0 if failures.is_empty() else 1)
+		return
 	var scene = _new_opening()
 	await _settle()
 	_check(scene.stage == scene.Stage.ESTABLISH and scene.paragraphs.size() == 9,
@@ -141,7 +149,7 @@ func _run() -> void:
 	_check_destination()
 	await _remove_current()
 	ProjectSettings.set_setting("chromed/opening/enabled", true)
-	scene = OPENING.instantiate()
+	scene = load("res://scenes/opening.tscn").instantiate()
 	scene.enabled = false
 	root.add_child(scene)
 	current_scene = scene

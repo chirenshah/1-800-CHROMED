@@ -2,9 +2,9 @@
 
 Last updated: October 18, 2026
 
-**Status:** Proposed sales rep system. The foundations below are agreed direction; archetype mechanics, named characters, compositions, and challenges are design hypotheses for testing. This document does not describe implemented gameplay.
+**Status:** Proposed sales rep system. The foundations below are agreed direction; archetype mechanics, named characters, compositions, and challenges are design hypotheses for testing. The Prepare prototype now supports seating a small test roster and inspecting these proposals; archetype abilities and numerical stat differences are not yet simulated.
 
-Related documents: [game decisions](decisions.md) and [player persona](player-persona.md).
+Related documents: [game decisions](../decisions.md) and [player persona](../player-persona.md).
 
 ## 1. Overview and design philosophy
 
@@ -20,7 +20,7 @@ The current quarter structure remains intact. Run resets, procedural generation,
 
 ## 2. Confirmed foundations
 
-From [decisions.md](decisions.md):
+From [decisions.md](../decisions.md):
 
 - Employees occupy a 3×3 floor, with nine available seats.
 - The workday follows **Prepare → Play → Report**.
@@ -41,7 +41,13 @@ Direction supplied by the current character brief:
 
 The six archetypes are proposed. Their exact effects, balance, adjacency rules, lead transfers, qualification actions, and configurable routing policies remain unconfirmed. Stress, morale, relationships, and other human factors are possible future systems.
 
-**Routing evidence:** The brief names fixed slot priority as established direction, while the design log leaves its exact rules open. The [queue visualization prototype](scripts/call_queue_simulation.gd) now assigns the oldest waiting call to the first available occupied seat in ascending seat order. Its shared handling duration and deterministic outcomes are placeholders, with no patience limit, qualification, transfers, or archetype abilities. This makes queue flow observable; the broader routing rules still need design. See [README.md](README.md) for the prototype assumptions.
+**Routing evidence:** The brief names fixed slot priority as established direction, while the design log leaves its exact rules open. The [queue visualization prototype](../scripts/call_queue_simulation.gd) assigns the oldest waiting call to the first available occupied seat in ascending seat order. Prepare supplies the occupied seats; their numbering and priority remain fixed when colleagues move. Its shared handling duration and deterministic outcomes are placeholders, with no patience limit, qualification, transfers, or archetype abilities. This makes queue flow observable; the broader routing rules still need design. See [README.md](../README.md) for the prototype assumptions.
+
+### Implemented planning prototype — October 18, 2026
+
+Prepare now offers Nina, Zip, Victoria, Ada, and Dex as a small test roster. Nina, Zip, and Victoria begin in seats 01, 02, and 04; Ada and Dex are available on the bench. Select a workstation and a candidate to assign, move, swap, or bench employees. Each candidate has the proposed strength, tradeoff, and qualitative Speed/Conversion profile from this document, with an explicit notice that abilities are previews. No numerical ratings have been invented.
+
+Seating controls lock during Play, pause, and Report. The lineup carries between days in the current session, while daily calls and counters reset. The planner enforces one seat per named employee and requires at least one occupied seat to start; these are bounded prototype rules, not a finalized hiring, duplicate-hire, or economy design. All occupied employees still use the same simulation baseline, including support roles. Full archetype differentiation and the remaining thirteen candidates are deferred; this UI does not establish adjacency buffs, qualification, transfers, hiring costs, or saving between launches.
 
 ## 3. Proposed character attribute model
 

@@ -1,12 +1,12 @@
 # Game decisions
 
-Last updated: October 17, 2026
+Last updated: October 18, 2026
 
 Living design log for a cyberpunk call center management game. Keep agreed direction separate from suggestions. Move an idea into confirmed decisions when we agree on it; preserve the reason when changing a decision.
 
 ## Confirmed direction
 
-- **Setting:** A cyberpunk call center where the player manages the company.
+- **Setting:** In 2189, the player is newly promoted Regional Sales Floor Manager Grade C-7 at 1-800-CHROMED, an independent telesales agency selling megacorp cybernetics. See [WORLD.md](docs/WORLD.md) for narrative canon. The game remains a call-center management game; this setting does not change the Prepare → Play → Report loop or introduce mechanics.
 - **Team:** Employees occupy a 3×3 grid. Salespeople are part of the roster; customer success is still under consideration.
 - **Management horizon:** The player manages one company for a 60-workday quarter, divided into three months of 20 workdays. Each individual game represents one workday. What persists between days is still to be defined.
 - **Management feel:** Business decisions should have believable consequences and be capable of making or breaking the company.
@@ -15,7 +15,7 @@ Living design log for a cyberpunk call center management game. Keep agreed direc
 - **Autonomous operation:** The sales floor must keep functioning without human intervention. Routine lead handling and employee work cannot depend on manual assignments or player approvals. The player builds and improves the system; exact configuration controls remain undecided.
 - **Roster building:** “Moneyball for a call center.” Finding the correct mix of employees matters more than filling every seat with a star performer.
 - **Cybernetics:** The player can modify employees with cybernetic enhancements between days.
-- **Different companies:** The player can play at different companies, each inspired by fiction. The player stays at one company for the whole quarter. A paper supplier inspired by Dunder Mifflin is an initial example; the company lineup and names are undecided.
+- **Different companies:** The player can play at different companies, each inspired by fiction. The player stays at one company for the whole quarter. A paper supplier inspired by Dunder Mifflin is an initial example; the company lineup and names are undecided. CHROMED is the confirmed narrative workplace; how the multi-company gameplay direction fits its contracts remains unresolved.
 - **Products affect management:** What a company sells must meaningfully change how the player manages the sales floor.
 - **Incoming leads:** Leads flow in independently. Arrival timing, routing, and whether leads can wait are still to be designed.
 - **Lead sources:** The player can use different lead sources, each with its own characteristics. Source selection and optimization are part of managing the floor. The exact sources and their attributes are undecided.
@@ -24,6 +24,22 @@ Living design log for a cyberpunk call center management game. Keep agreed direc
 - **Avoiding stagnation:** A marginally successful company must not be able to coast on small revenue with no meaningful gameplay. The mechanism that encourages or requires improvement is still to be chosen.
 - **Department budget:** Revenue has a relationship with the department's budget, which can be spent on cybernetic enhancements. The funding formula and when money becomes available are undecided.
 - **Commercial goal:** Sell the game on Steam, let players wishlist it before release, and participate in Steam Next Fest. The festival edition and release dates have not been selected.
+
+### Confirmed narrative direction — October 18, 2026
+
+- **History:** The setting is 2189. There is no traditional apocalypse; corporate control grew gradually through privatization, crises, outsourcing, and public-private partnerships. The defining line is: “The apocalypse never happened. It was a corporate restructuring.”
+- **Government and corporate power:** Governments technically exist, while corporations control society in practice. Corporate and AI systems administer much of ordinary life; private security has replaced much policing.
+- **Technology and dependency:** Technology genuinely improved people's lives, while the economic system made access dependent on continued payment. The defining line is: “The technology genuinely improved people’s lives. The economic system made everyone dependent on paying for it.”
+- **Subscriptions:** Rights, healthcare, housing, and body systems can be tied to subscriptions, employment, or leases. Organs, eyes, neural services, and emotional regulation may be leased; missed payments can bring ads or degraded access, and leaving a job can threaten housing or leased organs.
+- **AI's role:** AI runs administrative and management systems across executive recommendations, HR and productivity, healthcare coverage, legal and policy processes, advertising vulnerabilities, sales pitches, and governance. AI is not rebelling or conquering humanity. The defining line is: “AI didn’t overthrow humanity. Corporations put it in charge of management.”
+- **Distributed responsibility:** Accountability loops through people, algorithms, and policy; there is no single villain responsible for the whole system.
+- **AI consciousness:** The story never confirms or denies AI consciousness. Apparent empathy, boredom, or inner life stays ambiguous.
+- **Ordinary life and tone:** Friendships, hobbies, celebrities, and ordinary routines matter within a normalized system. The tone is dark corporate satire set in a genuinely horrifying society.
+- **CHROMED:** 1-800-CHROMED is an independent third-party telesales agency, primarily selling megacorp cybernetics and able to take other contracts. Its motto is “Your body. Our business.” It markets customer-first service while operating with a revenue focus.
+- **Legal role:** Decades-old regulations barred manufacturers from directly selling certain medical cybernetics but exempted independent agencies. CHROMED exploits this loophole as a reputational and legal buffer, not as universally immune from liability.
+- **Player and opening:** The player is newly promoted Regional Sales Floor Manager Grade C-7, inheriting nine floor positions that need not all be filled. The predecessor was terminated for poor performance; that stated reason is known, while what “terminated” means and the predecessor's fate remain unexplained. The objective is to make the numbers go up. An original dramatic cinematic crawl introduces the setting and ends with a corporate onboarding reveal.
+
+See [WORLD.md](docs/WORLD.md) for the concise world bible and its separately labeled optional ideas.
 
 ## Development context
 
@@ -106,6 +122,10 @@ Examples:
 
 The player should be able to discover why an overlooked employee is valuable, with enough feedback to understand the result.
 
+### Sales rep archetypes — proposed design reference
+
+See [characters.md](characters.md) for the proposed Workhorse, Closer, Hustler, Coach, Qualifier, and Wildcard archetypes, illustrative characters and compositions, and a minimal testing sequence. The working attribute model uses **Speed** and **Conversion**, without Expertise as a third primary stat. The document preserves the fixed slot-priority baseline named in the character brief while flagging undocumented routing details. Positional effects, qualification, transfers, and human-factor systems remain proposals to test.
+
 ### Sales can create future obligations
 
 If the company sells recurring contracts, customer success could protect future revenue by preventing cancellations. Aggressive selling could meet today's target while creating unhappy customers and extra work later.
@@ -121,7 +141,7 @@ Candidate company profiles, not a confirmed lineup:
 | Company concept | Product | Possible management challenge |
 | --- | --- | --- |
 | Paper supplier inspired by Dunder Mifflin | Business paper orders | Build repeat accounts, handle price pressure, and balance new sales against keeping existing customers. |
-| Cybernetics manufacturer | Expensive implants | Give technical specialists time to explain products; balance high-value sales against suitability and aftercare demands. |
+| Cybernetics manufacturer (candidate client/product profile for CHROMED) | Expensive implants | Give technical specialists time to explain products; balance high-value sales against suitability and aftercare demands. How this profile maps to CHROMED's contracts is unresolved. |
 | Neural entertainment service | Memory or experience subscriptions | Balance fast acquisition against cancellations and the ongoing workload of keeping subscribers satisfied. |
 | Bunker corporation | Shelter reservations or contracts | Decide how aggressively to use fear in selling; manage promises, customer trust, and refund demands. |
 
@@ -129,7 +149,7 @@ An employee overlooked at one company could be valuable at another. For example,
 
 Possible shared design dimensions: sale value, time to close, repeat business, and support required after a sale. Each company could emphasize a different combination and introduce one distinctive problem, keeping the core game learnable.
 
-Paper supply and cybernetics are a suggested first pair to compare because they could expose very different staffing needs. No starting company is selected yet.
+Paper supply and cybernetics are a suggested pair to compare because they could expose very different staffing needs. CHROMED is the confirmed narrative starting workplace; the first gameplay contract/product profile and how other company profiles fit CHROMED remain undecided.
 
 ### The grid has a management purpose
 

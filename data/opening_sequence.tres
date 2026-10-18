@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="OpeningSequence" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/opening_sequence.gd" id="1_copy"]
+
+[resource]
+script = ExtResource("1_copy")
+crawl_paragraphs = PackedStringArray("Humanity did not fall to war.\nIt did not fall to machines.\nAnd it did not fall to the apocalypse.", "It was acquired.", "Over centuries, corporations inherited the responsibilities of governments.", "Healthcare became a subscription.\nHuman bodies became financial assets.\nAnd artificial intelligence became management.", "Every citizen was promised a better future.", "A stronger body.\nA sharper mind.\nA longer life.", "Terms and conditions applied.", "Now, the world's largest corporations manufacture the miracles that keep civilization alive.", "But someone still has to sell them.")

@@ -1,0 +1,185 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/opening.gd" id="1_opening"]
+[ext_resource type="Resource" path="res://data/opening_sequence.tres" id="2_sequence"]
+
+[sub_resource type="Gradient" id="Gradient_edges"]
+offsets = PackedFloat32Array(0, 0.12, 0.88, 1)
+colors = PackedColorArray(0.018, 0.027, 0.043, 1, 0.018, 0.027, 0.043, 0, 0.018, 0.027, 0.043, 0, 0.018, 0.027, 0.043, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture_edges"]
+gradient = SubResource("Gradient_edges")
+fill_from = Vector2(0, 0)
+fill_to = Vector2(0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_skip"]
+bg_color = Color(0.04, 0.075, 0.09, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.19, 0.34, 0.37, 1)
+content_margin_left = 18.0
+content_margin_right = 18.0
+content_margin_top = 10.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_focus"]
+bg_color = Color(0.08, 0.16, 0.18, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.38, 0.89, 0.8, 1)
+content_margin_left = 18.0
+content_margin_right = 18.0
+content_margin_top = 10.0
+content_margin_bottom = 10.0
+
+[node name="Opening" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_opening")
+sequence = ExtResource("2_sequence")
+
+[node name="Establish" type="Control" parent="."]
+layout_mode = 0
+mouse_filter = 2
+
+[node name="Heading" type="Label" parent="Establish"]
+layout_mode = 0
+mouse_filter = 2
+horizontal_alignment = 1
+
+[node name="Year" type="Label" parent="Establish"]
+layout_mode = 0
+mouse_filter = 2
+horizontal_alignment = 1
+
+[node name="Footer" type="Label" parent="Establish"]
+layout_mode = 0
+mouse_filter = 2
+horizontal_alignment = 1
+
+[node name="CrawlWindow" type="Control" parent="."]
+visible = false
+layout_mode = 0
+mouse_filter = 2
+clip_contents = true
+
+[node name="Text" type="Control" parent="CrawlWindow"]
+layout_mode = 0
+mouse_filter = 2
+
+[node name="EdgeFade" type="TextureRect" parent="CrawlWindow"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("GradientTexture_edges")
+expand_mode = 1
+
+[node name="Boot" type="Control" parent="."]
+visible = false
+layout_mode = 0
+mouse_filter = 2
+
+[node name="Heading" type="Label" parent="Boot"]
+layout_mode = 0
+mouse_filter = 2
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="Boot"]
+layout_mode = 0
+mouse_filter = 2
+horizontal_alignment = 1
+
+[node name="Progress" type="ProgressBar" parent="Boot"]
+layout_mode = 0
+mouse_filter = 2
+show_percentage = false
+
+[node name="Reveal" type="Control" parent="."]
+visible = false
+layout_mode = 0
+mouse_filter = 2
+
+[node name="Welcome" type="Label" parent="Reveal"]
+layout_mode = 0
+mouse_filter = 2
+horizontal_alignment = 1
+
+[node name="Company" type="Label" parent="Reveal"]
+layout_mode = 0
+mouse_filter = 2
+horizontal_alignment = 1
+
+[node name="Motto" type="Label" parent="Reveal"]
+layout_mode = 0
+mouse_filter = 2
+horizontal_alignment = 1
+
+[node name="Appointment" type="Label" parent="Reveal"]
+layout_mode = 0
+mouse_filter = 2
+horizontal_alignment = 1
+
+[node name="Predecessor" type="Label" parent="Reveal"]
+layout_mode = 0
+mouse_filter = 2
+horizontal_alignment = 1
+
+[node name="Directive" type="Label" parent="Reveal"]
+layout_mode = 0
+mouse_filter = 2
+horizontal_alignment = 1
+
+[node name="Chrome" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ArchiveLabel" type="Label" parent="Chrome"]
+layout_mode = 0
+mouse_filter = 2
+text = "CONTINUITY ARCHIVE  /  2189"
+
+[node name="SectionLabel" type="Label" parent="Chrome"]
+layout_mode = 0
+mouse_filter = 2
+horizontal_alignment = 2
+
+[node name="FooterLabel" type="Label" parent="Chrome"]
+layout_mode = 0
+mouse_filter = 2
+text = "HISTORY, OPTIMIZED."
+
+[node name="SkipButton" type="Button" parent="Chrome"]
+layout_mode = 0
+theme_override_colors/font_color = Color(0.8, 0.88, 0.9, 1)
+theme_override_styles/normal = SubResource("StyleBox_skip")
+theme_override_styles/hover = SubResource("StyleBox_focus")
+theme_override_styles/pressed = SubResource("StyleBox_focus")
+theme_override_styles/focus = SubResource("StyleBox_focus")
+text = "Skip intro  [Esc / Enter]"
+
+[node name="Fade" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.018, 0.027, 0.043, 0)

@@ -2,6 +2,19 @@
 
 [ext_resource type="Script" uid="uid://oqlsuo4hvvgd" path="res://scripts/workday.gd" id="1_workday"]
 [ext_resource type="PackedScene" path="res://scenes/report_panel.tscn" id="2_report"]
+[ext_resource type="PackedScene" path="res://scenes/call_queue_panel.tscn" id="3_queue"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_floor"]
+bg_color = Color(0.05, 0.067, 0.106, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.16, 0.21, 0.29, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_left = 10
+corner_radius_bottom_right = 10
 
 [node name="Workday" type="Control" unique_id=713591245]
 layout_mode = 3
@@ -50,7 +63,7 @@ theme_override_constants/separation = 0
 layout_mode = 2
 theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
 theme_override_font_sizes/font_size = 13
-text = "NEON DESK OPERATIONS"
+text = "1-800-CHROMED / GRADE C-7"
 
 [node name="Title" type="Label" parent="PageMargin/Page/Header/Brand" unique_id=97646926]
 layout_mode = 2
@@ -97,13 +110,14 @@ theme_override_constants/separation = 18
 [node name="FloorPanel" type="PanelContainer" parent="PageMargin/Page/Body" unique_id=2125715821]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBox_floor")
 
 [node name="FloorMargin" type="MarginContainer" parent="PageMargin/Page/Body/FloorPanel" unique_id=1086089980]
 layout_mode = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
 
 [node name="FloorContent" type="VBoxContainer" parent="PageMargin/Page/Body/FloorPanel/FloorMargin" unique_id=240618381]
 layout_mode = 2
@@ -124,8 +138,14 @@ theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
 theme_override_font_sizes/font_size = 20
 text = "$0"
 
-[node name="FloorGrid" type="GridContainer" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent" unique_id=1054994530]
+[node name="FloorScroll" type="ScrollContainer" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent"]
 layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="FloorGrid" type="GridContainer" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorScroll" unique_id=1054994530]
+layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/h_separation = 10
 theme_override_constants/v_separation = 10
@@ -136,10 +156,13 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="StatusLabel" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer" unique_id=1975266708]
+custom_minimum_size = Vector2(130, 0)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.72, 0.77, 0.86, 1)
 text = "Arrange your team before opening the floor."
+autowrap_mode = 2
 vertical_alignment = 1
 
 [node name="PauseButton" type="Button" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer" unique_id=738549551]
@@ -152,7 +175,11 @@ custom_minimum_size = Vector2(150, 42)
 layout_mode = 2
 text = "Start Workday"
 
+[node name="CallQueuePanel" parent="PageMargin/Page/Body" instance=ExtResource("3_queue")]
+layout_mode = 2
+
 [node name="ReportPanel" parent="PageMargin/Page/Body" unique_id=720570923 instance=ExtResource("2_report")]
+visible = false
 layout_mode = 2
 
 [node name="DayTimer" type="Timer" parent="." unique_id=779337678]

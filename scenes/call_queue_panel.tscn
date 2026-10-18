@@ -1,0 +1,429 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/call_queue_panel.gd" id="1_queue"]
+
+[sub_resource type="StyleBoxFlat" id="StylePanel"]
+bg_color = Color(0.055, 0.085, 0.14, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.16, 0.24, 0.33, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_left = 14
+corner_radius_bottom_right = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleRow"]
+bg_color = Color(0.085, 0.13, 0.20, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_left = 6
+corner_radius_bottom_right = 6
+
+[node name="CallQueuePanel" type="PanelContainer"]
+custom_minimum_size = Vector2(270, 0)
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StylePanel")
+script = ExtResource("1_queue")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="Content" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Margin/Content/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 14
+text = "CALL QUEUE"
+
+[node name="State" type="Label" parent="Margin/Content/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.69, 0.8, 1)
+theme_override_font_sizes/font_size = 11
+text = "READY"
+
+[node name="Waiting" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+
+[node name="Count" type="Label" parent="Margin/Content/Waiting"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 34
+text = "0"
+text_overrun_behavior = 3
+
+[node name="Caption" type="Label" parent="Margin/Content/Waiting"]
+layout_mode = 2
+size_flags_vertical = 8
+theme_override_colors/font_color = Color(0.62, 0.69, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "waiting"
+
+[node name="Metrics" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="OnCall" type="VBoxContainer" parent="Margin/Content/Metrics"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.0
+theme_override_constants/separation = 2
+
+[node name="Value" type="Label" parent="Margin/Content/Metrics/OnCall"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+text_overrun_behavior = 3
+
+[node name="Caption" type="Label" parent="Margin/Content/Metrics/OnCall"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.69, 0.8, 1)
+theme_override_font_sizes/font_size = 10
+text = "ON CALL"
+
+[node name="Handled" type="VBoxContainer" parent="Margin/Content/Metrics"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.0
+theme_override_constants/separation = 2
+
+[node name="Value" type="Label" parent="Margin/Content/Metrics/Handled"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+text_overrun_behavior = 3
+
+[node name="Caption" type="Label" parent="Margin/Content/Metrics/Handled"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.69, 0.8, 1)
+theme_override_font_sizes/font_size = 10
+text = "HANDLED"
+
+[node name="Received" type="VBoxContainer" parent="Margin/Content/Metrics"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.0
+theme_override_constants/separation = 2
+
+[node name="Value" type="Label" parent="Margin/Content/Metrics/Received"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+text_overrun_behavior = 3
+
+[node name="Caption" type="Label" parent="Margin/Content/Metrics/Received"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.69, 0.8, 1)
+theme_override_font_sizes/font_size = 10
+text = "RECEIVED"
+
+[node name="Divider" type="HSeparator" parent="Margin/Content"]
+layout_mode = 2
+
+[node name="OrderCaption" type="Label" parent="Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.69, 0.8, 1)
+theme_override_font_sizes/font_size = 11
+text = "NEXT IN LINE · OLDEST FIRST"
+autowrap_mode = 2
+
+[node name="QueueScroll" type="ScrollContainer" parent="Margin/Content"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="QueueContent" type="VBoxContainer" parent="Margin/Content/QueueScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="EmptyState" type="Label" parent="Margin/Content/QueueScroll/QueueContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.62, 0.69, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Calls arrive when the workday starts."
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="Rows" type="VBoxContainer" parent="Margin/Content/QueueScroll/QueueContent"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Call1" type="PanelContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleRow")
+
+[node name="Margin" type="MarginContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call1"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="Content" type="HBoxContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call1/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="CallId" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call1/Margin/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "Call #1"
+text_overrun_behavior = 3
+
+[node name="Next" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call1/Margin/Content"]
+visible = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 10
+text = "NEXT"
+
+[node name="Value" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call1/Margin/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
+theme_override_font_sizes/font_size = 13
+text = "$500"
+horizontal_alignment = 2
+text_overrun_behavior = 3
+
+[node name="Call2" type="PanelContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleRow")
+
+[node name="Margin" type="MarginContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call2"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="Content" type="HBoxContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call2/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="CallId" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call2/Margin/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "Call #2"
+text_overrun_behavior = 3
+
+[node name="Next" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call2/Margin/Content"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 10
+text = "NEXT"
+
+[node name="Value" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call2/Margin/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
+theme_override_font_sizes/font_size = 13
+text = "$500"
+horizontal_alignment = 2
+text_overrun_behavior = 3
+
+[node name="Call3" type="PanelContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleRow")
+
+[node name="Margin" type="MarginContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call3"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="Content" type="HBoxContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call3/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="CallId" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call3/Margin/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "Call #3"
+text_overrun_behavior = 3
+
+[node name="Next" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call3/Margin/Content"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 10
+text = "NEXT"
+
+[node name="Value" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call3/Margin/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
+theme_override_font_sizes/font_size = 13
+text = "$500"
+horizontal_alignment = 2
+text_overrun_behavior = 3
+
+[node name="Call4" type="PanelContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleRow")
+
+[node name="Margin" type="MarginContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call4"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="Content" type="HBoxContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call4/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="CallId" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call4/Margin/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "Call #4"
+text_overrun_behavior = 3
+
+[node name="Next" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call4/Margin/Content"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 10
+text = "NEXT"
+
+[node name="Value" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call4/Margin/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
+theme_override_font_sizes/font_size = 13
+text = "$500"
+horizontal_alignment = 2
+text_overrun_behavior = 3
+
+[node name="Call5" type="PanelContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleRow")
+
+[node name="Margin" type="MarginContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call5"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="Content" type="HBoxContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call5/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="CallId" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call5/Margin/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "Call #5"
+text_overrun_behavior = 3
+
+[node name="Next" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call5/Margin/Content"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 10
+text = "NEXT"
+
+[node name="Value" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call5/Margin/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
+theme_override_font_sizes/font_size = 13
+text = "$500"
+horizontal_alignment = 2
+text_overrun_behavior = 3
+
+[node name="Call6" type="PanelContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleRow")
+
+[node name="Margin" type="MarginContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call6"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="Content" type="HBoxContainer" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call6/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="CallId" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call6/Margin/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "Call #6"
+text_overrun_behavior = 3
+
+[node name="Next" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call6/Margin/Content"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 10
+text = "NEXT"
+
+[node name="Value" type="Label" parent="Margin/Content/QueueScroll/QueueContent/Rows/Call6/Margin/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
+theme_override_font_sizes/font_size = 13
+text = "$500"
+horizontal_alignment = 2
+text_overrun_behavior = 3
+
+[node name="MoreWaiting" type="Label" parent="Margin/Content"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
+theme_override_font_sizes/font_size = 12
+text = "+ 1 more waiting"
+autowrap_mode = 2
+
+[node name="DispatchTitle" type="Label" parent="Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.69, 0.8, 1)
+theme_override_font_sizes/font_size = 10
+text = "LAST ASSIGNMENT"
+
+[node name="LastDispatch" type="Label" parent="Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.77, 0.86, 1)
+theme_override_font_sizes/font_size = 12
+text = "No calls assigned yet."
+autowrap_mode = 2
+max_lines_visible = 2
+text_overrun_behavior = 3

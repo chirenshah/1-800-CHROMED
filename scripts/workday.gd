@@ -10,26 +10,26 @@ const DAY_TICKS := 12
 @onready var report_tab: Button = $PageMargin/Page/Tabs/ReportTab
 @onready var phase_label: Label = $PageMargin/Page/Tabs/PhaseLabel
 @onready var day_label: Label = $PageMargin/Page/Header/DayLabel
-@onready var floor_grid: GridContainer = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorGrid
+@onready var floor_grid: GridContainer = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorScroll/FloorGrid
 @onready var revenue_label: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader/RevenueLabel
 @onready var status_label: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer/StatusLabel
 @onready var pause_button: Button = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer/PauseButton
 @onready var primary_button: Button = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer/PrimaryButton
 @onready var report_panel: ReportPanel = $PageMargin/Page/Body/ReportPanel
+@onready var queue_panel: CallQueuePanel = $PageMargin/Page/Body/CallQueuePanel
 @onready var day_timer: Timer = $DayTimer
 
 var phase := Phase.PREPARE
 var day := 1
-var tick := 0
-var revenue := 0
-var calls := 0
-var sales := 0
 var paused := false
 var employee_cards: Array[EmployeeCard] = []
+var staffed_seats: Array[int] = []
+var call_queue := CallQueueSimulation.new()
 
 
 func _ready() -> void:
 	_build_floor()
+	call_queue.reset(staffed_seats)
 	prepare_tab.pressed.connect(func() -> void: _show_phase(Phase.PREPARE))
 	play_tab.pressed.connect(func() -> void: _show_phase(Phase.PLAY))
 	report_tab.pressed.connect(func() -> void: _show_phase(Phase.REPORT))
@@ -51,15 +51,19 @@ func _build_floor() -> void:
 		floor_grid.add_child(card)
 		card.setup(index + 1, team[index][0], team[index][1])
 		employee_cards.append(card)
+		if card.staffed:
+			staffed_seats.append(index)
 
 
 func _show_phase(next_phase: Phase) -> void:
 	phase = next_phase
 	report_panel.visible = phase == Phase.REPORT
+	queue_panel.visible = phase != Phase.REPORT
 	prepare_tab.disabled = phase != Phase.PREPARE
 	play_tab.disabled = phase != Phase.PLAY
-	report_tab.disabled = tick < DAY_TICKS or phase == Phase.REPORT
+	report_tab.disabled = phase != Phase.REPORT
 	pause_button.disabled = phase != Phase.PLAY
+	pause_button.visible = phase != Phase.REPORT
 	primary_button.visible = phase != Phase.REPORT
 	match phase:
 		Phase.PREPARE:
@@ -73,6 +77,7 @@ func _show_phase(next_phase: Phase) -> void:
 		Phase.REPORT:
 			phase_label.text = "REPORT READY"
 			status_label.text = "Review the results before preparing the next day."
+	_refresh_floor()
 
 
 func _on_primary_pressed() -> void:
@@ -83,37 +88,34 @@ func _on_primary_pressed() -> void:
 
 
 func _start_day() -> void:
-	tick = 0
-	revenue = 0
-	calls = 0
-	sales = 0
+	call_queue.reset(staffed_seats)
 	paused = false
-	revenue_label.text = "$0"
+	day_timer.paused = false
 	pause_button.text = "Pause"
 	_show_phase(Phase.PLAY)
 	day_timer.start()
 
 
 func _toggle_pause() -> void:
+	if phase != Phase.PLAY:
+		return
 	paused = not paused
 	day_timer.paused = paused
 	pause_button.text = "Resume" if paused else "Pause"
 	phase_label.text = "FLOOR PAUSED" if paused else "FLOOR LIVE"
 	status_label.text = "Inspect the floor and its bottlenecks." if paused else "The floor is operating autonomously."
+	_refresh_floor()
 
 
 func _simulate_tick() -> void:
-	tick += 1
-	calls += 1 + tick % 3
-	var made_sale := tick % 3 != 0
-	if made_sale:
-		sales += 1
-		revenue += 180 + tick * 15
-	revenue_label.text = "$%d" % revenue
-	for index in employee_cards.size():
-		employee_cards[index].set_working(index < 4 and (tick + index) % 3 != 0)
-	status_label.text = "Processing lead batch %d of %d" % [tick, DAY_TICKS]
-	if tick >= DAY_TICKS:
+	if phase != Phase.PLAY or paused:
+		return
+	call_queue.advance()
+	_refresh_floor()
+	status_label.text = "%d waiting · %d on call · %d handled" % [
+		call_queue.waiting.size(), call_queue.active.size(), call_queue.handled
+	]
+	if call_queue.elapsed_ticks >= DAY_TICKS:
 		_finish_day()
 
 
@@ -121,14 +123,32 @@ func _finish_day() -> void:
 	day_timer.stop()
 	day_timer.paused = false
 	paused = false
-	for card in employee_cards:
-		card.set_working(false)
-	report_panel.show_results(day, revenue, calls, sales)
+	pause_button.text = "Pause"
+	report_panel.show_results(
+		day, call_queue.revenue, call_queue.handled, call_queue.sales,
+		call_queue.received, call_queue.waiting.size(), call_queue.active.size()
+	)
 	_show_phase(Phase.REPORT)
 
 
 func _prepare_next_day() -> void:
 	day = mini(day + 1, 60)
 	day_label.text = "DAY %02d / 60" % day
-	tick = 0
+	call_queue.reset(staffed_seats)
+	pause_button.text = "Pause"
 	_show_phase(Phase.PREPARE)
+
+
+func _refresh_floor() -> void:
+	var state := "PREPARE"
+	if phase == Phase.REPORT:
+		state = "CLOSED"
+	elif phase == Phase.PLAY:
+		state = "PAUSED" if paused else "LIVE"
+	for index in employee_cards.size():
+		employee_cards[index].show_call(call_queue.active.get(index, {}), state)
+	revenue_label.text = "$%d" % call_queue.revenue
+	queue_panel.update_queue(
+		call_queue.waiting, call_queue.active.size(), call_queue.handled,
+		call_queue.received, state, call_queue.last_dispatch
+	)

@@ -13,54 +13,74 @@ theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 24
 
-[node name="Content" type="VBoxContainer" parent="Margin"]
+[node name="Scroll" type="ScrollContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 14
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
-[node name="Eyebrow" type="Label" parent="Margin/Content"]
+[node name="Content" type="VBoxContainer" parent="Margin/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="Eyebrow" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
 theme_override_font_sizes/font_size = 13
 text = "REPORT"
 
-[node name="Title" type="Label" parent="Margin/Content"]
+[node name="Title" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 24
 text = "Day 1 Performance"
 
-[node name="Divider" type="HSeparator" parent="Margin/Content"]
+[node name="Divider" type="HSeparator" parent="Margin/Scroll/Content"]
 layout_mode = 2
 
-[node name="RevenueLabel" type="Label" parent="Margin/Content"]
+[node name="RevenueLabel" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Revenue  $0"
 
-[node name="CallsLabel" type="Label" parent="Margin/Content"]
+[node name="CallsLabel" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Calls handled  0"
 
-[node name="ConversionLabel" type="Label" parent="Margin/Content"]
+[node name="ConversionLabel" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Conversion  0%"
 
-[node name="InsightTitle" type="Label" parent="Margin/Content"]
+[node name="ReceivedLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+text = "Incoming calls  0"
+
+[node name="WaitingLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
+text = "Waiting at close  0"
+
+[node name="UnfinishedLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+text = "Unfinished calls  0"
+
+[node name="InsightTitle" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
 theme_override_font_sizes/font_size = 14
 text = "FLOOR ANALYSIS"
 
-[node name="Insight" type="Label" parent="Margin/Content"]
+[node name="Insight" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_colors/font_color = Color(0.72, 0.77, 0.86, 1)
 text = "Complete a workday to receive an operational report."
 autowrap_mode = 2
 
-[node name="NextDayButton" type="Button" parent="Margin/Content"]
+[node name="NextDayButton" type="Button" parent="Margin/Scroll/Content"]
 layout_mode = 2
 text = "Prepare Next Day"
 

@@ -7,6 +7,7 @@ signal augment_purchase_requested(offer_index: int)
 signal augment_equip_requested(employee_id: String, inventory_index: int)
 signal augment_unequip_requested(employee_id: String, slot_index: int)
 signal surgery_requested(employee_id: String)
+signal hire_requested(employee_id: String)
 
 @onready var summary_label: Label = $Margin/Content/Header/Summary
 @onready var score_target_label: Label = $Margin/Content/Scoreboard/ScoreTarget
@@ -45,7 +46,7 @@ var _augment_editable := false
 func _ready() -> void:
 	candidate_selector.get_popup().max_size = Vector2i(0, 320)
 	candidate_selector.item_selected.connect(_on_candidate_selected)
-	assign_button.pressed.connect(func() -> void: assignment_requested.emit(selected_seat, candidate_id))
+	assign_button.pressed.connect(_on_assign_pressed)
 	bench_button.pressed.connect(func() -> void: bench_requested.emit(selected_seat))
 	for index in offer_buttons.size():
 		offer_buttons[index].pressed.connect(_on_offer_pressed.bind(index))
@@ -114,20 +115,45 @@ func _show_candidate() -> void:
 		profile_label.tooltip_text += " Other special abilities are previews."
 	hint_label.text = candidate["planning_hint"]
 	var source := _plan.seats.find(candidate_id)
-	location_label.text = "ON BENCH  /  Available to assign" if source == -1 else "CURRENTLY IN SEAT %02d" % (source + 1)
+	var bag: InventoryManager = _augment_manager.bag if _augment_manager != null else null
+	var reserve_slot := -1 if bag == null else bag.person_slots.find(candidate_id)
+	var owned := bag == null or source != -1 or reserve_slot != -1
+	if source != -1:
+		location_label.text = "CURRENTLY IN SEAT %02d" % (source + 1)
+	elif owned:
+		location_label.text = "IN RESERVE  /  Ready to deploy"
+	else:
+		location_label.text = "NOT HIRED  /  $%d to hire into reserve" % AugmentManager.HIRE_COST
 	assign_button.disabled = source == selected_seat
-	if source == selected_seat:
+	if not owned:
+		assign_button.text = "Hire %s — $%d" % [candidate["name"], AugmentManager.HIRE_COST]
+		assign_button.disabled = not _augment_editable or bag.is_reserve_full() or _augment_manager.budget < AugmentManager.HIRE_COST
+		assign_button.tooltip_text = "New hires join the salesperson reserve. Reserve holds %d people." % InventoryManager.PERSON_SLOTS
+	elif source == selected_seat:
 		assign_button.text = "Already in this seat"
 	elif source != -1:
 		assign_button.text = "%s Seat %02d → %02d" % ["Move" if _plan.seats[selected_seat].is_empty() else "Swap", source + 1, selected_seat + 1]
 	else:
 		var current := _plan.profile(_plan.seats[selected_seat])
 		assign_button.text = "Assign %s to Seat %02d" % [candidate["name"], selected_seat + 1] if current.is_empty() else "Replace %s with %s" % [current["name"], candidate["name"]]
+	if owned:
+		assign_button.tooltip_text = "A seated colleague swaps with this seat. Assigning from reserve sends the occupant to reserve."
 	var occupant := _plan.profile(_plan.seats[selected_seat])
-	bench_button.disabled = occupant.is_empty()
-	bench_button.text = "Seat already empty" if occupant.is_empty() else "Bench " + str(occupant["name"])
-	assign_button.tooltip_text = "A seated colleague swaps with this seat. Assigning from the bench replaces its occupant."
+	bench_button.disabled = occupant.is_empty() or (bag != null and bag.is_reserve_full())
+	if occupant.is_empty():
+		bench_button.text = "Seat already empty"
+	elif bag != null and bag.is_reserve_full():
+		bench_button.text = "Reserve full"
+	else:
+		bench_button.text = "Recall " + str(occupant["name"])
 	_refresh_augment_controls()
+
+
+func _on_assign_pressed() -> void:
+	if _augment_manager != null and not _augment_manager.bag.owns(candidate_id):
+		hire_requested.emit(candidate_id)
+	else:
+		assignment_requested.emit(selected_seat, candidate_id)
 
 
 func _equip_selected() -> void:
@@ -159,7 +185,7 @@ func _refresh_augment_controls() -> void:
 		var augment := AugmentManager.CATALOG.profile(augment_id)
 		var effect := "+%d pp Conversion" % int(augment["bonus"]) if augment["stat"] == "conversion" else "+%d%% Speed" % int(augment["bonus"])
 		button.text = "%s · %s\n%s · $%d" % [augment["name"], augment["rarity"], effect, augment["price"]]
-		button.disabled = not _augment_editable or _augment_manager.purchased_offer_indexes.has(index) or _augment_manager.budget < int(augment["price"])
+		button.disabled = not _augment_editable or _augment_manager.purchased_offer_indexes.has(index) or _augment_manager.budget < int(augment["price"]) or _augment_manager.bag.is_item_full()
 		if _augment_manager.purchased_offer_indexes.has(index):
 			button.text += " · Purchased"
 
@@ -185,12 +211,12 @@ func _refresh_augment_controls() -> void:
 	for slot_index in unequip_buttons.size():
 		var button := unequip_buttons[slot_index]
 		button.visible = slot_index < slot_limit
-		button.disabled = not _augment_editable or slot_index >= loadout.size()
+		button.disabled = not _augment_editable or slot_index >= loadout.size() or _augment_manager.bag.is_item_full()
 		button.text = "Unequip slot %d" % (slot_index + 1)
 		if slot_index < loadout.size():
 			var augment := AugmentManager.CATALOG.profile(loadout[slot_index])
 			button.text = "Unequip %d: %s" % [slot_index + 1, augment["name"]]
-	equip_button.disabled = not _augment_editable or _augment_manager.inventory.is_empty() or loadout.size() >= slot_limit
+	equip_button.disabled = not _augment_editable or _augment_manager.inventory.is_empty() or loadout.size() >= slot_limit or not _augment_manager.bag.owns(candidate_id)
 	surgery_button.visible = slot_limit == 1
 	surgery_button.disabled = not _augment_editable or _augment_manager.budget < AugmentManager.SURGERY_COST
 	surgery_button.text = "Unlock second slot — $%d" % AugmentManager.SURGERY_COST

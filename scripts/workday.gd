@@ -10,6 +10,9 @@ const SCORE_TARGET_STEP := 250
 @onready var prepare_tab: Button = $PageMargin/Page/Tabs/PrepareTab
 @onready var play_tab: Button = $PageMargin/Page/Tabs/PlayTab
 @onready var report_tab: Button = $PageMargin/Page/Tabs/ReportTab
+@onready var items_button: Button = $PageMargin/Page/Tabs/ItemsButton
+@onready var people_button: Button = $PageMargin/Page/Tabs/PeopleButton
+@onready var inventory_panel: InventoryPanel = $PageMargin/Page/InventoryPanel
 @onready var phase_label: Label = $PageMargin/Page/Tabs/PhaseLabel
 @onready var day_label: Label = $PageMargin/Page/Header/DayLabel
 @onready var floor_grid: GridContainer = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorScroll/FloorGrid
@@ -31,8 +34,9 @@ var paused := false
 var employee_cards: Array[EmployeeCard] = []
 var staffed_seats: Array[int] = []
 var call_queue := CallQueueSimulation.new()
-var floor_plan := FloorPlan.new()
-var augment_manager := AugmentManager.new()
+var inventory := InventoryManager.new()
+var floor_plan := inventory.floor_plan
+var augment_manager := AugmentManager.new(inventory)
 var selected_seat := 0
 
 
@@ -45,6 +49,14 @@ func _ready() -> void:
 	planning_panel.augment_equip_requested.connect(_equip_augment)
 	planning_panel.augment_unequip_requested.connect(_unequip_augment)
 	planning_panel.surgery_requested.connect(_unlock_augment_slot)
+	planning_panel.hire_requested.connect(_hire_employee)
+	items_button.toggled.connect(func(_pressed: bool) -> void: _toggle_inventory(true))
+	people_button.toggled.connect(func(_pressed: bool) -> void: _toggle_inventory(false))
+	inventory_panel.drop_validator = _can_transfer
+	inventory_panel.transfer_requested.connect(_on_transfer_requested)
+	for card in employee_cards:
+		card.drop_validator = _can_transfer
+		card.dropped.connect(_on_transfer_requested)
 	prepare_tab.pressed.connect(func() -> void: _show_phase(Phase.PREPARE))
 	play_tab.pressed.connect(func() -> void: _show_phase(Phase.PLAY))
 	report_tab.pressed.connect(func() -> void: _show_phase(Phase.REPORT))
@@ -52,7 +64,7 @@ func _ready() -> void:
 	pause_button.pressed.connect(_toggle_pause)
 	report_panel.next_day_requested.connect(_prepare_next_day)
 	day_timer.timeout.connect(_on_day_timer_timeout)
-	planning_panel.update_augment_state(augment_manager, true)
+	_refresh_augment_views()
 	resized.connect(_update_layout)
 	_update_layout()
 	_show_score_target()
@@ -89,30 +101,111 @@ func _select_seat(seat: int) -> void:
 
 
 func _assign_employee(seat: int, employee_id: String) -> void:
-	if phase != Phase.PREPARE or not floor_plan.assign(seat, employee_id):
+	if phase != Phase.PREPARE or not inventory.deploy(seat, employee_id):
 		return
 	_sync_floor_plan()
 	status_label.text = "%s assigned to Seat %02d. Intake priority stays with the seat." % [floor_plan.profile(employee_id)["name"], seat + 1]
 
 
 func _bench_employee(seat: int) -> void:
-	if phase != Phase.PREPARE or not floor_plan.bench(seat):
+	if phase != Phase.PREPARE or seat < 0 or seat >= FloorPlan.SEAT_COUNT:
+		return
+	if inventory.is_reserve_full() and not floor_plan.seats[seat].is_empty():
+		status_label.text = "Salesperson reserve is full. Free a slot before recalling."
+		return
+	if not inventory.recall(seat):
 		return
 	_sync_floor_plan()
-	status_label.text = "Seat %02d is now open. The employee remains available in the planner." % (seat + 1)
+	status_label.text = "Seat %02d is now open. The employee waits in the salesperson reserve." % (seat + 1)
 	if staffed_seats.is_empty():
 		status_label.text = "Assign at least one colleague before starting the workday."
+
+
+func _hire_employee(employee_id: String) -> void:
+	if phase != Phase.PREPARE:
+		return
+	if not augment_manager.hire(employee_id):
+		status_label.text = "Hiring needs $%d and a free reserve slot." % AugmentManager.HIRE_COST
+		return
+	status_label.text = "%s hired into the salesperson reserve." % floor_plan.profile(employee_id)["name"]
+	_sync_floor_plan()
+	_refresh_augment_views()
+
+
+func _toggle_inventory(items: bool) -> void:
+	if items:
+		inventory_panel.toggle_items()
+	else:
+		inventory_panel.toggle_people()
+	items_button.set_pressed_no_signal(inventory_panel.items_open())
+	people_button.set_pressed_no_signal(inventory_panel.people_open())
+	_refresh_augment_views()
+
+
+func _refresh_augment_views() -> void:
+	planning_panel.update_augment_state(augment_manager, phase == Phase.PREPARE)
+	inventory_panel.show_state(inventory, phase == Phase.PREPARE)
+
+
+## Pure check shared by drag previews and the real transfer, so feedback matches outcomes.
+func _can_transfer(data: Dictionary, target_kind: String, target_index: int) -> bool:
+	if phase != Phase.PREPARE:
+		return false
+	match data.get("type", ""):
+		"item":
+			var slot := int(data.get("slot", -1))
+			if slot < 0 or slot >= InventoryManager.ITEM_SLOTS or inventory.item_slots[slot].is_empty():
+				return false
+			if target_kind == "item":
+				return target_index != slot and target_index >= 0 and target_index < InventoryManager.ITEM_SLOTS
+			var employee_id := inventory.person_at(target_kind, target_index)
+			return not employee_id.is_empty() and inventory.equipped_instances(employee_id).size() < augment_manager.slot_limit(employee_id)
+		"person":
+			var source_kind: String = data.get("kind", "")
+			var source_index := int(data.get("index", -1))
+			if inventory.person_at(source_kind, source_index).is_empty():
+				return false
+			return _valid_person_target(target_kind, target_index) \
+				and not (source_kind == target_kind and source_index == target_index)
+	return false
+
+
+func _valid_person_target(kind: String, index: int) -> bool:
+	if kind == InventoryManager.BOARD:
+		return index >= 0 and index < FloorPlan.SEAT_COUNT
+	return kind == InventoryManager.RESERVE and index >= 0 and index < InventoryManager.PERSON_SLOTS
+
+
+func _on_transfer_requested(data: Dictionary, target_kind: String, target_index: int) -> void:
+	if phase != Phase.PREPARE or not _can_transfer(data, target_kind, target_index):
+		status_label.text = "That move is not allowed."
+		return
+	if data["type"] == "item":
+		if target_kind == "item":
+			inventory.move_item(int(data["slot"]), target_index)
+			status_label.text = "Item moved."
+		else:
+			var employee_id := inventory.person_at(target_kind, target_index)
+			if not augment_manager.equip_slot(employee_id, int(data["slot"])):
+				status_label.text = "No augment slot is available for that employee."
+				return
+			status_label.text = "Augment equipped on %s." % floor_plan.profile(employee_id).get("name", employee_id)
+	else:
+		inventory.move_person(data["kind"], int(data["index"]), target_kind, target_index)
+		status_label.text = "Salesperson moved."
+	_sync_floor_plan()
+	_refresh_augment_views()
 
 
 func _purchase_augment(offer_index: int) -> void:
 	if phase != Phase.PREPARE:
 		return
 	if not augment_manager.purchase(offer_index):
-		status_label.text = "That augment cannot be purchased with the current budget."
+		status_label.text = "That augment cannot be purchased: check the budget and free item slots."
 		return
 	var augment_id: String = augment_manager.shop_offers[offer_index]
 	status_label.text = "%s added to inventory." % AugmentManager.CATALOG.profile(augment_id)["name"]
-	planning_panel.update_augment_state(augment_manager, true)
+	_refresh_augment_views()
 
 
 func _equip_augment(employee_id: String, inventory_index: int) -> void:
@@ -122,7 +215,7 @@ func _equip_augment(employee_id: String, inventory_index: int) -> void:
 		status_label.text = "No augment slot is available for that employee."
 		return
 	status_label.text = "Augment equipped on %s." % floor_plan.profile(employee_id).get("name", employee_id)
-	planning_panel.update_augment_state(augment_manager, true)
+	_refresh_augment_views()
 	_refresh_card_stats()
 
 
@@ -130,10 +223,10 @@ func _unequip_augment(employee_id: String, slot_index: int) -> void:
 	if phase != Phase.PREPARE:
 		return
 	if not augment_manager.unequip(employee_id, slot_index):
-		status_label.text = "That augment slot is empty."
+		status_label.text = "That augment slot is empty or the item inventory is full."
 		return
 	status_label.text = "Augment returned to inventory."
-	planning_panel.update_augment_state(augment_manager, true)
+	_refresh_augment_views()
 	_refresh_card_stats()
 
 
@@ -144,7 +237,7 @@ func _unlock_augment_slot(employee_id: String) -> void:
 		status_label.text = "Second-slot surgery requires $300 and can only be performed once per employee."
 		return
 	status_label.text = "Second augment slot unlocked for %s." % floor_plan.profile(employee_id).get("name", employee_id)
-	planning_panel.update_augment_state(augment_manager, true)
+	_refresh_augment_views()
 
 
 func _sync_floor_plan() -> void:
@@ -188,7 +281,7 @@ func _show_phase(next_phase: Phase) -> void:
 	planning_panel.visible = phase == Phase.PREPARE
 	planning_guide.visible = phase == Phase.PREPARE
 	revenue_label.visible = phase != Phase.PREPARE
-	planning_panel.update_augment_state(augment_manager, phase == Phase.PREPARE)
+	_refresh_augment_views()
 	prepare_tab.disabled = phase != Phase.PREPARE
 	play_tab.disabled = phase != Phase.PLAY
 	report_tab.disabled = phase != Phase.REPORT
@@ -299,7 +392,7 @@ func _prepare_next_day() -> void:
 	day_label.text = "DAY %02d / 60" % day
 	_show_score_target()
 	augment_manager.refresh_shop()
-	planning_panel.update_augment_state(augment_manager, true)
+	_refresh_augment_views()
 	call_queue.reset(floor_plan.seats)
 	pause_button.text = "Pause"
 	_show_phase(Phase.PREPARE)

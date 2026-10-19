@@ -103,6 +103,8 @@ func _test_scene() -> void:
 	# The interaction steps below need empty seats for move-to-empty and bench coverage.
 	var sparse_scene_seats: Array[String] = ["nina", "zip", "", "victoria", "", "", "", "", ""]
 	scene.floor_plan.seats = sparse_scene_seats
+	scene.inventory.person_slots[0] = "ada"
+	scene.inventory.person_slots[1] = "echo"
 	scene._sync_floor_plan()
 	_check(panel.visible and not scene.queue_panel.visible and panel.candidate_selector.item_count == 19,
 		"Prepare must show all nineteen candidates in its planner.")
@@ -152,14 +154,21 @@ func _test_scene() -> void:
 	_check(panel.profile_label.text == "Speed: 2/5 · Conversion: 45%\nUpsell: 10% · Multiplier: ×1.5", "The last roster entry must expose its own stats.")
 	await _click(panel.assign_button)
 	_check(scene.floor_plan.seats[1] == "echo", "Candidates beyond the first nine must be assignable.")
-	# Fill every seat, then replace one from the larger bench without duplication.
-	for seat in range(9):
-		scene._assign_employee(seat, str(scene.floor_plan.roster[seat]["id"]))
-	_check(scene.staffed_seats.size() == 9, "The expanded roster must be able to staff all nine positions.")
-	scene._assign_employee(8, "echo")
+	# Hiring: an unowned candidate is hired into reserve, never deployed, and charged once.
+	_choose_candidate(panel, "dex")
+	_check(panel.assign_button.text.begins_with("Hire") and not scene.inventory.owns("dex"),
+		"Unowned candidates must offer hiring instead of assignment.")
+	await _click(panel.assign_button)
+	_check(scene.inventory.person_slots.has("dex") and not scene.floor_plan.seats.has("dex")
+		and scene.augment_manager.budget == AugmentManager.STARTING_BUDGET - AugmentManager.HIRE_COST,
+		"Hiring must place the salesperson in reserve and charge the hire cost.")
+	scene._assign_employee(4, "nina")
+	scene._assign_employee(5, "dex")
+	_check(scene.staffed_seats.size() == 6 and scene.inventory.person_slots.count("") == InventoryManager.PERSON_SLOTS,
+		"Owned reserve members must be deployable and leave no duplicates behind.")
+	scene._assign_employee(8, "scrap")
+	_check(not scene.floor_plan.seats.has("scrap"), "Unhired salespeople cannot be deployed directly.")
 	_unique_assignments(scene.floor_plan)
-	_check(scene.floor_plan.seats[8] == "echo" and scene.staffed_seats.size() == 9,
-		"A full floor must support replacement from the bench.")
 	# No empty-floor workday, including attempts to bypass the disabled button.
 	for seat in range(9):
 		scene._bench_employee(seat)

@@ -7,16 +7,28 @@ const SURGERY_COST := 300
 const STARTING_BUDGET := 500
 const SHOP_SIZE := 3
 
+const HIRE_COST := 100
+
 var budget := STARTING_BUDGET
-var inventory: Array[String] = []
-var equipment: Dictionary = {}
+var bag: InventoryManager
 var second_slot_unlocked: Dictionary = {}
 var shop_offers: Array[String] = []
 var purchased_offer_indexes: Array[int] = []
 var _rng := RandomNumberGenerator.new()
 
+## Augment ids currently stored in the item inventory, in slot order.
+var inventory: Array[String]:
+	get:
+		return bag.item_augment_ids()
 
-func _init() -> void:
+## Equipped augment ids per employee, as consumed by the call simulation.
+var equipment: Dictionary:
+	get:
+		return bag.equipped_augment_ids()
+
+
+func _init(inventory_manager: InventoryManager = null) -> void:
+	bag = inventory_manager if inventory_manager != null else InventoryManager.new()
 	_rng.randomize()
 	refresh_shop()
 
@@ -40,39 +52,36 @@ func purchase(offer_index: int) -> bool:
 	var augment := CATALOG.profile(augment_id)
 	if augment.is_empty():
 		return false
-	if budget < int(augment["price"]):
+	if budget < int(augment["price"]) or bag.is_item_full():
+		return false
+	if bag.add_item(augment_id).is_empty():
 		return false
 	budget -= int(augment["price"])
-	inventory.append(augment_id)
 	purchased_offer_indexes.append(offer_index)
 	return true
 
 
-func equip(employee_id: String, inventory_index: int) -> bool:
-	if EMPLOYEES.profile(employee_id).is_empty() or inventory_index < 0 or inventory_index >= inventory.size():
+## Hires into the salesperson reserve. Fails without charging when unaffordable or full.
+func hire(employee_id: String) -> bool:
+	if budget < HIRE_COST or not bag.hire(employee_id):
 		return false
-	var loadout: Array[String] = []
-	loadout.assign(equipment.get(employee_id, []))
-	var slot_limit := 2 if second_slot_unlocked.get(employee_id, false) else 1
-	if loadout.size() >= slot_limit:
-		return false
-	loadout.append(inventory[inventory_index])
-	equipment[employee_id] = loadout
-	inventory.remove_at(inventory_index)
+	budget -= HIRE_COST
 	return true
+
+
+## Equips the nth stored item (gaps ignored); kept for list-style callers.
+func equip(employee_id: String, inventory_index: int) -> bool:
+	return equip_slot(employee_id, bag.slot_of_nth_item(inventory_index))
+
+
+func equip_slot(employee_id: String, item_slot: int) -> bool:
+	if EMPLOYEES.profile(employee_id).is_empty():
+		return false
+	return bag.equip_item(employee_id, item_slot, slot_limit(employee_id))
 
 
 func unequip(employee_id: String, slot_index: int) -> bool:
-	if not equipment.has(employee_id):
-		return false
-	var loadout: Array[String] = equipment[employee_id]
-	if slot_index < 0 or slot_index >= loadout.size():
-		return false
-	inventory.append(loadout[slot_index])
-	loadout.remove_at(slot_index)
-	if loadout.is_empty():
-		equipment.erase(employee_id)
-	return true
+	return bag.unequip_item(employee_id, slot_index)
 
 
 func unlock_second_slot(employee_id: String) -> bool:
@@ -89,5 +98,6 @@ func slot_limit(employee_id: String) -> int:
 
 func loadout(employee_id: String) -> Array[String]:
 	var result: Array[String] = []
-	result.assign(equipment.get(employee_id, []))
+	for item: Dictionary in bag.equipped_instances(employee_id):
+		result.append(item["augment_id"])
 	return result

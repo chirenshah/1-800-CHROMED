@@ -2,6 +2,7 @@ extends PanelContainer
 class_name EmployeeCard
 
 signal seat_selected(seat: int)
+signal dropped(data: Dictionary, target_kind: String, target_index: int)
 
 @onready var seat_label: Label = $Margin/Content/Seat
 @onready var name_label: Label = $Margin/Content/Name
@@ -15,6 +16,7 @@ var seat_number := 0
 var employee_id := ""
 var planning_enabled := false
 var selected := false
+var drop_validator := Callable()
 var _normal_style: StyleBoxFlat
 var _selected_style: StyleBoxFlat
 var _empty_style: StyleBoxFlat
@@ -46,6 +48,8 @@ func configure(number: int, employee: Dictionary, loadout: Array[String] = []) -
 		var speed_text := "%d" % employee["speed"] if is_zero_approx(speed_bonus) else "%.1f" % (float(employee["speed"]) * (1.0 + speed_bonus / 100.0))
 		var conversion := clampi(roundi(float(employee["conversion"]) + conversion_bonus), 0, 100)
 		stats_label.text = "SPD %s/5 · CNV %d%%\nUP %d%% · ×%.1f" % [speed_text, conversion, employee["upsell_chance"], employee["upsell_multiplier"]]
+		if not loadout.is_empty():
+			stats_label.text += " · ◆%d" % loadout.size()
 	else:
 		stats_label.text = ""
 	stats_label.visible = staffed
@@ -79,6 +83,37 @@ func _refresh_style() -> void:
 	if selected or (planning_enabled and has_focus()):
 		style = _selected_style
 	add_theme_stylebox_override("panel", style)
+
+
+func _get_drag_data(_at_position: Vector2) -> Variant:
+	if not planning_enabled or not staffed:
+		return null
+	var preview := Label.new()
+	preview.text = name_label.text
+	preview.add_theme_color_override("font_color", Color(0.29, 0.94, 0.82))
+	set_drag_preview(preview)
+	return {"type": "person", "kind": InventoryManager.BOARD, "index": seat_number - 1}
+
+
+func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
+	var valid: bool = planning_enabled and data is Dictionary and drop_validator.is_valid() \
+		and drop_validator.call(data, InventoryManager.BOARD, seat_number - 1)
+	if _normal_style != null:
+		var feedback := _normal_style.duplicate()
+		feedback.border_color = Color(0.29, 0.94, 0.82) if valid else Color(0.95, 0.3, 0.38)
+		feedback.set_border_width_all(2)
+		add_theme_stylebox_override("panel", feedback)
+	return valid
+
+
+func _drop_data(_at_position: Vector2, data: Variant) -> void:
+	_refresh_style()
+	dropped.emit(data, InventoryManager.BOARD, seat_number - 1)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_DRAG_END or what == NOTIFICATION_MOUSE_EXIT:
+		_refresh_style()
 
 
 func _gui_input(event: InputEvent) -> void:

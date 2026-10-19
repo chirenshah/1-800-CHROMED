@@ -20,6 +20,7 @@ func _check(condition: bool, message: String) -> void:
 func _run() -> void:
 	_test_model()
 	await _test_scene()
+	await _test_recycler_report()
 	await _test_timer_scheduling()
 	if failures.is_empty():
 		print("PASS: queue accounting, FIFO and seat priority, pause, closing report, next day, and responsive layout.")
@@ -58,11 +59,15 @@ func _test_model() -> void:
 		_check(model.sales <= model.handled, "Only a completed interaction can produce a sale.")
 	model.reset([], 321)
 	_check(model.received == 0 and model.handled == 0 and model.revenue == 0
-		and model.sales == 0 and model.active.is_empty() and model.waiting.is_empty()
+		and model.sales == 0 and model.normal_sales == 0 and model.get_discard_count() == 0
+		and model.discarded_today == 0 and model.recovery_attempts == 0 and model.recovered == 0
+		and model.failed_recoveries == 0 and model.recovered_revenue == 0
+		and model.active.is_empty() and model.waiting.is_empty()
 		and model.last_dispatch.is_empty(), "Reset must clear all daily queue state.")
 	model.receive_call()
 	_check(model.active.is_empty() and model.waiting.size() == model.received,
 		"Without staff, incoming calls must remain waiting.")
+	_check(model.get_discard_count() == 0, "Leads waiting without staff must not enter the discard pile.")
 
 
 func _settle() -> void:
@@ -89,8 +94,11 @@ func _check_bounds(scene, size: Vector2i) -> void:
 
 func _queue_snapshot(scene) -> String:
 	return var_to_str([scene.call_queue.elapsed_seconds, scene.call_queue.next_arrival_seconds, scene.call_queue.elapsed_ticks, scene.call_queue.received,
-		scene.call_queue.handled, scene.call_queue.abandoned, scene.call_queue.active,
-		scene.call_queue.waiting, scene.call_queue.employee_results()])
+		scene.call_queue.handled, scene.call_queue.abandoned, scene.call_queue.sales,
+		scene.call_queue.normal_sales, scene.call_queue.failed_interactions, scene.call_queue.discarded_today,
+		scene.call_queue.recovery_attempts, scene.call_queue.recovered, scene.call_queue.failed_recoveries,
+		scene.call_queue.recovered_revenue, scene.call_queue.lead_discard_pile,
+		scene.call_queue.active, scene.call_queue.waiting, scene.call_queue.employee_results()])
 
 
 func _test_scene() -> void:
@@ -117,6 +125,8 @@ func _test_scene() -> void:
 		await _settle()
 		_check(scene.queue_panel.waiting_label.text == str(scene.call_queue.waiting.size()),
 			"The queue counter must match the waiting calls.")
+			_check(scene.queue_panel.discard_label.text == "Lead discard pile  %d" % scene.call_queue.get_discard_count(),
+				"The live discard counter must match failed interactions.")
 		_check(scene.queue_panel.more_label.visible, "A long queue must show its overflow count.")
 		var first_row: Label = scene.queue_panel.rows.get_child(0).get_node("Margin/Content/CallId")
 		_check(first_row.text == "Call #%03d" % scene.call_queue.waiting[0]["id"],
@@ -151,6 +161,19 @@ func _test_scene() -> void:
 			"The report must account for waiting and unfinished calls at close.")
 		_check(scene.report_panel.abandoned_label.text == "Left while waiting  %d" % scene.call_queue.abandoned,
 			"The report must include callers who abandoned the queue.")
+		_check(scene.report_panel.failed_label.text == "Failed normal interactions  %d" % scene.call_queue.failed_interactions
+			and scene.report_panel.normal_sales_label.text
+				== "Successful normal conversions  %d" % scene.call_queue.normal_sales
+			and scene.report_panel.total_sales_label.text
+				== "Total successful conversions  %d" % scene.call_queue.sales
+			and scene.report_panel.discarded_label.text == "Leads discarded  %d" % scene.call_queue.discarded_today
+			and scene.report_panel.recovery_label.text == "Recycler attempts  %d · recovered  %d · failed  %d" % [
+				scene.call_queue.recovery_attempts, scene.call_queue.recovered, scene.call_queue.failed_recoveries
+			]
+			and scene.report_panel.recovery_revenue_label.text
+				== "Revenue recovered  $%s" % scene.report_panel._format_number(scene.call_queue.recovered_revenue)
+			and scene.call_queue.get_discard_count() == 0,
+			"The report must preserve failed/discarded totals after the live pile is cleared at close.")
 		_check(scene.report_panel.employee_rows.get_child_count() == scene.staffed_seats.size(),
 			"Report must show workload for each staffed employee.")
 		var nina: Dictionary = scene.call_queue.employee_stats["nina"]
@@ -184,7 +207,9 @@ func _test_scene() -> void:
 			and scene.call_queue.active.is_empty() and scene.call_queue.waiting.is_empty()
 			and scene.revenue_label.text == "$0" and scene.queue_panel.empty_label.visible,
 			"Next day must reset the queue, call cards, and daily counters.")
-		_check(scene.call_queue.abandoned == 0 and scene.call_queue.employee_stats["nina"]["busy_ticks"] == 0
+		_check(scene.call_queue.abandoned == 0 and scene.call_queue.get_discard_count() == 0
+			and scene.call_queue.discarded_today == 0
+			and scene.call_queue.employee_stats["nina"]["busy_ticks"] == 0
 			and scene.employee_cards[0].status_label.text == "READY", "Next day must clear patience losses, workload, and visible busy state.")
 		_check_bounds(scene, size)
 	# Exercise automatic end-of-day, as well as the early-close path above.
@@ -205,6 +230,62 @@ func _test_scene() -> void:
 	await _settle()
 	await _capture("full-day-report")
 	scene.queue_free()
+	await process_frame
+
+
+func _test_recycler_report() -> void:
+	var scene = load("res://scenes/workday.tscn").instantiate()
+	root.add_child(scene)
+	await _settle()
+	var data := EmployeeRoster.new()
+	data.employees.append({"id": "zip", "name": "Zip", "archetype": "Hustler",
+		"speed": 5, "conversion": 0, "upsell_chance": 0, "upsell_multiplier": 1.5})
+	data.employees.append({"id": "scrap", "name": "Scrap", "archetype": "Recycler",
+		"speed": 5, "conversion": 100, "upsell_chance": 100, "upsell_multiplier": 2.0})
+	scene._start_day()
+	scene.day_timer.stop()
+	scene.call_queue.roster = data
+	scene.call_queue.reset(["zip", "scrap"], 41)
+	scene.call_queue.next_arrival_seconds = INF
+	scene.call_queue.receive_call()
+	scene.call_queue.advance(data.handling_seconds("zip"))
+	scene.call_queue.advance(data.handling_seconds("scrap"))
+	scene._finish_day()
+	_check(scene.report_panel.normal_sales_label.text == "Successful normal conversions  0"
+		and scene.report_panel.total_sales_label.text == "Total successful conversions  1"
+		and scene.report_panel.failed_label.text == "Failed normal interactions  1"
+		and scene.report_panel.discarded_label.text == "Leads discarded  1"
+		and scene.report_panel.recovery_label.text == "Recycler attempts  1 · recovered  1 · failed  0"
+		and scene.report_panel.recovery_revenue_label.text == "Revenue recovered  $390"
+		and scene.report_panel.recycler_utilization_label.text == "Recycler utilization  50%"
+		and scene.report_panel.revenue_label.text == "Revenue  $390"
+		and scene.augment_manager.budget == 890
+		and scene.call_queue.get_discard_count() == 0,
+		"The report must separate normal failures and recovery results, preserve recovered revenue/utilization, and clear the pile.")
+	var recycler_row: Label = scene.report_panel.employee_rows.get_child(1)
+	_check(recycler_row.text.contains("Scrap · Recycler"),
+		"Recycler workload must be identifiable in the report.")
+	scene.queue_free()
+	await process_frame
+
+	var unfinished_scene = load("res://scenes/workday.tscn").instantiate()
+	root.add_child(unfinished_scene)
+	await _settle()
+	unfinished_scene._start_day()
+	unfinished_scene.day_timer.stop()
+	unfinished_scene.call_queue.roster = data
+	unfinished_scene.call_queue.reset(["zip", "scrap"], 42)
+	unfinished_scene.call_queue.next_arrival_seconds = INF
+	unfinished_scene.call_queue.receive_call()
+	unfinished_scene.call_queue.advance(data.handling_seconds("zip"))
+	unfinished_scene.call_queue.advance(data.handling_seconds("scrap") / 2.0)
+	unfinished_scene._finish_day()
+	_check(unfinished_scene.report_panel.recovery_label.text
+		== "Recycler attempts  1 · recovered  0 · failed  0"
+		and unfinished_scene.report_panel.unfinished_label.text == "Unfinished calls  1"
+		and unfinished_scene.report_panel.revenue_label.text == "Revenue  $0",
+		"Closing during recovery must report it as unfinished and award no unearned revenue.")
+	unfinished_scene.queue_free()
 	await process_frame
 
 

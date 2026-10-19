@@ -143,6 +143,12 @@ theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
 theme_override_font_sizes/font_size = 12
 text = "Left while waiting  0"
 
+[node name="DiscardPile" type="Label" parent="Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.69, 0.8, 1)
+theme_override_font_sizes/font_size = 12
+text = "Lead discard pile  0"
+
 [node name="OrderCaption" type="Label" parent="Margin/Content"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.62, 0.69, 0.8, 1)

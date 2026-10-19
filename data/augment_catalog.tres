@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentCatalog" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/augment_catalog.gd" id="1_catalog"]
+
+[resource]
+script = ExtResource("1_catalog")
+augments = Array[Dictionary]([
+  {"id": "AUG_001", "name": "Silver Tongue™", "stat": "conversion", "bonus": 10, "price": 100, "rarity": "Common"},
+  {"id": "AUG_002", "name": "Neural Overclock", "stat": "speed", "bonus": 15, "price": 125, "rarity": "Common"},
+  {"id": "AUG_003", "name": "Corporate Charm Chip", "stat": "conversion", "bonus": 15, "price": 175, "rarity": "Uncommon"},
+  {"id": "AUG_004", "name": "Synaptic Accelerator", "stat": "speed", "bonus": 25, "price": 225, "rarity": "Rare"},
+  {"id": "AUG_005", "name": "Persuasion Matrix", "stat": "conversion", "bonus": 25, "price": 300, "rarity": "Rare"},
+  {"id": "AUG_006", "name": "Quantum Dialer", "stat": "speed", "bonus": 40, "price": 450, "rarity": "Legendary"}
+])

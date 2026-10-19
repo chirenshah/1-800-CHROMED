@@ -52,7 +52,39 @@ text = "Calls handled  0"
 [node name="ConversionLabel" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "Conversion  0%"
+text = "Normal conversion  0%"
+
+[node name="NormalSalesLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+text = "Successful normal conversions  0"
+autowrap_mode = 2
+
+[node name="TotalSalesLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+text = "Total successful conversions  0"
+autowrap_mode = 2
+
+[node name="FailedLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+text = "Failed normal interactions  0"
+autowrap_mode = 2
+
+[node name="DiscardedLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+text = "Leads discarded  0"
+
+[node name="RecoveryLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+text = "Recycler attempts  0 · recovered  0 · failed  0"
+autowrap_mode = 2
+
+[node name="RecoveryRevenueLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+text = "Revenue recovered  $0"
+
+[node name="RecyclerUtilizationLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+text = "Recycler utilization  N/A"
 
 [node name="ReceivedLabel" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
@@ -98,4 +130,3 @@ autowrap_mode = 2
 [node name="NextDayButton" type="Button" parent="Margin/Scroll/Content"]
 layout_mode = 2
 text = "Prepare Next Day"
-

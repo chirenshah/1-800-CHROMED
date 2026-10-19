@@ -4,6 +4,8 @@ enum Phase { PREPARE, PLAY, REPORT }
 
 const EMPLOYEE_SCENE := preload("res://scenes/employee.tscn")
 const DAY_TICKS := 40
+const BASE_SCORE_TARGET := 1000
+const SCORE_TARGET_STEP := 250
 
 @onready var prepare_tab: Button = $PageMargin/Page/Tabs/PrepareTab
 @onready var play_tab: Button = $PageMargin/Page/Tabs/PlayTab
@@ -12,6 +14,7 @@ const DAY_TICKS := 40
 @onready var day_label: Label = $PageMargin/Page/Header/DayLabel
 @onready var floor_grid: GridContainer = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorScroll/FloorGrid
 @onready var revenue_label: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader/RevenueLabel
+@onready var target_label: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader/TargetLabel
 @onready var status_label: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer/StatusLabel
 @onready var pause_button: Button = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer/PauseButton
 @onready var primary_button: Button = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer/PrimaryButton
@@ -29,6 +32,7 @@ var employee_cards: Array[EmployeeCard] = []
 var staffed_seats: Array[int] = []
 var call_queue := CallQueueSimulation.new()
 var floor_plan := FloorPlan.new()
+var augment_manager := AugmentManager.new()
 var selected_seat := 0
 
 
@@ -37,6 +41,10 @@ func _ready() -> void:
 	call_queue.reset(floor_plan.seats)
 	planning_panel.assignment_requested.connect(_assign_employee)
 	planning_panel.bench_requested.connect(_bench_employee)
+	planning_panel.augment_purchase_requested.connect(_purchase_augment)
+	planning_panel.augment_equip_requested.connect(_equip_augment)
+	planning_panel.augment_unequip_requested.connect(_unequip_augment)
+	planning_panel.surgery_requested.connect(_unlock_augment_slot)
 	prepare_tab.pressed.connect(func() -> void: _show_phase(Phase.PREPARE))
 	play_tab.pressed.connect(func() -> void: _show_phase(Phase.PLAY))
 	report_tab.pressed.connect(func() -> void: _show_phase(Phase.REPORT))
@@ -44,9 +52,20 @@ func _ready() -> void:
 	pause_button.pressed.connect(_toggle_pause)
 	report_panel.next_day_requested.connect(_prepare_next_day)
 	day_timer.timeout.connect(_on_day_timer_timeout)
+	planning_panel.update_augment_state(augment_manager, true)
 	resized.connect(_update_layout)
 	_update_layout()
+	_show_score_target()
 	_show_phase(Phase.PREPARE)
+
+
+func score_target(for_day: int) -> int:
+	return BASE_SCORE_TARGET + SCORE_TARGET_STEP * (for_day - 1)
+
+
+func _show_score_target() -> void:
+	planning_panel.show_score_target(day, score_target(day))
+	target_label.text = "TARGET $%d  /  " % score_target(day)
 
 
 func _build_floor() -> void:
@@ -85,12 +104,60 @@ func _bench_employee(seat: int) -> void:
 		status_label.text = "Assign at least one colleague before starting the workday."
 
 
+func _purchase_augment(offer_index: int) -> void:
+	if phase != Phase.PREPARE:
+		return
+	if not augment_manager.purchase(offer_index):
+		status_label.text = "That augment cannot be purchased with the current budget."
+		return
+	var augment_id: String = augment_manager.shop_offers[offer_index]
+	status_label.text = "%s added to inventory." % AugmentManager.CATALOG.profile(augment_id)["name"]
+	planning_panel.update_augment_state(augment_manager, true)
+
+
+func _equip_augment(employee_id: String, inventory_index: int) -> void:
+	if phase != Phase.PREPARE:
+		return
+	if not augment_manager.equip(employee_id, inventory_index):
+		status_label.text = "No augment slot is available for that employee."
+		return
+	status_label.text = "Augment equipped on %s." % floor_plan.profile(employee_id).get("name", employee_id)
+	planning_panel.update_augment_state(augment_manager, true)
+	_refresh_card_stats()
+
+
+func _unequip_augment(employee_id: String, slot_index: int) -> void:
+	if phase != Phase.PREPARE:
+		return
+	if not augment_manager.unequip(employee_id, slot_index):
+		status_label.text = "That augment slot is empty."
+		return
+	status_label.text = "Augment returned to inventory."
+	planning_panel.update_augment_state(augment_manager, true)
+	_refresh_card_stats()
+
+
+func _unlock_augment_slot(employee_id: String) -> void:
+	if phase != Phase.PREPARE:
+		return
+	if not augment_manager.unlock_second_slot(employee_id):
+		status_label.text = "Second-slot surgery requires $300 and can only be performed once per employee."
+		return
+	status_label.text = "Second augment slot unlocked for %s." % floor_plan.profile(employee_id).get("name", employee_id)
+	planning_panel.update_augment_state(augment_manager, true)
+
+
 func _sync_floor_plan() -> void:
 	staffed_seats.assign(floor_plan.occupied_seats())
-	for seat in employee_cards.size():
-		employee_cards[seat].configure(seat + 1, floor_plan.profile(floor_plan.seats[seat]))
+	_refresh_card_stats()
 	planning_panel.show_plan(floor_plan, selected_seat)
 	_refresh_floor()
+
+
+func _refresh_card_stats() -> void:
+	for seat in employee_cards.size():
+		var employee_id := floor_plan.seats[seat]
+		employee_cards[seat].configure(seat + 1, floor_plan.profile(employee_id), augment_manager.loadout(employee_id))
 
 
 func _update_layout() -> void:
@@ -121,6 +188,7 @@ func _show_phase(next_phase: Phase) -> void:
 	planning_panel.visible = phase == Phase.PREPARE
 	planning_guide.visible = phase == Phase.PREPARE
 	revenue_label.visible = phase != Phase.PREPARE
+	planning_panel.update_augment_state(augment_manager, phase == Phase.PREPARE)
 	prepare_tab.disabled = phase != Phase.PREPARE
 	play_tab.disabled = phase != Phase.PLAY
 	report_tab.disabled = phase != Phase.REPORT
@@ -156,7 +224,7 @@ func _on_primary_pressed() -> void:
 func _start_day() -> void:
 	if phase != Phase.PREPARE or staffed_seats.is_empty():
 		return
-	call_queue.reset(floor_plan.seats)
+	call_queue.reset(floor_plan.seats, -1, augment_manager.equipment)
 	paused = false
 	day_timer.paused = false
 	pause_button.text = "Pause"
@@ -207,13 +275,20 @@ func _finish_day() -> void:
 	paused = false
 	pause_button.text = "Pause"
 	var workload := call_queue.employee_results()
+	augment_manager.budget += call_queue.revenue
 	for employee in workload:
-		employee["name"] = floor_plan.profile(employee["employee_id"]).get("name", employee["employee_id"])
+		var profile := floor_plan.profile(employee["employee_id"])
+		employee["name"] = profile.get("name", employee["employee_id"])
+		employee["archetype"] = profile.get("archetype", "")
 	report_panel.show_results(
-		day, call_queue.revenue, call_queue.handled, call_queue.sales,
+		day, call_queue.revenue, call_queue.handled, call_queue.normal_sales, call_queue.sales,
+		call_queue.failed_interactions, call_queue.discarded_today,
+		call_queue.recovery_attempts, call_queue.recovered, call_queue.failed_recoveries,
+		call_queue.recovered_revenue,
 		call_queue.received, call_queue.waiting.size(), call_queue.active.size(),
 		call_queue.abandoned, workload
 	)
+	call_queue.clear_discard_pile()
 	_show_phase(Phase.REPORT)
 
 
@@ -222,6 +297,9 @@ func _prepare_next_day() -> void:
 		return
 	day = mini(day + 1, 60)
 	day_label.text = "DAY %02d / 60" % day
+	_show_score_target()
+	augment_manager.refresh_shop()
+	planning_panel.update_augment_state(augment_manager, true)
 	call_queue.reset(floor_plan.seats)
 	pause_button.text = "Pause"
 	_show_phase(Phase.PREPARE)
@@ -242,5 +320,6 @@ func _refresh_floor() -> void:
 	queue_panel.update_queue(
 		call_queue.waiting, call_queue.active.size(), call_queue.handled,
 		call_queue.received, state, call_queue.last_dispatch, call_queue.abandoned,
+		call_queue.get_discard_count(),
 		call_queue.elapsed_seconds / CallQueueSimulation.TICK_SECONDS
 	)

@@ -16,14 +16,16 @@ const MUTED := Color(0.62, 0.69, 0.8)
 @onready var more_label: Label = $Margin/Content/MoreWaiting
 @onready var dispatch_label: Label = $Margin/Content/LastDispatch
 @onready var abandoned_label: Label = $Margin/Content/Abandoned
+@onready var discard_label: Label = $Margin/Content/DiscardPile
 
 
-func update_queue(waiting_calls: Array[Dictionary], active_count: int, handled_count: int, received_count: int, state: String, last_dispatch: String, abandoned_count: int, elapsed_ticks: float) -> void:
+func update_queue(waiting_calls: Array[Dictionary], active_count: int, handled_count: int, received_count: int, state: String, last_dispatch: String, abandoned_count: int, discarded_count: int, elapsed_ticks: float) -> void:
 	waiting_label.text = _format_number(waiting_calls.size())
 	on_call_label.text = _format_number(active_count)
 	handled_label.text = _format_number(handled_count)
 	received_label.text = _format_number(received_count)
 	abandoned_label.text = "Left while waiting  %d" % abandoned_count
+	discard_label.text = "Lead discard pile  %d" % discarded_count
 	state_label.text = {"PREPARE": "READY", "LIVE": "LIVE", "PAUSED": "PAUSED", "CLOSED": "CLOSED"}.get(state, state)
 	state_label.add_theme_color_override("font_color", CYAN if state == "LIVE" else (AMBER if state == "PAUSED" else MUTED))
 

@@ -99,7 +99,7 @@ func _test_abandonment() -> void:
 	_check(model.abandoned == 0 and model.waiting[0]["id"] == 1, "Waiting leads stay until their actual patience deadline.")
 	model.advance(0.1)
 	_check(model.abandoned == 2 and model.abandoned_this_tick[0]["id"] == 1
-		and model.waiting.is_empty() and model.active.is_empty(),
+		and model.waiting.is_empty() and model.active.is_empty() and model.lead_discard_pile.is_empty(),
 		"All-empty floors must expire all leads at exactly six seconds.")
 	model = _fixture(["nina"], 3)
 	model.waiting[0]["patience_ticks"] = 4
@@ -133,6 +133,10 @@ func _test_employee_attribution() -> void:
 	_check(model.elapsed_ticks == 0 and is_zero_approx(model.elapsed_seconds)
 		and model.abandoned == 0 and model.handled == 0
 		and model.sales == 0 and model.revenue == 0 and model.received == 0
+		and model.failed_interactions == 0 and model.discarded_today == 0 and model.normal_sales == 0
+		and model.recovery_attempts == 0 and model.recovered == 0
+		and model.failed_recoveries == 0 and model.recovered_revenue == 0
+		and model.lead_discard_pile.is_empty()
 		and model.waiting.is_empty() and model.active.is_empty() and model.last_dispatch.is_empty()
 		and model.assigned_this_tick.is_empty() and model.completed_this_tick.is_empty()
 		and model.abandoned_this_tick.is_empty() and not model.employee_stats.has("dex")
@@ -149,8 +153,8 @@ func _test_arrivals() -> void:
 	second.reset([], 72)
 	var original_delay: float = first.next_arrival_seconds
 	_check(is_equal_approx(MODEL.MIN_ARRIVAL_SECONDS, 0.75)
-		and is_equal_approx(MODEL.MAX_ARRIVAL_SECONDS, 3.0), "Arrival bounds must remain 0.75 to 3 seconds.")
-	_check(first.received == 0 and original_delay >= 0.75 and original_delay <= 3.0,
+		and is_equal_approx(MODEL.MAX_ARRIVAL_SECONDS, 1.5), "Arrival bounds must remain 0.75 to 1.5 seconds.")
+	_check(first.received == 0 and original_delay >= 0.75 and original_delay <= 1.5,
 		"Reset must schedule a fresh bounded delay without receiving a call.")
 	_check(not is_equal_approx(original_delay, second.next_arrival_seconds), "Different seeds must produce different arrival schedules.")
 	first.advance(original_delay - 0.001)
@@ -189,8 +193,8 @@ func _test_arrivals() -> void:
 	whole.advance(30.0)
 	for index in range(120):
 		split.advance(0.25)
-	_check([whole.received, whole.handled, whole.abandoned, whole.active.size(), whole.waiting.size()]
-		== [split.received, split.handled, split.abandoned, split.active.size(), split.waiting.size()],
+	_check([whole.received, whole.handled, whole.abandoned, whole.get_discard_count(), whole.active.size(), whole.waiting.size()]
+		== [split.received, split.handled, split.abandoned, split.get_discard_count(), split.active.size(), split.waiting.size()],
 		"Advancing across many event deadlines must preserve the same lifecycle as smaller steps.")
 	_check(is_equal_approx(whole.employee_stats["nina"]["busy_ticks"], split.employee_stats["nina"]["busy_ticks"])
 		and is_equal_approx(whole.employee_stats["nina"]["idle_ticks"], split.employee_stats["nina"]["idle_ticks"]),
@@ -199,7 +203,10 @@ func _test_arrivals() -> void:
 
 func _snapshot(model: CallQueueSimulation) -> String:
 	return var_to_str([model.elapsed_seconds, model.next_arrival_seconds, model.elapsed_ticks, model.received, model.handled, model.abandoned,
-		model.sales, model.revenue, model.active, model.waiting, model.employee_results(),
+		model.sales, model.normal_sales, model.failed_interactions, model.discarded_today,
+		model.recovery_attempts, model.recovered, model.failed_recoveries, model.recovered_revenue,
+		model.revenue,
+		model.lead_discard_pile, model.active, model.waiting, model.employee_results(),
 		model.assigned_this_tick, model.completed_this_tick, model.abandoned_this_tick])
 
 
@@ -231,6 +238,12 @@ func _test_repeatability_and_accounting() -> void:
 			for call in first.abandoned_this_tick:
 				_check(not assigned_ids.has(call["id"]) and not terminal_ids.has(call["id"]), "Only an unassigned waiting lead can abandon once.")
 				terminal_ids[call["id"]] = true
+			var pile_ids := {}
+			for call in first.lead_discard_pile:
+				_check(not pile_ids.has(call["id"]) and assigned_ids.has(call["id"])
+					and terminal_ids.has(call["id"]) and not call["sold"],
+					"Only a completed assigned lead can enter the discard pile.")
+				pile_ids[call["id"]] = true
 			var seen := {}
 			for call: Dictionary in first.active.values():
 				_check(not seen.has(call["id"]) and not terminal_ids.has(call["id"]), "Active leads must be unique and unfinished.")
@@ -251,6 +264,7 @@ func _test_repeatability_and_accounting() -> void:
 				total_handled += int(result["handled"])
 				total_sales += int(result["sales"])
 				total_revenue += int(result["revenue"])
-			_check(total_assigned == first.handled + first.active.size() and total_handled == first.handled
+			_check(total_assigned == first.handled + first.recovery_attempts + first.active.size()
+				and total_handled == first.handled + first.recovery_attempts
 				and total_sales == first.sales and total_revenue == first.revenue,
 				"Employee workload and sale totals must reconcile with the existing aggregate metrics.")

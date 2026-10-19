@@ -2,7 +2,7 @@
 
 Last updated: October 18, 2026
 
-**Status:** Prototype employee baselines are active for all 18 named candidates: Speed (1–5) and Conversion (0–100%). Conditional archetype abilities, source/qualification effects, and adjacency effects remain future proposals. Timing, patience, and outcome rules are prototype tuning placeholders.
+**Status:** Prototype employee baselines are active for all 19 named candidates: Speed (1–5), Conversion (0–100%), Upsell Chance, and Upsell Multiplier. Recycler recovery is implemented; other conditional archetype abilities, source/qualification effects, and adjacency effects remain future proposals. Timing, patience, and outcome rules are prototype tuning placeholders.
 
 Related documents: [game decisions](../decisions.md) and [player persona](../player-persona.md).
 
@@ -40,15 +40,15 @@ Direction supplied by the current character brief:
 - Position determines opportunity. Employee behavior determines what happens with that opportunity.
 - A successful team does not have to include every archetype.
 
-The six archetypes are proposed. Current baseline Speed and Conversion values affect handling and sale chance, while conditional abilities, adjacency rules, lead transfers, qualification actions, and configurable routing policies remain future work. Stress, morale, relationships, and other human factors are possible future systems.
+Six archetypes remain proposed. The Recycler is a confirmed and implemented role: it takes failed leads from the daily discard pile for one recovery attempt, using the same four baseline stats and augments as other employees. Current baseline Speed, Conversion, Upsell Chance, and Upsell Multiplier affect interactions. Conditional abilities for the other archetypes, adjacency rules, lead transfers, qualification actions, and configurable routing policies remain future work. Stress, morale, relationships, and other human factors are possible future systems.
 
-**Routing evidence:** The [queue simulation](../scripts/call_queue_simulation.gd) assigns the oldest waiting lead to the first available occupied seat in fixed row-major order, positions 1–9; empty and busy seats are skipped. Prepare moves are allowed only before Play, and the lineup locks during Play (including pause) and Report. Waiting leads abandon at the prototype patience deadline; active leads do not abandon. The current simulation has no qualification, transfers, or conditional archetype abilities, and employee baseline stats do not change routing. See [README.md](../README.md) for prototype timing and reporting assumptions.
+**Routing evidence:** The [queue simulation](../scripts/call_queue_simulation.gd) assigns the oldest incoming lead to the first available normal representative in fixed row-major order, positions 1–9; empty, busy, and Recycler seats are skipped. Recyclers independently claim discard-pile leads in fixed slot order. Prepare moves are allowed only before Play, and the lineup locks during Play (including pause) and Report. Waiting incoming leads abandon at the prototype patience deadline; active leads do not abandon. Other qualification, transfers, and conditional archetype abilities remain unimplemented. See [README.md](../README.md) for prototype timing and reporting assumptions.
 
 ### Implemented planning prototype — October 18, 2026
 
-Prepare offers all 18 candidates described in this document. The roster order starts Nina, Zip, Victoria, Ada, and Dex, followed by Marcus, Brick, Zero, Mox, Tess, Rook, June, Sable, Patch, Switch, Nyx, Jinx, and Echo. All nine seats begin filled by Nina, Zip, Ada, Victoria, Dex, Marcus, Brick, Zero, and Mox in seats 01–09 respectively; the remaining nine candidates are available on the bench. The planner exposes prototype Speed and Conversion baselines; conditional abilities remain previews.
+Prepare offers all 19 candidates described in this document. The roster order starts Nina, Zip, Victoria, Ada, and Dex, followed by Marcus, Brick, Zero, Mox, Tess, Rook, June, Sable, Patch, Switch, Nyx, Jinx, Echo, and Scrap. Seats 01–03 begin filled by Nina, Zip, and Ada; the remaining 16 candidates are on the bench, and seats 04–09 are open. The planner exposes prototype employee stats; conditional abilities remain previews apart from Recycler recovery.
 
-Seating controls lock during Play, pause, and Report. The lineup carries between days in the current session, while daily calls and counters reset. The planner enforces one seat per named employee and requires at least one occupied seat to start; these are bounded prototype rules, not a finalized hiring, duplicate-hire, or economy design. Current Speed and Conversion baselines are active for every occupied employee, including support roles. Conditional archetype differentiation, adjacency buffs, qualification, transfers, hiring costs, and saving between launches remain future work.
+Seating controls lock during Play, pause, and Report. The lineup carries between days in the current session, while daily calls and counters reset. The planner enforces one seat per named employee and requires at least one occupied seat to start; these are bounded prototype rules, not a finalized hiring, duplicate-hire, or economy design. Speed and Conversion baselines are active for every occupied employee, including support roles; Upsell Chance and Upsell Multiplier affect successful sales. Scrap's Recycler role works exclusively from failed leads in the daily discard pile, and each lead can receive one recovery attempt. Other conditional archetype differentiation, adjacency buffs, qualification, transfers, hiring costs, and saving between launches remain future work.
 
 ## 3. Proposed character attribute model
 
@@ -56,33 +56,36 @@ Seating controls lock during Play, pause, and Report. The lineup carries between
 | --- | --- | --- |
 | **Speed** | Integer baseline from 1–5; higher values mean faster processing. Current prototype handling duration is 18 / Speed seconds. | Scale and duration formula are tuning placeholders. |
 | **Conversion** | Integer baseline from 0–100%; the current value is the seeded sale chance on a completed call. | Values and outcome balance are tuning placeholders; conditional modifiers and lead-condition interactions are future work. |
+| **Upsell Chance** | Integer baseline from 0–100%; determines the probability that a successful sale triggers an upsell, similar to a critical strike. | Starting values, maximum chance, and interactions with augments are tuning placeholders. |
+| **Upsell Multiplier** | Decimal baseline starting at 1.0×; determines the revenue multiplier when an upsell triggers. For example, 2.0× doubles the original sale amount. | Multiplier range, stacking behavior, and interactions with augments are tuning placeholders. |
 
 ### Prototype starting baselines
 
-The global handling base is 18 seconds, giving Zip 3.6 seconds per call, Nina 4.5 seconds, and Victoria 18 seconds. It was increased from 6 to create a visible waiting queue with the former three-person starting team; the current default fills all nine seats. Adjusting this common multiplier preserves the relative Speed differences; a flat time addition would compress them. Arrival intervals, six-second waiting patience, and the 30-second workday retain their current tuning.
+The global handling base is 18 seconds, giving Zip 3.6 seconds per call, Nina 4.5 seconds, and Victoria 18 seconds. It was increased from 6 to create a visible waiting queue with the three-person starting lineup. Adjusting this common multiplier preserves the relative Speed differences; a flat time addition would compress them. Arrival intervals, six-second waiting patience, and the 30-second workday retain their current tuning.
 
-These are initial values chosen to make the character concepts legible in the prototype, not final balance targets. Speed separates fast capacity employees from deliberately slow closers; Conversion gives high values to closer concepts and lower values to support or high-throughput concepts. Character ability text below remains conditional future design, so only these two baseline stats currently affect simulation. A sale keeps the existing payout; Conversion changes the chance of a sale, not its payout.
+These are initial values chosen to make the character concepts legible in the prototype, not final balance targets. Speed separates fast capacity employees from deliberately slow closers; Conversion gives high values to closer concepts and lower values to support or high-throughput concepts. Recycler recovery uses the same four baseline stats and the same handling, conversion, and upsell formulas as a normal interaction. Other character ability text remains conditional future design. Conversion changes the chance of a sale, not its payout. After a sale succeeds, a separate seeded roll against Upsell Chance decides whether the payout is multiplied by the employee's Upsell Multiplier (rounded to the nearest dollar); upsells never occur without a sale. Employee data that omits the upsell fields defaults to 0% and 1.0×.
 
-| Character | Archetype | Speed (1–5) | Conversion (%) | Baseline rationale |
-| --- | --- | ---: | ---: | --- |
-| Nina | Workhorse | 4 | 58 | Dependable, consistently quick throughput. |
-| Zip | Hustler | 5 | 38 | Fastest baseline, with lower sale chance. |
-| Victoria | Closer | 1 | 92 | Slowest baseline, strongest sale chance. |
-| Ada | Coach | 2 | 35 | Low direct output; proposed support is not active. |
-| Dex | Closer | 2 | 78 | Slow, high-conversion closer. |
-| Marcus | Workhorse | 4 | 52 | Quick capacity; queue reaction remains future work. |
-| Brick | Workhorse | 3 | 55 | Moderate capacity before proposed burst ability. |
-| Zero | Closer | 2 | 80 | Slow, high-conversion closer; cycle bonus remains future work. |
-| Mox | Hustler | 5 | 42 | Very fast baseline; streak remains future work. |
-| Tess | Hustler | 4 | 50 | Fast repeated-work profile; checklist remains future work. |
-| Rook | Coach | 3 | 38 | Moderate speed; coaching remains future work. |
-| June | Coach | 2 | 32 | Low direct output; recovery support remains future work. |
-| Sable | Qualifier | 2 | 45 | Low direct output; review and queue ordering remain future work. |
-| Patch | Qualifier | 3 | 40 | Moderate speed; lead preparation remains future work. |
-| Switch | Qualifier | 3 | 42 | Moderate baseline; diversion remains future work. |
-| Nyx | Wildcard | 2 | 68 | Strong baseline chance; premium offer remains future work. |
-| Jinx | Wildcard | 3 | 52 | Middle baseline; failure cycle remains future work. |
-| Echo | Wildcard | 2 | 45 | Lower baseline; copying remains future work. |
+| Character | Archetype | Speed (1–5) | Conversion (%) | Upsell (%) | Multiplier | Baseline rationale |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| Nina | Workhorse | 4 | 58 | 10 | 1.5× | Dependable, consistently quick throughput. |
+| Zip | Hustler | 5 | 38 | 5 | 1.5× | Fastest baseline, with lower sale chance and little time to upsell. |
+| Victoria | Closer | 1 | 92 | 25 | 2.0× | Slowest baseline, strongest sale chance and upsell. |
+| Ada | Coach | 2 | 35 | 15 | 1.5× | Low direct output; proposed support is not active. |
+| Dex | Closer | 2 | 78 | 20 | 1.8× | Slow, high-conversion closer. |
+| Marcus | Workhorse | 4 | 52 | 10 | 1.5× | Quick capacity; queue reaction remains future work. |
+| Brick | Workhorse | 3 | 55 | 10 | 1.5× | Moderate capacity before proposed burst ability. |
+| Zero | Closer | 2 | 80 | 20 | 2.0× | Slow, high-conversion closer; cycle bonus remains future work. |
+| Mox | Hustler | 5 | 42 | 10 | 1.5× | Very fast baseline; streak remains future work. |
+| Tess | Hustler | 4 | 50 | 10 | 1.5× | Fast repeated-work profile; checklist remains future work. |
+| Rook | Coach | 3 | 38 | 15 | 1.5× | Moderate speed; coaching remains future work. |
+| June | Coach | 2 | 32 | 15 | 1.5× | Low direct output; recovery support remains future work. |
+| Sable | Qualifier | 2 | 45 | 5 | 1.5× | Low direct output; review and queue ordering remain future work. |
+| Patch | Qualifier | 3 | 40 | 5 | 1.5× | Moderate speed; lead preparation remains future work. |
+| Switch | Qualifier | 3 | 42 | 5 | 1.5× | Moderate baseline; diversion remains future work. |
+| Nyx | Wildcard | 2 | 68 | 25 | 2.0× | Strong baseline chance; premium offer remains future work. |
+| Jinx | Wildcard | 3 | 52 | 20 | 2.0× | Middle baseline, volatile upsell; failure cycle remains future work. |
+| Echo | Wildcard | 2 | 45 | 10 | 1.5× | Lower baseline; copying remains future work. |
+| Scrap | Recycler | 3 | 45 | 10 | 1.5× | Works only leads in the daily discard pile; see [discard.md](discard.md). |
 
 An archetype suggests a performance profile, but its identity must come from behavior. Two characters with similar base attributes should still create different decisions because they respond differently to teammates, positions, or lead conditions.
 
@@ -92,9 +95,9 @@ Lead value and lead difficulty are separate conditions to explore. A valuable le
 
 Proposed supporting data includes archetype, named traits, trigger conditions, affected teammates, and temporary state. Exact formulas, caps, durations, trait stacking, costs, and hiring rules remain open. Present effects in plain language, with enough detail to support useful comparisons.
 
-## 4. Six archetypes and their tactical purposes
+## 4. Proposed archetypes and the confirmed Recycler
 
-All descriptions below are proposals.
+The first six archetypes below remain proposals. Recycler is implemented and confirmed.
 
 | Archetype | Tactical analogy | Purpose and strengths | Weaknesses and design boundary |
 | --- | --- | --- | --- |
@@ -104,12 +107,13 @@ All descriptions below are proposals.
 | **Coach** | Support | Improves nearby employees' Speed, Conversion, or recovery from explicit ability downtime. Makes the surrounding team more effective. | Low personal sales contribution and an occupied seat that could hold another seller. Requires useful neighbors. Stress recovery is conditional on a future stress system. |
 | **Qualifier** | Control | Identifies promising leads and could prepare, prioritize, filter, or redirect them so the floor uses its capacity well. | Limited direct revenue and potentially extra handling time. Its value depends on composition, demand, and an explicitly approved lead-control mechanism. |
 | **Wildcard** | High Risk / High Reward | Creates exceptional but inconsistent opportunities through unusual conditions and combinations. | Unreliable output can destabilize a fragile floor. Requires understandable risk and may benefit from supporting teammates. |
+| **Recycler** (confirmed) | Recovery | Converts a previously failed lead into another sales opportunity, generating revenue the normal seller did not earn. | Cannot take incoming leads and needs failed leads to stay productive; every discarded lead gets only one attempt. Uses a normal sales-floor slot. |
 
 **Workhorse versus Hustler:** A Workhorse should be useful for reliable, sustained capacity under pressure; a Hustler should excel at short, explosive interactions with straightforward opportunities. Test that difference under both steady and bursty demand. If the player's choice reduces to comparing two versions of Speed, merge or redesign the roles.
 
 ## 5. Character examples for every archetype
 
-These 18 characters are illustrative candidates with prototype baseline stats listed above. Their conditional behaviors remain proposals, and additional characters could exist within each archetype. Rules for unique characters or duplicate hires are open.
+The 18 non-Recycler characters are illustrative candidates with prototype baseline stats listed above. Their conditional behaviors remain proposals. Scrap is the current Recycler candidate, with its confirmed behavior documented below. Additional characters could exist within each archetype. Rules for unique characters or duplicate hires are open.
 
 ### Workhorses
 
@@ -160,6 +164,12 @@ Each ability below is a possible future extension to the current fixed routing b
 | **Nyx** | Wildcard | Automatically attempts a premium offer on eligible high-value leads, increasing payout if successful. | Reduced Conversion on those attempts can lose an otherwise achievable sale. Eligibility and payout changes must be explicit. |
 | **Jinx** | Wildcard | Builds a Conversion advantage after personal failed calls, then spends it on the next success. | Several leads may be lost before the payoff. The benefit needs a cap and rules that prevent deliberate failure farming. |
 | **Echo** | Wildcard | Takes a temporary Speed or Conversion benefit from a neighboring sale, with the benefit determined by that seller's role. | Weak baseline performance and benefits that may arrive at an unhelpful time. Use a small explicit mapping of effects; avoid recursive copying of traits. |
+
+### Recycler
+
+| Character name | Archetype | Implemented behavior and strength | Weakness or tradeoff |
+| --- | --- | --- | --- |
+| **Scrap** | Recycler | Claims failed normal leads from the discard pile in fixed slot order and attempts one recovery using ordinary Speed, Conversion, and upsell rules. Recovered revenue is attributed to Scrap. | Never takes incoming leads and remains idle without discarded leads. Uses one of nine regular employee seats; failed recoveries permanently remove the lead. |
 
 ## 6. Team synergy and positional interactions
 
@@ -250,7 +260,7 @@ Avoid double counting a prepared or transferred lead as a second arrival or a se
 
 ## 11. Suggested minimal prototype for testing archetype differentiation
 
-This is a proposed testing sequence. The prototype now uses all 18 candidates with baseline Speed and Conversion; test those baselines before adding conditional abilities.
+This is a proposed testing sequence. The prototype now uses 19 candidates with baseline stats and includes Scrap's confirmed discard-pile recovery behavior; test those mechanics before adding further conditional abilities.
 
 1. **Make the baseline measurable.** Use fixed row-major priority, occupied-seat availability, FIFO waiting, and the current patience rule. Compare Speed and Conversion baselines with repeatable arrivals and seeded outcomes. Keep lead value distinct from difficulty.
 2. **Test capacity roles.** Compare Nina, Zip, and other roster candidates across steady simple demand, bursty simple demand, and a mixed lead stream. First measure their actual baseline stats; then compare ability effects separately when implemented. Add Brick's burst and recovery only after this distinction is clear.

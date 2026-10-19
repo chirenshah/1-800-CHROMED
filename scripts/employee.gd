@@ -6,6 +6,7 @@ signal seat_selected(seat: int)
 @onready var seat_label: Label = $Margin/Content/Seat
 @onready var name_label: Label = $Margin/Content/Name
 @onready var role_label: Label = $Margin/Content/Role
+@onready var stats_label: Label = $Margin/Content/Stats
 @onready var status_label: Label = $Margin/Content/Status
 @onready var call_progress: ProgressBar = $Margin/Content/CallProgress
 
@@ -32,13 +33,22 @@ func _ready() -> void:
 	focus_exited.connect(_refresh_style)
 
 
-func configure(number: int, employee: Dictionary) -> void:
+func configure(number: int, employee: Dictionary, loadout: Array[String] = []) -> void:
 	seat_number = number
 	employee_id = employee.get("id", "")
 	seat_label.text = "SEAT %02d  /  INTAKE %02d" % [number, number]
 	name_label.text = employee.get("name", "Unassigned")
 	role_label.text = employee.get("archetype", "Open workstation")
 	staffed = not employee_id.is_empty()
+	if staffed:
+		var speed_bonus := FloorPlan.CATALOG.augment_bonus(loadout, "speed")
+		var conversion_bonus := FloorPlan.CATALOG.augment_bonus(loadout, "conversion")
+		var speed_text := "%d" % employee["speed"] if is_zero_approx(speed_bonus) else "%.1f" % (float(employee["speed"]) * (1.0 + speed_bonus / 100.0))
+		var conversion := clampi(roundi(float(employee["conversion"]) + conversion_bonus), 0, 100)
+		stats_label.text = "SPD %s/5 · CNV %d%%\nUP %d%% · ×%.1f" % [speed_text, conversion, employee["upsell_chance"], employee["upsell_multiplier"]]
+	else:
+		stats_label.text = ""
+	stats_label.visible = staffed
 	_refresh_style()
 
 
@@ -51,11 +61,12 @@ func set_planning_state(editable: bool, is_selected: bool) -> void:
 
 
 func set_compact(compact: bool) -> void:
-	custom_minimum_size = Vector2(134, 86 if compact else 112)
+	custom_minimum_size = Vector2(134, 112 if compact else 144)
 	name_label.add_theme_font_size_override("font_size", 16 if compact else 18)
 	seat_label.add_theme_font_size_override("font_size", 10 if compact else 11)
 	role_label.add_theme_font_size_override("font_size", 11 if compact else 13)
 	status_label.add_theme_font_size_override("font_size", 10 if compact else 12)
+	stats_label.add_theme_font_size_override("font_size", 10 if compact else 11)
 	$Margin/Content.add_theme_constant_override("separation", 1 if compact else 4)
 	for edge in ["left", "right", "top", "bottom"]:
 		$Margin.add_theme_constant_override("margin_" + edge, 6 if compact else 10)
@@ -103,7 +114,7 @@ func show_call(call: Dictionary, state: String, completed: Dictionary = {}) -> v
 			status_label.text = "DONE #%03d · READY" % completed["id"]
 		status_label.add_theme_color_override("font_color", Color(0.98, 0.72, 0.25))
 	else:
-		var prefix := "ON CALL"
+		var prefix := "RECYCLING" if call.get("recovery", false) else "ON CALL"
 		if state == "PAUSED":
 			prefix = "PAUSED"
 		elif state == "CLOSED":
@@ -114,4 +125,3 @@ func show_call(call: Dictionary, state: String, completed: Dictionary = {}) -> v
 		call_progress.max_value = call["duration"]
 		call_progress.value = float(call["duration"]) - float(call["remaining"])
 		tooltip_text = "Call #%03d · Potential sale $%d" % [call["id"], call["value"]]
-

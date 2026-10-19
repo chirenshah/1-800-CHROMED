@@ -6,7 +6,7 @@
 script = ExtResource("1_roster")
 employees = Array[Dictionary]([
   {
-    "id": "nina",
+    "id": "nina", "upsell_chance": 10, "upsell_multiplier": 1.5,
     "name": "Nina",
     "archetype": "Workhorse",
     "speed": 4,
@@ -19,7 +19,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Active baseline 58%"
   },
   {
-    "id": "zip",
+    "id": "zip", "upsell_chance": 5, "upsell_multiplier": 1.5,
     "name": "Zip",
     "archetype": "Hustler",
     "speed": 5,
@@ -32,7 +32,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Active baseline 38%; conditional early exits are future work"
   },
   {
-    "id": "victoria",
+    "id": "victoria", "upsell_chance": 25, "upsell_multiplier": 2.0,
     "name": "Victoria",
     "archetype": "Closer",
     "speed": 1,
@@ -45,7 +45,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Active baseline 92%; value-specific effects are future work"
   },
   {
-    "id": "ada",
+    "id": "ada", "upsell_chance": 15, "upsell_multiplier": 1.5,
     "name": "Ada",
     "archetype": "Coach",
     "speed": 2,
@@ -58,7 +58,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Active personal baseline 35%; adjacent support is future work"
   },
   {
-    "id": "dex",
+    "id": "dex", "upsell_chance": 20, "upsell_multiplier": 1.8,
     "name": "Dex",
     "archetype": "Closer",
     "speed": 2,
@@ -71,7 +71,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Active baseline 78%; neighboring sale triggers are future work"
   },
   {
-    "id": "marcus", "name": "Marcus", "archetype": "Workhorse", "speed": 4, "conversion": 52,
+    "id": "marcus", "upsell_chance": 10, "upsell_multiplier": 1.5, "name": "Marcus", "archetype": "Workhorse", "speed": 4, "conversion": 52,
     "purpose": "Capacity that responds to rising queue pressure.",
     "strength": "Picks up the pace as the waiting queue grows.",
     "tradeoff": "Conversion deteriorates under queue pressure; the ability is future work.",
@@ -80,7 +80,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Prototype baseline 52%; proposed pressure penalty is future work"
   },
   {
-    "id": "brick", "name": "Brick", "archetype": "Workhorse", "speed": 3, "conversion": 55,
+    "id": "brick", "upsell_chance": 10, "upsell_multiplier": 1.5, "name": "Brick", "archetype": "Workhorse", "speed": 3, "conversion": 55,
     "purpose": "Burst capacity for routine leads.",
     "strength": "Proposed temporary Speed burst clears routine leads.",
     "tradeoff": "Proposed recovery time can leave the floor short of capacity; ability is future work.",
@@ -89,7 +89,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Prototype baseline 55%"
   },
   {
-    "id": "zero", "name": "Zero", "archetype": "Closer", "speed": 2, "conversion": 80,
+    "id": "zero", "upsell_chance": 20, "upsell_multiplier": 2.0, "name": "Zero", "archetype": "Closer", "speed": 2, "conversion": 80,
     "purpose": "High Conversion with a repeating call-cycle condition.",
     "strength": "Proposed major Conversion advantage on every third completed call.",
     "tradeoff": "Proposed intervening calls are less effective; sequence behavior is future work.",
@@ -98,7 +98,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Prototype baseline 80%; proposed cycle bonus is future work"
   },
   {
-    "id": "mox", "name": "Mox", "archetype": "Hustler", "speed": 5, "conversion": 42,
+    "id": "mox", "upsell_chance": 10, "upsell_multiplier": 1.5, "name": "Mox", "archetype": "Hustler", "speed": 5, "conversion": 42,
     "purpose": "Fast routine handling with a proposed success streak.",
     "strength": "Proposed Speed streak grows through consecutive routine sales.",
     "tradeoff": "A failed sale or demanding interaction would reset it; ability is future work.",
@@ -107,7 +107,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Prototype baseline 42%"
   },
   {
-    "id": "tess", "name": "Tess", "archetype": "Hustler", "speed": 4, "conversion": 50,
+    "id": "tess", "upsell_chance": 10, "upsell_multiplier": 1.5, "name": "Tess", "archetype": "Hustler", "speed": 4, "conversion": 50,
     "purpose": "Efficient handling of repeated lead conditions.",
     "strength": "Proposed checklist speeds up repeated matching leads.",
     "tradeoff": "Changing conditions would remove the advantage; ability is future work.",
@@ -116,7 +116,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Prototype baseline 50%"
   },
   {
-    "id": "rook", "name": "Rook", "archetype": "Coach", "speed": 3, "conversion": 38,
+    "id": "rook", "upsell_chance": 15, "upsell_multiplier": 1.5, "name": "Rook", "archetype": "Coach", "speed": 3, "conversion": 38,
     "purpose": "Support adjacent employees through handling-speed coaching.",
     "strength": "Proposed coaching intervals improve adjacent employees' handling Speed.",
     "tradeoff": "Coaching delays Rook's next interaction; adjacency and coaching are future work.",
@@ -125,7 +125,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Prototype baseline 38%"
   },
   {
-    "id": "june", "name": "June", "archetype": "Coach", "speed": 2, "conversion": 32,
+    "id": "june", "upsell_chance": 15, "upsell_multiplier": 1.5, "name": "June", "archetype": "Coach", "speed": 2, "conversion": 32,
     "purpose": "Support recovery from proposed burst abilities.",
     "strength": "Could help adjacent employees recover from explicit ability downtime.",
     "tradeoff": "Low direct sales and limited value without recovery windows; ability is future work.",
@@ -134,7 +134,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Prototype baseline 32%"
   },
   {
-    "id": "sable", "name": "Sable", "archetype": "Qualifier", "speed": 2, "conversion": 45,
+    "id": "sable", "upsell_chance": 5, "upsell_multiplier": 1.5, "name": "Sable", "archetype": "Qualifier", "speed": 2, "conversion": 45,
     "purpose": "Proposed lead review and queue prioritization.",
     "strength": "Could move promising high-value opportunities earlier in the queue.",
     "tradeoff": "Review consumes time and delays ordinary leads; qualification is future work.",
@@ -143,7 +143,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Prototype baseline 45%"
   },
   {
-    "id": "patch", "name": "Patch", "archetype": "Qualifier", "speed": 3, "conversion": 40,
+    "id": "patch", "upsell_chance": 5, "upsell_multiplier": 1.5, "name": "Patch", "archetype": "Qualifier", "speed": 3, "conversion": 40,
     "purpose": "Proposed lead preparation before ordinary assignment.",
     "strength": "Could prepare a lead so its next handler processes it faster.",
     "tradeoff": "A second stage consumes time and may not pay off on simple leads; ability is future work.",
@@ -152,7 +152,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Prototype baseline 40%"
   },
   {
-    "id": "switch", "name": "Switch", "archetype": "Qualifier", "speed": 3, "conversion": 42,
+    "id": "switch", "upsell_chance": 5, "upsell_multiplier": 1.5, "name": "Switch", "archetype": "Qualifier", "speed": 3, "conversion": 42,
     "purpose": "Proposed diversion of routine leads toward suitable capacity.",
     "strength": "Could preserve Closer capacity by directing routine leads elsewhere.",
     "tradeoff": "Changes recipient selection and could leave capacity idle; ability is future work.",
@@ -161,7 +161,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Prototype baseline 42%"
   },
   {
-    "id": "nyx", "name": "Nyx", "archetype": "Wildcard", "speed": 2, "conversion": 68,
+    "id": "nyx", "upsell_chance": 25, "upsell_multiplier": 2.0, "name": "Nyx", "archetype": "Wildcard", "speed": 2, "conversion": 68,
     "purpose": "Proposed premium offer on eligible high-value leads.",
     "strength": "Could increase payout when an automatic premium offer succeeds.",
     "tradeoff": "Reduced Conversion could lose an otherwise achievable sale; offer ability is future work.",
@@ -170,7 +170,7 @@ employees = Array[Dictionary]([
     "conversion_profile": "Prototype baseline 68%"
   },
   {
-    "id": "jinx", "name": "Jinx", "archetype": "Wildcard", "speed": 3, "conversion": 52,
+    "id": "jinx", "upsell_chance": 20, "upsell_multiplier": 2.0, "name": "Jinx", "archetype": "Wildcard", "speed": 3, "conversion": 52,
     "purpose": "Proposed risk-reward Conversion cycle after personal failures.",
     "strength": "Could build a Conversion advantage after failed calls and spend it on a success.",
     "tradeoff": "Several leads may be lost before payoff; cycle is future work.",
@@ -179,12 +179,21 @@ employees = Array[Dictionary]([
     "conversion_profile": "Prototype baseline 52%; proposed failure cycle is future work"
   },
   {
-    "id": "echo", "name": "Echo", "archetype": "Wildcard", "speed": 2, "conversion": 45,
+    "id": "echo", "upsell_chance": 10, "upsell_multiplier": 1.5, "name": "Echo", "archetype": "Wildcard", "speed": 2, "conversion": 45,
     "purpose": "Proposed temporary benefit copied from a neighboring sale.",
     "strength": "Could gain a temporary Speed or Conversion benefit from a neighbor.",
     "tradeoff": "Weak baseline and poorly timed benefits; copying behavior is future work.",
     "planning_hint": "Consider baseline stats; neighboring effects are not active yet.",
     "speed_profile": "Prototype baseline 2/5; proposed copying is future work",
     "conversion_profile": "Prototype baseline 45%; proposed copying is future work"
+  },
+  {
+    "id": "scrap", "upsell_chance": 10, "upsell_multiplier": 1.5, "name": "Scrap", "archetype": "Recycler", "speed": 3, "conversion": 45,
+    "purpose": "Failed lead recovery: works leads other salespeople already tried and lost.",
+    "strength": "Earns extra revenue from discarded leads that would otherwise be wasted.",
+    "tradeoff": "Never takes incoming calls and sits idle whenever the discard pile is empty.",
+    "planning_hint": "Seat alongside lower-Conversion sellers who generate failed leads. Each discarded lead gets one recovery attempt.",
+    "speed_profile": "Prototype baseline 3/5",
+    "conversion_profile": "Prototype baseline 45%; works discarded leads only"
   }
 ])

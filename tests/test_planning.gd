@@ -33,9 +33,9 @@ func _unique_assignments(plan: FloorPlan) -> void:
 
 func _test_model() -> void:
 	var plan := FloorPlan.new()
-	_check(plan.roster.size() == 18 and plan.seats == ["nina", "zip", "ada", "victoria", "dex", "marcus", "brick", "zero", "mox"]
-		and plan.occupied_seats() == [0, 1, 2, 3, 4, 5, 6, 7, 8],
-		"Start with eighteen candidates and the nine-person default lineup.")
+	_check(plan.roster.size() == 19 and plan.seats == ["nina", "zip", "ada", "", "", "", "", "", ""]
+		and plan.occupied_seats() == [0, 1, 2],
+		"Start with nineteen candidates, nine seats, and a three-person default lineup.")
 	_unique_assignments(plan)
 	# Keep move-to-empty and bench replacement behavior covered with a deliberately sparse lineup.
 	var sparse_model_seats: Array[String] = ["nina", "zip", "", "victoria", "", "", "", "", ""]
@@ -97,15 +97,15 @@ func _test_scene() -> void:
 	root.add_child(scene)
 	await _settle()
 	var panel: PlanningPanel = scene.planning_panel
-	_check(scene.staffed_seats.size() == 9 and panel.summary_label.text == "9 / 9 seated"
-		and scene.employee_cards.all(func(card: EmployeeCard) -> bool: return card.staffed),
-		"Prepare must show the nine-person default lineup as fully staffed.")
+	_check(scene.staffed_seats.size() == 3 and panel.summary_label.text == "3 / 9 seated"
+		and scene.employee_cards.filter(func(card: EmployeeCard) -> bool: return card.staffed).size() == 3,
+		"Prepare must start with three staffed seats out of nine.")
 	# The interaction steps below need empty seats for move-to-empty and bench coverage.
 	var sparse_scene_seats: Array[String] = ["nina", "zip", "", "victoria", "", "", "", "", ""]
 	scene.floor_plan.seats = sparse_scene_seats
 	scene._sync_floor_plan()
-	_check(panel.visible and not scene.queue_panel.visible and panel.candidate_selector.item_count == 18,
-		"Prepare must show all eighteen candidates in its planner.")
+	_check(panel.visible and not scene.queue_panel.visible and panel.candidate_selector.item_count == 19,
+		"Prepare must show all nineteen candidates in its planner.")
 	for screen_size in [Vector2i(1280, 720), Vector2i(960, 540)]:
 		root.size = screen_size
 		await _settle()
@@ -135,7 +135,7 @@ func _test_scene() -> void:
 	_choose_candidate(panel, "ada")
 	_check(panel.strength_label.text.contains("Conversion") and panel.tradeoff_label.text.contains("weak personal output"),
 		"Candidate inspection must show the source character's strength and tradeoff.")
-	_check(panel.profile_label.text == "Speed: 2/5 · Conversion: 35%",
+	_check(panel.profile_label.text == "Speed: 2/5 · Conversion: 35%\nUpsell: 15% · Multiplier: ×1.5",
 		"The planner must show the active numerical base stats for each candidate.")
 	await _capture("ada-preview")
 	await _click(panel.assign_button)
@@ -149,7 +149,7 @@ func _test_scene() -> void:
 	_check(scene.floor_plan.seats[1].is_empty() and not scene.employee_cards[1].staffed, "Bench button must open the selected workstation.")
 	# The final candidate must be inspectable and assignable beyond the nine seats.
 	_choose_candidate(panel, "echo")
-	_check(panel.profile_label.text == "Speed: 2/5 · Conversion: 45%", "The last roster entry must expose its own stats.")
+	_check(panel.profile_label.text == "Speed: 2/5 · Conversion: 45%\nUpsell: 10% · Multiplier: ×1.5", "The last roster entry must expose its own stats.")
 	await _click(panel.assign_button)
 	_check(scene.floor_plan.seats[1] == "echo", "Candidates beyond the first nine must be assignable.")
 	# Fill every seat, then replace one from the larger bench without duplication.

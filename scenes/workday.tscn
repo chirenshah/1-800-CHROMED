@@ -139,6 +139,12 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 20
 text = "FLOOR PLAN"
 
+[node name="TargetLabel" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.72, 0.4, 1)
+theme_override_font_sizes/font_size = 14
+text = "TARGET $1000  /  "
+
 [node name="RevenueLabel" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader" unique_id=1748836642]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)

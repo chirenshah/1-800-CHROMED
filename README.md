@@ -76,7 +76,10 @@ For a quick check from this folder:
 "$HOME/Downloads/Godot.app/Contents/MacOS/Godot" --headless --path . --script res://tests/test_music.gd
 "$HOME/Downloads/Godot.app/Contents/MacOS/Godot" --headless --path . --script res://tests/test_lead_assignment.gd
 "$HOME/Downloads/Godot.app/Contents/MacOS/Godot" --headless --path . --script res://tests/test_employee_stats.gd
+"$HOME/Downloads/Godot.app/Contents/MacOS/Godot" --headless --path . --script res://tests/test_sales_slam.gd
 ```
+
+Open `scenes/sales_slam_test.tscn` and press F6 to try the Sales Slam scenarios (no sales, one big sale, exactly equal, barely over, near miss, skip midway, and more).
 
 Creating distributable builds will require matching export templates and export presets when target platforms are chosen.
 

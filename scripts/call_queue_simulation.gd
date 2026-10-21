@@ -33,6 +33,7 @@ var recovered := 0
 var failed_recoveries := 0
 var recovered_revenue := 0
 var revenue := 0
+var sale_log: Array[Dictionary] = []
 var last_dispatch := ""
 var roster: EmployeeRoster = preload("res://data/planning_roster.tres")
 var equipped_augments: Dictionary = {}
@@ -83,6 +84,8 @@ func reset(lineup: Array[String], arrival_seed: int = -1, loadouts: Dictionary =
 	recovered = 0
 	failed_recoveries = 0
 	recovered_revenue = 0
+	revenue = 0
+	sale_log.clear()
 	last_dispatch = ""
 
 
@@ -155,6 +158,7 @@ func _resolve_events() -> void:
 				else:
 					normal_sales += 1
 				revenue += payout
+				sale_log.append({"id": call["id"], "value": payout, "employee_id": employees[seat], "recovery": is_recovery})
 				stats["sales"] += 1
 				stats["revenue"] += payout
 			else:

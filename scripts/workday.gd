@@ -22,6 +22,7 @@ const SCORE_TARGET_STEP := 250
 @onready var pause_button: Button = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer/PauseButton
 @onready var primary_button: Button = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer/PrimaryButton
 @onready var report_panel: ReportPanel = $PageMargin/Page/Body/ReportPanel
+@onready var slam_board: SalesSlamBoard = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/SalesSlamBoard
 @onready var queue_panel: CallQueuePanel = $PageMargin/Page/Body/CallQueuePanel
 @onready var planning_panel: PlanningPanel = $PageMargin/Page/Body/PlanningPanel
 @onready var floor_title: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader/FloorTitle
@@ -280,6 +281,8 @@ func _show_phase(next_phase: Phase) -> void:
 	queue_panel.visible = phase == Phase.PLAY
 	planning_panel.visible = phase == Phase.PREPARE
 	planning_guide.visible = phase == Phase.PREPARE
+	floor_grid.get_parent().visible = phase != Phase.REPORT
+	slam_board.visible = phase == Phase.REPORT
 	revenue_label.visible = phase != Phase.PREPARE
 	_refresh_augment_views()
 	prepare_tab.disabled = phase != Phase.PREPARE
@@ -383,11 +386,16 @@ func _finish_day() -> void:
 	)
 	call_queue.clear_discard_pile()
 	_show_phase(Phase.REPORT)
+	# The slam only replays recorded sales; the budget above is already final and is never touched again.
+	var recorded := call_queue.sale_log.duplicate(true)
+	assert(slam_board.plan.total(recorded) == call_queue.revenue, "Recorded sales must add up to the day's revenue.")
+	slam_board.play(recorded, score_target(day))
 
 
 func _prepare_next_day() -> void:
 	if phase != Phase.REPORT:
 		return
+	slam_board.stop()
 	day = mini(day + 1, 60)
 	day_label.text = "DAY %02d / 60" % day
 	_show_score_target()

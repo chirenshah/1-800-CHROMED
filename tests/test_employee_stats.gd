@@ -15,8 +15,9 @@ func _initialize() -> void:
 	_test_discard_lifecycle()
 	_test_recycler()
 	_test_seeded_streams()
+	_test_stamina_breaks()
 	if failures.is_empty():
-		print("PASS: nineteen employee baselines, conversion probabilities, Recycler recovery, attribution, seeded outcomes, and independent arrival timing.")
+		print("PASS: employee baselines, conversion, Recycler recovery, stamina breaks, attribution, seeded outcomes, and arrival timing.")
 	quit(0 if failures.is_empty() else 1)
 
 
@@ -82,7 +83,7 @@ func _test_speed() -> void:
 
 func _conversion_fixture(chance: int, run_seed: int) -> CallQueueSimulation:
 	var data := EmployeeRoster.new()
-	data.employees.append({"id": "seller", "speed": 5, "conversion": chance})
+	data.employees.append({"id": "seller", "speed": 5, "conversion": chance, "stamina_hours": 10000})
 	var model := MODEL.new()
 	model.roster = data
 	model.reset(["seller"], run_seed)
@@ -123,7 +124,7 @@ func _test_conversion() -> void:
 func _test_upsell() -> void:
 	for upsell in [0, 100]:
 		var data := EmployeeRoster.new()
-		data.employees.append({"id": "seller", "speed": 5, "conversion": 100, "upsell_chance": upsell, "upsell_multiplier": 2.0})
+		data.employees.append({"id": "seller", "speed": 5, "conversion": 100, "stamina_hours": 10000, "upsell_chance": upsell, "upsell_multiplier": 2.0})
 		var model := MODEL.new()
 		model.roster = data
 		model.reset(["seller"], 77)
@@ -137,7 +138,7 @@ func _test_upsell() -> void:
 		_check(model.revenue == expected and model.sales == 100,
 			"Upsell chance must gate the multiplier without changing the sale count.")
 	var no_sale := EmployeeRoster.new()
-	no_sale.employees.append({"id": "seller", "speed": 5, "conversion": 0, "upsell_chance": 100, "upsell_multiplier": 3.0})
+	no_sale.employees.append({"id": "seller", "speed": 5, "conversion": 0, "stamina_hours": 10000, "upsell_chance": 100, "upsell_multiplier": 3.0})
 	var model := MODEL.new()
 	model.roster = no_sale
 	model.reset(["seller"], 5)
@@ -149,8 +150,8 @@ func _test_upsell() -> void:
 
 func _test_discard_lifecycle() -> void:
 	var data := EmployeeRoster.new()
-	data.employees.append({"id": "first", "speed": 5, "conversion": 0})
-	data.employees.append({"id": "second", "speed": 5, "conversion": 0})
+	data.employees.append({"id": "first", "speed": 5, "conversion": 0, "stamina_hours": 10000})
+	data.employees.append({"id": "second", "speed": 5, "conversion": 0, "stamina_hours": 10000})
 	var model := MODEL.new()
 	model.roster = data
 	model.reset(["first", "second"], 19)
@@ -184,10 +185,10 @@ func _test_discard_lifecycle() -> void:
 
 func _recycler_fixture(seller_conversion: int, recycler_conversion: int, lineup: Array[String], run_seed: int = 21) -> CallQueueSimulation:
 	var data := EmployeeRoster.new()
-	data.employees.append({"id": "seller", "archetype": "Hustler", "speed": 5, "conversion": seller_conversion})
-	data.employees.append({"id": "recycler", "archetype": "Recycler", "speed": 5, "conversion": recycler_conversion,
+	data.employees.append({"id": "seller", "archetype": "Hustler", "speed": 5, "conversion": seller_conversion, "stamina_hours": 10000})
+	data.employees.append({"id": "recycler", "archetype": "Recycler", "speed": 5, "conversion": recycler_conversion, "stamina_hours": 10000,
 		"upsell_chance": 100, "upsell_multiplier": 2.0})
-	data.employees.append({"id": "recycler2", "archetype": "Recycler", "speed": 5, "conversion": recycler_conversion,
+	data.employees.append({"id": "recycler2", "archetype": "Recycler", "speed": 5, "conversion": recycler_conversion, "stamina_hours": 10000,
 		"upsell_chance": 100, "upsell_multiplier": 2.0})
 	var model := MODEL.new()
 	model.roster = data
@@ -255,6 +256,7 @@ func _test_recycler() -> void:
 		and model.lead_discard_pile.size() == 1 and model.lead_discard_pile[0]["id"] == 9,
 		"Available Recyclers must claim distinct discarded leads in fixed slot order.")
 
+func _test_seeded_streams() -> void:
 	var first := MODEL.new()
 	var second := MODEL.new()
 	first.reset(["nina", "zip", "victoria"], 12345)
@@ -286,3 +288,36 @@ func _test_recycler() -> void:
 		reference.advance(reference.roster.handling_seconds("seller"))
 	_check(replay.sales == reference.sales and replay.revenue == reference.revenue,
 		"A daily reset with the same seed must reset the conversion stream as well as the queue.")
+
+
+func _test_stamina_breaks() -> void:
+	var data := EmployeeRoster.new()
+	data.employees.append({"id": "seller", "speed": 5, "conversion": 100, "stamina_hours": 1})
+	var model := MODEL.new()
+	model.roster = data
+	model.reset(["seller"], 8)
+	model.next_arrival_seconds = INF
+	model.receive_call()
+	model.receive_call()
+	model.waiting[0]["patience_ticks"] = 100
+	var call_seconds := data.handling_seconds("seller")
+	model.advance(call_seconds)
+	_check(model.handled == 1 and model.is_on_break("seller") and model.waiting.size() == 1
+		and int(model.employee_stats["seller"]["breaks_taken"]) == 1,
+		"A rep who exhausts stamina finishes the current call, then starts a break before the next one.")
+	model.advance(MODEL.BREAK_SECONDS - 0.01)
+	_check(model.is_on_break("seller") and model.handled == 1 and model.waiting.size() == 1,
+		"A rep cannot receive calls while a break is underway.")
+	model.advance(0.01)
+	_check(not model.is_on_break("seller") and model.active.has(0)
+		and model.active[0]["id"] == 2 and is_equal_approx(float(model.employee_stats["seller"]["break_ticks"]) * MODEL.TICK_SECONDS, MODEL.BREAK_SECONDS),
+		"At break completion, stamina refills and the oldest waiting call is assigned.")
+	model.advance(call_seconds)
+	_check(model.handled == 2 and model.is_on_break("seller")
+		and int(model.employee_stats["seller"]["breaks_taken"]) == 2,
+		"Calling after a break must consume the restored stamina and eventually trigger another break.")
+	model.reset(["seller"], 8)
+	_check(int(model.employee_stats["seller"]["breaks_taken"]) == 0
+		and is_zero_approx(float(model.employee_stats["seller"]["break_ticks"]))
+		and is_equal_approx(float(model.employee_stats["seller"]["stamina_remaining_seconds"]), EmployeeRoster.REAL_SECONDS_PER_GAME_HOUR),
+		"A new day starts with full stamina and clears break metrics.")

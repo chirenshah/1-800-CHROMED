@@ -31,6 +31,7 @@ func _run() -> void:
 
 func _test_manager() -> void:
 	var manager := MANAGER.new()
+	_check(manager.hire("zip"), "Zip must be hired before transferring an augment to him.")
 	_check(MANAGER.CATALOG.augments.size() == 6 and manager.shop_offers.size() == 3,
 		"The shop must offer three choices from the six data-defined augments.")
 	_check(manager.shop_offers[0] != manager.shop_offers[1]
@@ -140,7 +141,7 @@ func _test_workday_integration() -> void:
 	_check(scene.augment_manager.budget == 500 and scene.augment_manager.shop_offers.size() == 3
 		and panel.offer_buttons.size() == 3,
 		"Prepare must display the initial budget and three shop offers.")
-	scene.augment_manager.shop_offers = ["AUG_001", "AUG_002", "AUG_003"]
+	scene.augment_manager.shop_offers.assign(["AUG_001", "AUG_002", "AUG_003"])
 	panel.update_augment_state(scene.augment_manager, true)
 	_check(panel.offer_buttons[0].text.contains("Silver Tongue")
 		and panel.offer_buttons[0].text.contains("Common")
@@ -154,13 +155,14 @@ func _test_workday_integration() -> void:
 	scene._start_day()
 	_check(scene.call_queue.equipped_augments["nina"] == ["AUG_001"],
 		"Starting Play must snapshot the equipped augment loadouts.")
-	var unchanged_budget := scene.augment_manager.budget
-	var unchanged_inventory := scene.augment_manager.inventory.duplicate()
+	var unchanged_budget: int = scene.augment_manager.budget
+	var unchanged_inventory: Array = scene.augment_manager.inventory.duplicate()
 	scene._purchase_augment(1)
 	_check(scene.augment_manager.budget == unchanged_budget
 		and scene.augment_manager.inventory == unchanged_inventory,
 		"Augment changes must be rejected during Play.")
 	scene.call_queue.revenue = 50
+	scene.call_queue.sale_log.append({"id": 0, "value": 50, "employee_id": "nina", "recovery": false})
 	scene._finish_day()
 	_check(scene.augment_manager.budget == 450, "Workday revenue must be added to the department budget.")
 	scene._prepare_next_day()

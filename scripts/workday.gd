@@ -3,7 +3,7 @@ extends Control
 enum Phase { PREPARE, PLAY, REPORT }
 
 const EMPLOYEE_SCENE := preload("res://scenes/employee.tscn")
-const DAY_TICKS := 40
+const DAY_TICKS := 48 # Twelve game hours at three real seconds per hour.
 const BASE_SCORE_TARGET := 1000
 const SCORE_TARGET_STEP := 250
 
@@ -15,6 +15,7 @@ const SCORE_TARGET_STEP := 250
 @onready var inventory_panel: InventoryPanel = $PageMargin/Page/InventoryPanel
 @onready var phase_label: Label = $PageMargin/Page/Tabs/PhaseLabel
 @onready var day_label: Label = $PageMargin/Page/Header/DayLabel
+@onready var shift_clock: Label = $PageMargin/Page/Header/ShiftClock
 @onready var floor_grid: GridContainer = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorScroll/FloorGrid
 @onready var revenue_label: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader/RevenueLabel
 @onready var target_label: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader/TargetLabel
@@ -38,7 +39,7 @@ var call_queue := CallQueueSimulation.new()
 var inventory := InventoryManager.new()
 var floor_plan := inventory.floor_plan
 var augment_manager := AugmentManager.new(inventory)
-var selected_seat := 0
+var selected_seat := 1
 
 
 func _ready() -> void:
@@ -77,7 +78,6 @@ func score_target(for_day: int) -> int:
 
 
 func _show_score_target() -> void:
-	planning_panel.show_score_target(day, score_target(day))
 	target_label.text = "TARGET $%d  /  " % score_target(day)
 
 
@@ -96,6 +96,7 @@ func _select_seat(seat: int) -> void:
 		return
 	selected_seat = seat
 	planning_panel.show_plan(floor_plan, selected_seat, true)
+	planning_panel.views.current_tab = 0
 	_refresh_floor()
 	# Keep keyboard-selected seats visible at small window sizes.
 	floor_grid.get_parent().ensure_control_visible(employee_cards[seat])
@@ -407,6 +408,8 @@ func _prepare_next_day() -> void:
 
 
 func _refresh_floor() -> void:
+	var game_minutes := clampi(floori(call_queue.elapsed_seconds / EmployeeRoster.REAL_SECONDS_PER_GAME_HOUR * 60.0), 0, 720)
+	shift_clock.text = "%02d:%02d / 12:00" % [floori(game_minutes / 60.0), game_minutes % 60]
 	var state := "PREPARE"
 	if phase == Phase.REPORT:
 		state = "CLOSED"
@@ -414,8 +417,12 @@ func _refresh_floor() -> void:
 		state = "PAUSED" if paused else "LIVE"
 	for index in employee_cards.size():
 		employee_cards[index].set_planning_state(phase == Phase.PREPARE, index == selected_seat)
+		var employee_id := floor_plan.seats[index]
+		var break_remaining := 0.0
+		if call_queue.employee_stats.has(employee_id):
+			break_remaining = float(call_queue.employee_stats[employee_id]["break_remaining_seconds"])
 		employee_cards[index].show_call(call_queue.active.get(index, {}), state,
-			call_queue.completed_this_tick.get(index, {}))
+			call_queue.completed_this_tick.get(index, {}), break_remaining)
 	primary_button.disabled = phase == Phase.PREPARE and staffed_seats.is_empty()
 	revenue_label.text = "$%d" % call_queue.revenue
 	queue_panel.update_queue(

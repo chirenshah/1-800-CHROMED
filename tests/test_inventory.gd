@@ -60,7 +60,12 @@ func _test_items() -> void:
 func _test_people() -> void:
 	var manager := AugmentManager.new()
 	var inventory := manager.bag
-	_check(inventory.owned_count() == 3 and inventory.person_slots.count("") == 6, "The player starts with three salespeople on the board.")
+	_check(inventory.owned_count() == 1 and inventory.floor_plan.seats[0] == "nina"
+		and inventory.person_slots.count("") == 6 and inventory.can_hire("zip") and inventory.can_hire("ada"),
+		"The player starts with Nina alone; Zip and Ada must be hired.")
+	# Build a larger transfer fixture after checking the actual starting state.
+	inventory.floor_plan.seats[1] = "zip"
+	inventory.floor_plan.seats[2] = "ada"
 	_check(not manager.hire("nina") and manager.budget == 500, "Owned salespeople cannot be hired twice.")
 	_check(manager.hire("dex") and manager.budget == 400 and inventory.person_slots[0] == "dex"
 		and not inventory.floor_plan.seats.has("dex"), "Hires enter reserve, are charged, and never auto-deploy.")
@@ -156,7 +161,7 @@ func _test_scene() -> void:
 	_check(scene.inventory.person_slots[2] == "dex" and not scene.floor_plan.seats.has("dex"),
 		"Dragging a board salesperson to reserve recalls them.")
 	scene._start_day()
-	var locked := scene.inventory.to_dict()
+	var locked: Dictionary = scene.inventory.to_dict()
 	_check(not scene._can_transfer({"type": "person", "kind": "reserve", "index": 2}, "board", 4),
 		"Inventory moves are rejected during Play.")
 	scene._on_transfer_requested({"type": "person", "kind": "reserve", "index": 2}, "board", 4)

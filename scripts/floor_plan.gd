@@ -6,7 +6,7 @@ const CATALOG := preload("res://data/planning_roster.tres")
 const SEAT_COUNT := 9
 
 var roster: Array[Dictionary] = []
-var seats: Array[String] = ["nina", "zip", "ada", "", "", "", "", "", ""]
+var seats: Array[String] = ["nina", "", "", "", "", "", "", "", ""]
 var _profiles: Dictionary = {}
 
 

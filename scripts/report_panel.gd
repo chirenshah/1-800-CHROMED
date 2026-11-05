@@ -54,17 +54,19 @@ func show_results(day: int, revenue: int, calls: int, normal_sales: int, sales: 
 	for employee in workload:
 		var busy_ticks := float(employee["busy_ticks"])
 		var idle_ticks := float(employee["idle_ticks"])
+		var break_ticks := float(employee.get("break_ticks", 0.0))
 		if employee.get("archetype", "") == "Recycler":
 			recycler_busy_ticks += busy_ticks
-			recycler_total_ticks += busy_ticks + idle_ticks
+			recycler_total_ticks += busy_ticks + idle_ticks + break_ticks
 		var row := Label.new()
 		row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		row.add_theme_font_size_override("font_size", 13)
-		row.text = "Seat %02d · %s · %s\nAssigned %d · Handled %d\nSales %d · $%s\nBusy %.1fs · Idle %.1fs" % [
+		row.text = "Seat %02d · %s · %s\nAssigned %d · Handled %d\nSales %d · $%s\nCalling %.1fs · Break %.1fs (%d) · Idle %.1fs" % [
 			int(employee["seat"]) + 1, employee["name"], employee.get("archetype", ""),
 			employee["assigned"], employee["handled"],
 			employee["sales"], _format_number(int(employee["revenue"])),
 			busy_ticks * CallQueueSimulation.TICK_SECONDS,
+			break_ticks * CallQueueSimulation.TICK_SECONDS, int(employee.get("breaks_taken", 0)),
 			idle_ticks * CallQueueSimulation.TICK_SECONDS,
 		]
 		employee_rows.add_child(row)

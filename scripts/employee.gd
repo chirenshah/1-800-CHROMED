@@ -38,16 +38,16 @@ func _ready() -> void:
 func configure(number: int, employee: Dictionary, loadout: Array[String] = []) -> void:
 	seat_number = number
 	employee_id = employee.get("id", "")
-	seat_label.text = "SEAT %02d  /  INTAKE %02d" % [number, number]
-	name_label.text = employee.get("name", "Unassigned")
-	role_label.text = employee.get("archetype", "Open workstation")
+	seat_label.text = "SEAT %02d" % number
+	name_label.text = employee.get("name", "+ Add rep")
+	role_label.text = employee.get("archetype", "")
 	staffed = not employee_id.is_empty()
+	role_label.visible = staffed
+	name_label.add_theme_color_override("font_color", Color(0.94, 0.96, 1) if staffed else Color(0.62, 0.73, 0.79))
 	if staffed:
-		var speed_bonus := FloorPlan.CATALOG.augment_bonus(loadout, "speed")
-		var conversion_bonus := FloorPlan.CATALOG.augment_bonus(loadout, "conversion")
-		var speed_text := "%d" % employee["speed"] if is_zero_approx(speed_bonus) else "%.1f" % (float(employee["speed"]) * (1.0 + speed_bonus / 100.0))
-		var conversion := clampi(roundi(float(employee["conversion"]) + conversion_bonus), 0, 100)
-		stats_label.text = "SPD %s/5 · CNV %d%%\nUP %d%% · ×%.1f" % [speed_text, conversion, employee["upsell_chance"], employee["upsell_multiplier"]]
+		var conversion := roundi(FloorPlan.CATALOG.conversion_chance_with_augments(employee_id, loadout) * 100.0)
+		var talk_time := FloorPlan.CATALOG.handling_seconds_with_augments(employee_id, loadout)
+		stats_label.text = "%d%% close · %s/call\n%.0fh stamina" % [conversion, EmployeeRoster.format_game_duration(talk_time), float(employee.get("stamina_hours", EmployeeRoster.DEFAULT_STAMINA_HOURS))]
 		if not loadout.is_empty():
 			stats_label.text += " · ◆%d" % loadout.size()
 	else:
@@ -65,7 +65,7 @@ func set_planning_state(editable: bool, is_selected: bool) -> void:
 
 
 func set_compact(compact: bool) -> void:
-	custom_minimum_size = Vector2(134, 112 if compact else 144)
+	custom_minimum_size = Vector2(134, 104 if compact else 116)
 	name_label.add_theme_font_size_override("font_size", 16 if compact else 18)
 	seat_label.add_theme_font_size_override("font_size", 10 if compact else 11)
 	role_label.add_theme_font_size_override("font_size", 11 if compact else 13)
@@ -126,7 +126,7 @@ func _gui_input(event: InputEvent) -> void:
 		seat_selected.emit(seat_number - 1)
 
 
-func show_call(call: Dictionary, state: String, completed: Dictionary = {}) -> void:
+func show_call(call: Dictionary, state: String, completed: Dictionary = {}, break_remaining: float = 0.0) -> void:
 	var call_id := int(call.get("id", -1))
 	if call_id != _displayed_call_id:
 		if _assignment_tween != null:
@@ -139,13 +139,16 @@ func show_call(call: Dictionary, state: String, completed: Dictionary = {}) -> v
 			_assignment_tween.tween_property(self, "modulate", Color.WHITE, 0.25)
 		_displayed_call_id = call_id
 	call_progress.visible = not call.is_empty()
+	status_label.visible = staffed and state != "PREPARE"
 	tooltip_text = "Select this workstation to plan its assignment. Intake priority stays with the seat." if state == "PREPARE" else ""
 	if not staffed:
 		status_label.text = "OPEN SEAT"
 		status_label.add_theme_color_override("font_color", Color(0.62, 0.69, 0.8))
 	elif call.is_empty():
 		status_label.text = "DAY CLOSED" if state == "CLOSED" else "READY"
-		if not completed.is_empty() and state in ["LIVE", "PAUSED"]:
+		if break_remaining > 0.0 and state in ["LIVE", "PAUSED"]:
+			status_label.text = "BREAK · %.1fs left" % break_remaining
+		elif not completed.is_empty() and state in ["LIVE", "PAUSED"]:
 			status_label.text = "DONE #%03d · READY" % completed["id"]
 		status_label.add_theme_color_override("font_color", Color(0.98, 0.72, 0.25))
 	else:

@@ -258,8 +258,8 @@ func _test_repeatability_and_accounting() -> void:
 			var total_sales := 0
 			var total_revenue := 0
 			for result in first.employee_results():
-				_check(is_equal_approx(result["busy_ticks"] + result["idle_ticks"], first.elapsed_seconds / MODEL.TICK_SECONDS),
-					"Every employee's busy and idle time must cover exactly the elapsed workday.")
+				_check(is_equal_approx(result["busy_ticks"] + result["idle_ticks"] + result["break_ticks"], first.elapsed_seconds / MODEL.TICK_SECONDS),
+					"Every employee's calling, break, and idle time must cover exactly the elapsed workday.")
 				total_assigned += int(result["assigned"])
 				total_handled += int(result["handled"])
 				total_sales += int(result["sales"])

@@ -62,9 +62,10 @@ func _check_destination() -> void:
 		var workday = current_scene.get_node("Workday")
 		_check(workday.phase == workday.Phase.PREPARE and workday.call_queue.received == 0
 			and workday.day_timer.is_stopped(), "Destination must be fresh Prepare with no elapsed simulation.")
-		_check(workday.employee_cards.size() == 9 and workday.staffed_seats.size() == 3
-			and workday.planning_panel.summary_label.text == "3 / 9 seated",
-			"Opening must hand off to the nine-seat floor with three staffed seats.")
+		_check(workday.employee_cards.size() == 9 and workday.staffed_seats.size() == 1
+			and workday.planning_panel.summary_label.text == "1 / 9 seated"
+			and workday.floor_plan.seats[0] == "nina",
+			"Opening must hand off to the nine-seat floor with only Nina staffed.")
 
 
 func _remove_current() -> void:

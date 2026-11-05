@@ -33,9 +33,9 @@ func _unique_assignments(plan: FloorPlan) -> void:
 
 func _test_model() -> void:
 	var plan := FloorPlan.new()
-	_check(plan.roster.size() == 19 and plan.seats == ["nina", "zip", "ada", "", "", "", "", "", ""]
-		and plan.occupied_seats() == [0, 1, 2],
-		"Start with nineteen candidates, nine seats, and a three-person default lineup.")
+	_check(plan.roster.size() == 19 and plan.seats == ["nina", "", "", "", "", "", "", "", ""]
+		and plan.occupied_seats() == [0],
+		"Start with nineteen candidates, nine seats, and only Nina on the floor.")
 	_unique_assignments(plan)
 	# Keep move-to-empty and bench replacement behavior covered with a deliberately sparse lineup.
 	var sparse_model_seats: Array[String] = ["nina", "zip", "", "victoria", "", "", "", "", ""]
@@ -97,9 +97,20 @@ func _test_scene() -> void:
 	root.add_child(scene)
 	await _settle()
 	var panel: PlanningPanel = scene.planning_panel
-	_check(scene.staffed_seats.size() == 3 and panel.summary_label.text == "3 / 9 seated"
-		and scene.employee_cards.filter(func(card: EmployeeCard) -> bool: return card.staffed).size() == 3,
-		"Prepare must start with three staffed seats out of nine.")
+	_check(scene.staffed_seats.size() == 1 and panel.summary_label.text == "1 / 9 seated"
+		and scene.employee_cards.filter(func(card: EmployeeCard) -> bool: return card.staffed).size() == 1
+		and scene.inventory.owned_count() == 1 and scene.primary_button.disabled == false
+		and panel.views.current_tab == 0 and not panel.detail_scroll.visible
+		and scene.selected_seat == 1 and panel.candidate_id == "zip"
+		and panel.assign_button.text.begins_with("Hire Zip"),
+		"Prepare must start with Nina alone and show a clear next hiring action.")
+	panel.views.current_tab = 1
+	_check(panel.budget_label.visible and panel.offer_buttons[0].visible,
+		"The Upgrades view must expose the budget and shop without filling the Team view.")
+	panel.views.current_tab = 2
+	_check(panel.strength_label.visible and panel.tradeoff_label.visible,
+		"Character descriptions must remain available in Details.")
+	panel.views.current_tab = 0
 	# The interaction steps below need empty seats for move-to-empty and bench coverage.
 	var sparse_scene_seats: Array[String] = ["nina", "zip", "", "victoria", "", "", "", "", ""]
 	scene.floor_plan.seats = sparse_scene_seats
@@ -114,9 +125,17 @@ func _test_scene() -> void:
 		var screen := Rect2(Vector2.ZERO, Vector2(screen_size))
 		for control: Control in [panel, panel.candidate_selector, panel.profile_label, panel.assign_button, panel.bench_button, scene.primary_button]:
 			_check(screen.encloses(control.get_global_rect()), "Planning control is off screen at %s: %s" % [screen_size, control.name])
-		var floor_view: Rect2 = scene.floor_grid.get_parent().get_global_rect()
+		var floor_scroll: ScrollContainer = scene.floor_grid.get_parent()
+		var floor_view: Rect2 = floor_scroll.get_global_rect()
 		for card in scene.employee_cards:
-			_check(floor_view.encloses(card.get_global_rect()), "All nine planning seats should fit at %s: %s" % [screen_size, card.seat_number])
+			_check(card.get_global_rect().position.x >= floor_view.position.x
+				and card.get_global_rect().end.x <= floor_view.end.x,
+				"Planning seat must fit the floor width at %s: %s" % [screen_size, card.seat_number])
+		floor_scroll.ensure_control_visible(scene.employee_cards[8])
+		await _settle()
+		_check(floor_scroll.get_global_rect().encloses(scene.employee_cards[8].get_global_rect()),
+			"The last planning row must be reachable by scrolling at %s." % screen_size)
+		floor_scroll.scroll_vertical = 0
 		await _capture(str(screen_size.x))
 	root.size = Vector2i(1280, 720)
 	await _settle()
@@ -137,8 +156,8 @@ func _test_scene() -> void:
 	_choose_candidate(panel, "ada")
 	_check(panel.strength_label.text.contains("Conversion") and panel.tradeoff_label.text.contains("weak personal output"),
 		"Candidate inspection must show the source character's strength and tradeoff.")
-	_check(panel.profile_label.text == "Speed: 2/5 · Conversion: 35%\nUpsell: 15% · Multiplier: ×1.5",
-		"The planner must show the active numerical base stats for each candidate.")
+	_check(panel.profile_label.text == "Close 35% · Talk 3h00m · Stamina 4h",
+		"The Team view must show the three core decision stats for each candidate.")
 	await _capture("ada-preview")
 	await _click(panel.assign_button)
 	_check(scene.floor_plan.seats[2] == "ada" and scene.employee_cards[2].employee_id == "ada"
@@ -151,7 +170,7 @@ func _test_scene() -> void:
 	_check(scene.floor_plan.seats[1].is_empty() and not scene.employee_cards[1].staffed, "Bench button must open the selected workstation.")
 	# The final candidate must be inspectable and assignable beyond the nine seats.
 	_choose_candidate(panel, "echo")
-	_check(panel.profile_label.text == "Speed: 2/5 · Conversion: 45%\nUpsell: 10% · Multiplier: ×1.5", "The last roster entry must expose its own stats.")
+	_check(panel.profile_label.text == "Close 45% · Talk 3h00m · Stamina 4h", "The last roster entry must expose its own stats.")
 	await _click(panel.assign_button)
 	_check(scene.floor_plan.seats[1] == "echo", "Candidates beyond the first nine must be assignable.")
 	# Hiring: an unowned candidate is hired into reserve, never deployed, and charged once.

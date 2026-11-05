@@ -7,6 +7,8 @@ const PATIENCE_TICKS := 8
 const MIN_ARRIVAL_SECONDS := 0.75
 const MAX_ARRIVAL_SECONDS := 1.5
 const TIME_EPSILON := 0.00000001
+const BREAK_HOURS := 1.0
+const BREAK_SECONDS := BREAK_HOURS * EmployeeRoster.REAL_SECONDS_PER_GAME_HOUR
 const ASSIGNMENT := preload("res://scripts/lead_assignment.gd")
 
 var waiting: Array[Dictionary] = []
@@ -59,7 +61,10 @@ func reset(lineup: Array[String], arrival_seed: int = -1, loadouts: Dictionary =
 		assert(not employee_stats.has(employee_id), "An employee may only occupy one slot.")
 		employee_stats[employee_id] = {
 			"employee_id": employee_id, "seat": seat, "assigned": 0, "handled": 0,
-			"busy_ticks": 0.0, "idle_ticks": 0.0, "sales": 0, "revenue": 0,
+			"busy_ticks": 0.0, "idle_ticks": 0.0, "break_ticks": 0.0,
+			"stamina_remaining_seconds": roster.stamina_hours(employee_id) * EmployeeRoster.REAL_SECONDS_PER_GAME_HOUR,
+			"break_remaining_seconds": 0.0, "break_completed": false, "breaks_taken": 0,
+			"sales": 0, "revenue": 0,
 		}
 	elapsed_ticks = 0
 	elapsed_seconds = 0.0
@@ -112,6 +117,10 @@ func time_until_next_event() -> float:
 		deadline = minf(deadline, elapsed_seconds + float(call["remaining"]) * TICK_SECONDS)
 	for call in waiting:
 		deadline = minf(deadline, _patience_deadline(call))
+	for employee_id in employee_stats:
+		var break_remaining := float(employee_stats[employee_id]["break_remaining_seconds"])
+		if break_remaining > TIME_EPSILON:
+			deadline = minf(deadline, elapsed_seconds + break_remaining)
 	return maxf(0.0, deadline - elapsed_seconds)
 
 
@@ -123,7 +132,13 @@ func _account_interval(seconds: float) -> void:
 		var stats: Dictionary = employee_stats[employees[seat]]
 		if active.has(seat):
 			stats["busy_ticks"] += ticks
+			stats["stamina_remaining_seconds"] = maxf(0.0, float(stats["stamina_remaining_seconds"]) - seconds)
 			active[seat]["remaining"] = maxf(0.0, float(active[seat]["remaining"]) - ticks)
+		elif float(stats["break_remaining_seconds"]) > TIME_EPSILON:
+			stats["break_ticks"] += ticks
+			stats["break_remaining_seconds"] = maxf(0.0, float(stats["break_remaining_seconds"]) - seconds)
+			if float(stats["break_remaining_seconds"]) <= TIME_EPSILON:
+				stats["break_completed"] = true
 		else:
 			stats["idle_ticks"] += ticks
 
@@ -171,6 +186,17 @@ func _resolve_events() -> void:
 			# A failed recovery is its lead's final outcome and never returns to the pile.
 			if not call["sold"] and not is_recovery:
 				discard_lead(call)
+			if float(stats["stamina_remaining_seconds"]) <= TIME_EPSILON:
+				stats["break_remaining_seconds"] = BREAK_SECONDS
+				stats["breaks_taken"] += 1
+
+	# A completed break restores the full continuous-calling allowance.
+	for employee_id in employee_stats:
+		var stats: Dictionary = employee_stats[employee_id]
+		if bool(stats["break_completed"]):
+			stats["break_remaining_seconds"] = 0.0
+			stats["break_completed"] = false
+			stats["stamina_remaining_seconds"] = roster.stamina_hours(employee_id) * EmployeeRoster.REAL_SECONDS_PER_GAME_HOUR
 
 	# A waiting lead leaves at its deadline, including a tie with a completion.
 	# Filter every lead, preserving the relative FIFO order of survivors.
@@ -233,7 +259,7 @@ func _patience_deadline(call: Dictionary) -> float:
 
 func _dispatch_waiting() -> void:
 	# Normal sales representatives only take incoming leads; Recyclers never do.
-	var takes_incoming := func(employee_id: String) -> bool: return not roster.is_recycler(employee_id)
+	var takes_incoming := func(employee_id: String) -> bool: return not roster.is_recycler(employee_id) and not is_on_break(employee_id)
 	while not waiting.is_empty():
 		var seat := ASSIGNMENT.next_available_seat(employees, active, takes_incoming)
 		if seat == -1:
@@ -253,7 +279,7 @@ func _dispatch_waiting() -> void:
 # Recyclers claim leads from the discard pile in slot order. The lead leaves the
 # pile immediately, which guarantees a single recovery attempt.
 func _dispatch_recoveries() -> void:
-	var takes_discards := func(employee_id: String) -> bool: return roster.is_recycler(employee_id)
+	var takes_discards := func(employee_id: String) -> bool: return roster.is_recycler(employee_id) and not is_on_break(employee_id)
 	while not lead_discard_pile.is_empty():
 		var seat := ASSIGNMENT.next_available_seat(employees, active, takes_discards)
 		if seat == -1:
@@ -280,6 +306,10 @@ func employee_results() -> Array[Dictionary]:
 		if not employee_id.is_empty():
 			results.append(employee_stats[employee_id].duplicate(true))
 	return results
+
+
+func is_on_break(employee_id: String) -> bool:
+	return employee_stats.has(employee_id) and float(employee_stats[employee_id]["break_remaining_seconds"]) > TIME_EPSILON
 
 
 # Base stats affect handling only. Future conditional behaviors can extend these

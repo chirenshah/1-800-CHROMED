@@ -10,34 +10,36 @@ signal surgery_requested(employee_id: String)
 signal hire_requested(employee_id: String)
 
 @onready var summary_label: Label = $Margin/Content/Header/Summary
-@onready var score_target_label: Label = $Margin/Content/Scoreboard/ScoreTarget
-@onready var seat_label: Label = $Margin/Content/SeatLabel
-@onready var candidate_selector: OptionButton = $Margin/Content/CandidateSelector
-@onready var location_label: Label = $Margin/Content/Location
-@onready var detail_scroll: ScrollContainer = $Margin/Content/DetailScroll
-@onready var strength_label: Label = $Margin/Content/DetailScroll/Details/Strength
-@onready var tradeoff_label: Label = $Margin/Content/DetailScroll/Details/Tradeoff
-@onready var profile_label: Label = $Margin/Content/Profiles
-@onready var hint_label: Label = $Margin/Content/DetailScroll/Details/Hint
-@onready var assign_button: Button = $Margin/Content/AssignButton
-@onready var bench_button: Button = $Margin/Content/BenchButton
-@onready var budget_label: Label = $Margin/Content/DetailScroll/Details/Budget
+@onready var views: TabContainer = $Margin/Content/Views
+@onready var seat_label: Label = $Margin/Content/Views/Team/TeamContent/SeatLabel
+@onready var candidate_selector: OptionButton = $Margin/Content/Views/Team/TeamContent/CandidateSelector
+@onready var location_label: Label = $Margin/Content/Views/Team/TeamContent/Location
+@onready var detail_scroll: ScrollContainer = $Margin/Content/Views/Details
+@onready var strength_label: Label = $Margin/Content/Views/Details/DetailContent/Strength
+@onready var tradeoff_label: Label = $Margin/Content/Views/Details/DetailContent/Tradeoff
+@onready var profile_label: Label = $Margin/Content/Views/Team/TeamContent/Profiles
+@onready var hint_label: Label = $Margin/Content/Views/Details/DetailContent/Hint
+@onready var details_title: Label = $Margin/Content/Views/Details/DetailContent/DetailsTitle
+@onready var more_stats: Label = $Margin/Content/Views/Details/DetailContent/MoreStats
+@onready var assign_button: Button = $Margin/Content/Views/Team/TeamContent/AssignButton
+@onready var bench_button: Button = $Margin/Content/Views/Team/TeamContent/BenchButton
+@onready var budget_label: Label = $Margin/Content/Views/Upgrades/UpgradeContent/Budget
 @onready var offer_buttons: Array[Button] = [
-	$Margin/Content/DetailScroll/Details/Offer1,
-	$Margin/Content/DetailScroll/Details/Offer2,
-	$Margin/Content/DetailScroll/Details/Offer3,
+	$Margin/Content/Views/Upgrades/UpgradeContent/Offer1,
+	$Margin/Content/Views/Upgrades/UpgradeContent/Offer2,
+	$Margin/Content/Views/Upgrades/UpgradeContent/Offer3,
 ]
-@onready var equipment_label: Label = $Margin/Content/DetailScroll/Details/Equipment
-@onready var inventory_selector: OptionButton = $Margin/Content/DetailScroll/Details/InventoryRow/Inventory
-@onready var equip_button: Button = $Margin/Content/DetailScroll/Details/InventoryRow/EquipButton
+@onready var equipment_label: Label = $Margin/Content/Views/Upgrades/UpgradeContent/Equipment
+@onready var inventory_selector: OptionButton = $Margin/Content/Views/Upgrades/UpgradeContent/InventoryRow/Inventory
+@onready var equip_button: Button = $Margin/Content/Views/Upgrades/UpgradeContent/InventoryRow/EquipButton
 @onready var unequip_buttons: Array[Button] = [
-	$Margin/Content/DetailScroll/Details/Unequip1,
-	$Margin/Content/DetailScroll/Details/Unequip2,
+	$Margin/Content/Views/Upgrades/UpgradeContent/Unequip1,
+	$Margin/Content/Views/Upgrades/UpgradeContent/Unequip2,
 ]
-@onready var surgery_button: Button = $Margin/Content/DetailScroll/Details/SurgeryButton
+@onready var surgery_button: Button = $Margin/Content/Views/Upgrades/UpgradeContent/SurgeryButton
 
 var selected_seat := 0
-var candidate_id := "nina"
+var candidate_id := "zip"
 var _plan: FloorPlan
 var _augment_manager: AugmentManager
 var _augment_editable := false
@@ -56,19 +58,13 @@ func _ready() -> void:
 	surgery_button.pressed.connect(func() -> void: surgery_requested.emit(candidate_id))
 
 
-func show_score_target(day: int, target: int) -> void:
-	score_target_label.text = "$%d" % target
-	score_target_label.tooltip_text = "Reach $%d in revenue on Day %d to advance." % [target, day]
-
-
 func show_plan(plan: FloorPlan, seat: int, select_occupant := false) -> void:
 	_plan = plan
 	selected_seat = seat
 	if select_occupant and not plan.seats[seat].is_empty():
 		candidate_id = plan.seats[seat]
 	summary_label.text = "%d / 9 seated" % plan.occupied_seats().size()
-	var occupant := plan.profile(plan.seats[seat])
-	seat_label.text = "SEAT %02d  /  %s" % [seat + 1, occupant.get("name", "Unassigned")]
+	seat_label.text = "SEAT %02d" % (seat + 1)
 	candidate_selector.clear()
 	for index in plan.roster.size():
 		var employee := plan.roster[index]
@@ -98,17 +94,19 @@ func _show_candidate() -> void:
 	if candidate.is_empty():
 		return
 	candidate_selector.tooltip_text = candidate["purpose"]
+	details_title.text = "%s · %s" % [candidate["name"], candidate["archetype"]]
 	strength_label.text = candidate["strength"]
 	tradeoff_label.text = candidate["tradeoff"]
-	profile_label.text = "Speed: %d/5 · Conversion: %d%%\nUpsell: %d%% · Multiplier: ×%.1f" % [candidate["speed"], candidate["conversion"], candidate["upsell_chance"], candidate["upsell_multiplier"]]
+	more_stats.text = "Upsell %d%% · Payout ×%.1f" % [candidate["upsell_chance"], candidate["upsell_multiplier"]]
 	var effective_handling := FloorPlan.CATALOG.handling_seconds(candidate_id)
+	var effective_conversion := roundi(FloorPlan.CATALOG.conversion_chance(candidate_id) * 100.0)
 	if _augment_manager != null:
 		var loadout := _augment_manager.loadout(candidate_id)
 		if not loadout.is_empty():
-			var effective_conversion := roundi(FloorPlan.CATALOG.conversion_chance_with_augments(candidate_id, loadout) * 100.0)
+			effective_conversion = roundi(FloorPlan.CATALOG.conversion_chance_with_augments(candidate_id, loadout) * 100.0)
 			effective_handling = FloorPlan.CATALOG.handling_seconds_with_augments(candidate_id, loadout)
-			profile_label.text += "\nEffective: %d%% conversion · %.1fs/call" % [effective_conversion, effective_handling]
-	profile_label.tooltip_text = "Effective handling: %.1f seconds per interaction. Conversion is the chance of a sale when an interaction finishes." % effective_handling
+	profile_label.text = "Close %d%% · Talk %s · Stamina %.0fh" % [effective_conversion, EmployeeRoster.format_game_duration(effective_handling), float(candidate.get("stamina_hours", EmployeeRoster.DEFAULT_STAMINA_HOURS))]
+	profile_label.tooltip_text = "Talk time uses the in-game clock. Conversion is the chance of a sale when an interaction finishes."
 	if FloorPlan.CATALOG.is_recycler(candidate_id):
 		profile_label.tooltip_text += " Scrap attempts one recovery for each discarded lead."
 	else:
@@ -174,7 +172,7 @@ func _on_unequip_pressed(slot_index: int) -> void:
 func _refresh_augment_controls() -> void:
 	if _augment_manager == null:
 		return
-	budget_label.text = "Department budget: $%d" % _augment_manager.budget
+	budget_label.text = "BUDGET  $%d" % _augment_manager.budget
 	for index in offer_buttons.size():
 		var button := offer_buttons[index]
 		if index >= _augment_manager.shop_offers.size():

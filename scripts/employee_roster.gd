@@ -4,6 +4,8 @@ class_name EmployeeRoster
 
 # Scale the whole floor's handling pace without flattening employee differences.
 const BASE_HANDLING_SECONDS := 18.0
+const REAL_SECONDS_PER_GAME_HOUR := 3.0
+const DEFAULT_STAMINA_HOURS := 4.0
 const AUGMENTS: AugmentCatalog = preload("res://data/augment_catalog.tres")
 
 @export var employees: Array[Dictionary] = []
@@ -18,6 +20,19 @@ func profile(employee_id: String) -> Dictionary:
 
 func is_recycler(employee_id: String) -> bool:
 	return profile(employee_id).get("archetype", "") == "Recycler"
+
+
+func stamina_hours(employee_id: String) -> float:
+	var employee := profile(employee_id)
+	assert(not employee.is_empty(), "Unknown employee: " + employee_id)
+	return maxf(float(employee.get("stamina_hours", DEFAULT_STAMINA_HOURS)), 0.1)
+
+
+static func format_game_duration(real_seconds: float) -> String:
+	var game_minutes := maxi(1, roundi(real_seconds / REAL_SECONDS_PER_GAME_HOUR * 60.0))
+	var hours := floori(game_minutes / 60.0)
+	var minutes := game_minutes % 60
+	return "%dh%02dm" % [hours, minutes] if hours > 0 else "%dm" % minutes
 
 
 func handling_seconds(employee_id: String) -> float:

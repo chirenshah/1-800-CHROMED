@@ -108,8 +108,7 @@ func _test_scene() -> void:
 	var scene = load("res://scenes/workday.tscn").instantiate()
 	root.add_child(scene)
 	await _settle()
-	# Preserve open-seat UI coverage now that the default floor is fully staffed.
-	scene._bench_employee(2)
+	# Verify the empty-seat UI in the one-rep starting floor.
 	_check(scene.call_queue.received == 0 and scene.queue_panel.empty_label.visible,
 		"Prepare must start with an empty queue.")
 	_check_bounds(scene, root.size)
@@ -123,10 +122,12 @@ func _test_scene() -> void:
 			scene.call_queue.receive_call()
 		scene._simulate_tick(0.25)
 		await _settle()
+		_check(scene.shift_clock.text == "00:05 / 12:00",
+			"The header clock must show in-game hours and minutes at three real seconds per hour.")
 		_check(scene.queue_panel.waiting_label.text == str(scene.call_queue.waiting.size()),
 			"The queue counter must match the waiting calls.")
-			_check(scene.queue_panel.discard_label.text == "Lead discard pile  %d" % scene.call_queue.get_discard_count(),
-				"The live discard counter must match failed interactions.")
+		_check(scene.queue_panel.discard_label.text == "Lead discard pile  %d" % scene.call_queue.get_discard_count(),
+			"The live discard counter must match failed interactions.")
 		_check(scene.queue_panel.more_label.visible, "A long queue must show its overflow count.")
 		var first_row: Label = scene.queue_panel.rows.get_child(0).get_node("Margin/Content/CallId")
 		_check(first_row.text == "Call #%03d" % scene.call_queue.waiting[0]["id"],
@@ -180,8 +181,9 @@ func _test_scene() -> void:
 		var nina_row: Label = scene.report_panel.employee_rows.get_child(0)
 		_check(nina_row.text.contains("Seat 01 · Nina")
 			and nina_row.text.contains("Assigned %d · Handled %d" % [nina["assigned"], nina["handled"]])
-			and nina_row.text.contains("Busy %.1fs · Idle %.1fs" % [
-				float(nina["busy_ticks"]) * MODEL.TICK_SECONDS, float(nina["idle_ticks"]) * MODEL.TICK_SECONDS]),
+				and nina_row.text.contains("Calling %.1fs · Break %.1fs (%d) · Idle %.1fs" % [
+					float(nina["busy_ticks"]) * MODEL.TICK_SECONDS, float(nina["break_ticks"]) * MODEL.TICK_SECONDS,
+					int(nina["breaks_taken"]), float(nina["idle_ticks"]) * MODEL.TICK_SECONDS]),
 			"Employee report rows must reflect measured assignments and simulation time.")
 		_check(scene.report_panel._format_number(12345) == "12,345", "Report amounts must retain all digits.")
 		_check_bounds(scene, size)
@@ -245,7 +247,8 @@ func _test_recycler_report() -> void:
 	scene._start_day()
 	scene.day_timer.stop()
 	scene.call_queue.roster = data
-	scene.call_queue.reset(["zip", "scrap"], 41)
+	var recycler_lineup: Array[String] = ["zip", "scrap"]
+	scene.call_queue.reset(recycler_lineup, 41)
 	scene.call_queue.next_arrival_seconds = INF
 	scene.call_queue.receive_call()
 	scene.call_queue.advance(data.handling_seconds("zip"))
@@ -274,7 +277,7 @@ func _test_recycler_report() -> void:
 	unfinished_scene._start_day()
 	unfinished_scene.day_timer.stop()
 	unfinished_scene.call_queue.roster = data
-	unfinished_scene.call_queue.reset(["zip", "scrap"], 42)
+	unfinished_scene.call_queue.reset(recycler_lineup, 42)
 	unfinished_scene.call_queue.next_arrival_seconds = INF
 	unfinished_scene.call_queue.receive_call()
 	unfinished_scene.call_queue.advance(data.handling_seconds("zip"))

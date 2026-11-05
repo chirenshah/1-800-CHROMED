@@ -83,6 +83,13 @@ theme_override_font_sizes/font_size = 16
 text = "DAY 01 / 60"
 vertical_alignment = 1
 
+[node name="ShiftClock" type="Label" parent="PageMargin/Page/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 16
+text = "00:00 / 12:00"
+vertical_alignment = 1
+
 [node name="MusicButton" parent="PageMargin/Page/Header" instance=ExtResource("5_music_button")]
 layout_mode = 2
 size_flags_vertical = 4
@@ -169,7 +176,7 @@ text = "$0"
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.62, 0.73, 0.79, 1)
-text = "Priority: 01 top-left → 09 bottom-right, row by row. Skip busy/empty seats."
+text = "Calls go to the first available seat, in number order."
 tooltip_text = "Leads go automatically to the first available employee. Select a seat to arrange the team during Prepare."
 autowrap_mode = 2
 

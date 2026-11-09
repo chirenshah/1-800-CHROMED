@@ -1,113 +1,46 @@
-# 1-800-CHROMED — Sample Character Augments
+# Augment System
 
-## Objective
+## Current behavior
 
-This document defines the implemented basic augment system for 1-800-CHROMED, a cyberpunk call-center autobattler.
+Augments belong to individual employees, whether seated or in reserve. The first augment slot is available by default; surgery unlocks the existing second slot for $300. Installed augments are permanent: they cannot be unequipped or transferred. During Prepare, a player may replace one after explicit confirmation; the old instance is destroyed and replacement has no extra fee. Firing an employee permanently removes their installed augments. Uninstalled items remain in the shared 2×6 inventory.
 
-Players purchase augments during the **Prepare / Shop phase** and equip them onto sales representatives to improve their performance during automated sales calls.
+The Store has seven slots: four standard augment offers, one premium augment offer, and two salesperson candidates. Standard and premium augment purchases use the shared Company Cash budget and enter the shared item inventory; they are not auto-equipped. Salesperson hires enter reserve and cannot exceed its capacity. Each available offer can be purchased once. A fixed-cost reroll replaces the complete stock; opening another Prepare view does not regenerate it. Store stock initializes once per day and its state is serializable alongside run state.
 
-For this initial implementation, augments should only modify existing character stats. Do not introduce new stats or complex gameplay mechanics.
+After each completed workday, the player receives three distinct augment choices and may claim one into inventory, directly install or replace it on an owned employee, or skip all. Inventory capacity does not block direct installation or skipping. A pending reward and selected option remain unchanged while the player opens Team Management to equip, replace, or discard items. The next workday cannot start until the reward is resolved.
 
-## Augment Rules
+## Stat and simulation rules
 
-- Every character starts with **1 augment slot**.
-- Characters can unlock a **second augment slot** through individual surgery.
-- Surgery costs **$300** and is a permanent upgrade to that character.
-- Each augment modifies exactly **one character stat**.
-- Augments are purchased using the department budget.
-- Augments can be equipped, unequipped, and transferred between characters during Prepare.
-- Augment effects apply automatically during Play.
-- Augments cannot be changed during an active workday.
-- All augment stat bonuses are additive to the character's base stat.
-- Augment prices are fixed for this initial implementation.
-- Do not implement augment synergies, upgrades, or negative side effects yet.
+- Installed copies have unique instance IDs separate from their stable definition IDs. Duplicates are allowed in inventory, on the same employee, and across employees.
+- Speed and Upsell Multiplier retain fractional values. Speed bonuses expressed as percentages add before applying to the baseline. Conversion bonuses add percentage points. UI formatting rounds values; simulation does not.
+- Modified Conversion and Upsell Chance can exceed 100. Only the actual probability roll is clamped to 0–100%.
+- Stat dependencies resolve from modified values. Cycles use a shared pre-cycle snapshot and are applied once; downstream dependencies read the resolved cycle values. The effect engine records a development trace.
+- Stat theft transfers only actual losses. Simultaneous requests against one source are allocated proportionally from the shared snapshot. Orthogonal adjacency is shared through `GridSelector`; diagonals are excluded unless explicitly selected.
+- Active calls store normalized progress. Natural progress is `Speed / 18` per second; a Speed change affects the remaining progress without resetting it. Speed zero pauses natural progress but direct effects can still change and complete calls.
+- Call-progress changes in one event wave aggregate before clamping. Completed calls are committed and cannot reopen. Conversion and Upsell Chance are evaluated at completion; Upsell Multiplier is read only after a successful upsell roll.
+- Gameplay events process deterministic batches and may cascade without an arbitrary depth limit. Each installed augment instance activates at most once per originating chain. Independent same-time root events keep separate chain IDs.
+- Temporary effects explicitly specify their duration. Implemented duration forms include timed, next-call, and workday-scoped effects; independently stacked timed buffs expire independently. All temporary effects clear on daily simulation reset.
+- Daily Upkeep is an effective stat with a zero floor. Augments can modify, derive from, or transfer upkeep; reserve employees still owe their effective amount.
+- Continuous effects can read current Company Cash through conditions or cash-scaled stats. Resolving stats never mutates cash; cash grants, penalties, and cash-funded progress require explicit event triggers and use the per-instance/per-chain activation guard.
+- Each sale immediately credits both Company Cash and Daily Sales Revenue. Non-sale cash effects affect only Company Cash; cash penalties are capped at available funds. The end-of-day board replays sale records without settling them again.
 
-## Sample Augments
+## Prototype definitions
 
-| ID      | Name                 | Stat Modified | Effect | Price | Rarity    |
-| ------- | -------------------- | ------------- | ------ | ----- | --------- |
-| AUG_001 | Silver Tongue™       | Conversion    | +10%   | $100  | Common    |
-| AUG_002 | Neural Overclock     | Speed         | +15%   | $125  | Common    |
-| AUG_003 | Corporate Charm Chip | Conversion    | +15%   | $175  | Uncommon  |
-| AUG_004 | Synaptic Accelerator | Speed         | +25%   | $225  | Rare      |
-| AUG_005 | Persuasion Matrix    | Conversion    | +25%   | $300  | Rare      |
-| AUG_006 | Quantum Dialer       | Speed         | +40%   | $450  | Legendary |
+The six priced shop entries (`AUG_001`–`AUG_006`) retain their existing prototype prices. `AUG_003` uses the spec's `Rare` rarity name. Other effect definitions in [augment_catalog.tres](../data/augment_catalog.tres) are prototype fixtures for exercising dependencies, position, event triggers, temporary effects, progress transfer, cash-reactive stats, upkeep, and explicit financial events. Their zero prices and reward availability are scaffolding, not approved launch balance or a finalized content catalog.
 
-**Important:** `Conversion` and `Speed` are conceptual labels. Claude should map these to the existing character stat identifiers in the project rather than creating duplicate stats.
+Rarity weights and reroll cost are data-configurable in `AugmentCatalog`. The current standard/premium weights and $100 reroll cost are tuning placeholders, not approved balance. Current augment catalog prices and the $100 salesperson hire price are also prototype values pending balance. If a weighted rarity has no eligible definitions, generation redistributes its weight across rarities with eligible stock; an augment slot is marked sold out only when no eligible definition remains. The Store's employee offers are selected uniformly without replacement, excluding owned or fired employees; employee rarity/class weights are not applied. The production catalog and multi-pick reward balancing remain unresolved. Daily reward defaults are three offers and one pick.
 
-## Stat Behavior
+## Architecture
 
-### Conversion
+- [augment_catalog.gd](../scripts/augment_catalog.gd) stores definition and rarity data; [augment_effect_engine.gd](../scripts/augment_effect_engine.gd) resolves stats, dependencies, theft, and trigger operations.
+- [grid_selector.gd](../scripts/grid_selector.gd) provides shared floor selectors.
+- [call_queue_simulation.gd](../scripts/call_queue_simulation.gd) owns normalized call progress, deterministic event waves, chain activation, temporary effects, and debug event records. [financial_ledger.gd](../scripts/financial_ledger.gd) records immediate sale settlement and explicit cash effects separately from the workday score.
+- [inventory_manager.gd](../scripts/inventory_manager.gd) owns unique item instances and permanent employee equipment. [augment_manager.gd](../scripts/augment_manager.gd) handles shop transactions, surgery, reward generation, and pending-reward state.
+- [store_panel.gd](../scripts/store_panel.gd) presents augment and employee offers, rerolls, and navigation to the workday. [augment_manager.gd](../scripts/augment_manager.gd) owns daily stock, purchase and hire transactions, and persistence. [planning_panel.gd](../scripts/planning_panel.gd) exposes install, confirmed replacement, discard, and team management. [report_panel.gd](../scripts/report_panel.gd) presents daily reward actions and prevents progression while unresolved.
 
-Improves a character's probability of successfully closing a sale.
+## Explicitly unresolved
 
-Example:
+When multiple independent chains jointly complete one call, the current deterministic engineering policy attributes the resulting call event to the sorted union of contributing chain IDs. Its downstream listeners may therefore activate once per contributing root chain. This is implemented transparently but remains flagged for design confirmation. Payroll uses a clearly marked end-of-day effective-upkeep snapshot as a prototype policy; snapshot versus time-weighted sampling is unresolved. Exact currency precision beyond existing integer-dollar conventions, the production augment catalog, rarity weights/prices, special-event schedule, and second-slot surgery cost remain open rather than being inferred from fixtures.
 
-- Base conversion chance: 40%
-- Equipped Silver Tongue: +10 percentage points
-- Final conversion chance: 50%
+## Validation
 
-Use percentage-point bonuses for conversion, not multiplicative percentage increases.
-
-Clamp the final conversion probability to the valid range supported by the existing game.
-
-### Speed
-
-Improves how quickly a character completes sales interactions.
-
-Example:
-
-- Base call duration: 5 seconds
-- Equipped Neural Overclock: +15% speed
-- Effective call duration: `5 / 1.15 = 4.35 seconds`
-
-Apply speed bonuses to the existing call-duration calculation rather than introducing a separate timing system.
-
-Speed bonuses stack additively as percentage increases to processing speed: two equipped +15% Speed augments produce a 1.30× speed rate, so the original duration is divided by 1.30. They do not change the character's authored 1–5 baseline Speed.
-
-## Shop Behavior
-
-During the Prepare phase:
-
-1. Display three randomly selected augments available for purchase.
-2. Display each augment's name, stat bonus, rarity, and price.
-3. Allow purchases when the player has sufficient budget.
-4. Deduct the purchase price from the department budget.
-5. Add purchased augments to the player's inventory.
-6. Allow the player to equip augments onto characters with available slots.
-7. Recalculate character stats when equipment changes.
-
-Purchased augments should persist between workdays.
-
-The initial department budget is **$500**. Workday revenue is added to that budget when the day closes. The shop rolls three distinct offers at the start of each Prepare phase; an offer can be purchased once that day. Inventory, equipment, surgery, and budget persist between workdays in the current game session.
-
-## Implementation Requirements
-
-- Inspect the existing character stat system before implementing augments.
-- Reuse existing stats and simulation calculations.
-- Define augments as data rather than hardcoding their effects individually.
-- Ensure that equipped augment bonuses are applied exactly once.
-- Avoid permanently modifying base character stats when equipping augments.
-- Preserve existing character behavior when no augments are equipped.
-- Keep the augment system extensible for future abilities and synergies.
-- Do not modify unrelated game systems.
-
-## Acceptance Criteria
-
-- [x] Augments appear in the Prepare-phase shop.
-- [x] Each augment displays its price, stat bonus, and rarity.
-- [x] Players can purchase augments with available budget.
-- [x] Characters can equip augments within their slot limits.
-- [x] Equipping an augment modifies the correct existing character stat.
-- [x] Unequipping restores the character's original effective stat.
-- [x] Surgery unlocks a second character slot for $300.
-- [x] Two-slot characters can receive bonuses from two augments.
-- [x] Bonuses affect actual automated sales outcomes.
-- [x] Augments persist correctly between workdays.
-- [x] Existing gameplay continues working without equipped augments.
-
-## Scope
-
-Implement only the six sample augments and their single-stat effects.
-
-Do not implement augment combinations, special triggered abilities, employee recovery periods, or additional augment categories in this iteration.
+The focused [test_augment_implementation.gd](../tests/test_augment_implementation.gd) covers fractional and derived stats, cycles, proportional theft, adjacency, speed changes, direct progress, cascades, cash-reactive stats, upkeep transfers, event cash penalties/grants, spend-scaled progress, and reward/install paths. [test_financial_gameplay.gd](../tests/test_financial_gameplay.gd) covers dual-ledger settlement, payroll carryover, and financial integration; existing [test_augments.gd](../tests/test_augments.gd) and [test_inventory.gd](../tests/test_inventory.gd) cover compatibility and ownership.

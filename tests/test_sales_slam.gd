@@ -136,13 +136,15 @@ func _test_workday() -> void:
 	scene.call_queue.sale_log.append({"id": 1, "value": 400, "employee_id": "nina", "recovery": false})
 	scene.call_queue.revenue = 400
 	var budget_before: int = scene.augment_manager.budget
+	scene._settle_sale({"employee_id": "nina", "value": 400, "timestamp": 1.0})
 	scene._finish_day()
-	_check(scene.augment_manager.budget == budget_before + 400, "The day's revenue is credited exactly once.")
+	_check(scene.augment_manager.budget == budget_before + 400 - EmployeeRoster.DEFAULT_DAILY_UPKEEP,
+		"Revenue is credited once and the day's upkeep is settled once.")
 	_check(scene.slam_board.visible and scene.slam_board.running, "The report phase launches the slam board.")
 	_check(scene.slam_board.goal == scene.score_target(scene.day), "The board uses the day's score target.")
 	scene.slam_board.skip()
-	_check(scene.augment_manager.budget == budget_before + 400 and scene.call_queue.revenue == 400,
-		"Playing the board never changes revenue or budget.")
+	_check(scene.augment_manager.budget == budget_before + 400 - EmployeeRoster.DEFAULT_DAILY_UPKEEP
+		and scene.call_queue.revenue == 400, "Playing the board never changes revenue or settled cash.")
 	scene._prepare_next_day()
 	await process_frame
 	_check(not scene.slam_board.visible and not scene.slam_board.running, "Leaving the report hides the board.")

@@ -31,19 +31,38 @@ func _run() -> void:
 
 func _test_manager() -> void:
 	var manager := MANAGER.new()
+	_check(manager.store_offers.size() == MANAGER.STORE_SLOT_COUNT,
+		"A new store contains four standard, one premium, and two recruitment slots.")
+	var standard_ids: Array[String] = []
+	for slot_index in MANAGER.STANDARD_STORE_SLOTS:
+		var offer := manager.store_offer(slot_index)
+		if offer.get("status", "") == "available":
+			_check(str(offer.get("rarity", "")) in ["Common", "Uncommon", "Rare"],
+				"Standard slots only use Common, Uncommon, or Rare augments.")
+			_check(not standard_ids.has(str(offer.get("augment_id", ""))),
+				"One store generation does not repeat an augment.")
+			standard_ids.append(str(offer.get("augment_id", "")))
+	var premium := manager.store_offer(MANAGER.PREMIUM_STORE_SLOT)
+	if premium.get("status", "") == "available":
+		_check(str(premium.get("rarity", "")) in ["Epic", "Legendary"],
+			"The premium slot only uses Epic or Legendary augments.")
+	var recruit_ids: Array[String] = []
+	for slot_index in range(MANAGER.EMPLOYEE_STORE_START, MANAGER.STORE_SLOT_COUNT):
+		var offer := manager.store_offer(slot_index)
+		if offer.get("status", "") == "available":
+			var employee_id := str(offer.get("employee_id", ""))
+			_check(not recruit_ids.has(employee_id) and not manager.bag.owns(employee_id),
+				"Recruitment candidates are distinct unhired unique employees.")
+			recruit_ids.append(employee_id)
 	_check(manager.hire("zip"), "Zip must be hired before transferring an augment to him.")
-	_check(MANAGER.CATALOG.augments.size() == 6 and manager.shop_offers.size() == 3,
-		"The shop must offer three choices from the six data-defined augments.")
-	_check(manager.shop_offers[0] != manager.shop_offers[1]
-		and manager.shop_offers[0] != manager.shop_offers[2]
-		and manager.shop_offers[1] != manager.shop_offers[2],
-		"Offers within a shop refresh must be distinct.")
 	manager.budget = 500
-	manager.shop_offers = ["AUG_001", "AUG_002", "AUG_003"]
+	manager.store_offers[0] = _augment_offer("AUG_001", "Common", "standard")
+	manager.store_offers[1] = _augment_offer("AUG_002", "Common", "standard")
+	manager.store_offers[2] = _augment_offer("AUG_003", "Rare", "standard")
 	_check(manager.purchase(0) and manager.budget == 400 and manager.inventory == ["AUG_001"],
-		"Purchasing must deduct the fixed price and add the augment to inventory.")
+		"A store purchase deducts company cash once and adds the augment to item inventory.")
 	_check(not manager.purchase(0) and not manager.purchase(99),
-		"An offer can only be purchased once, and invalid offer indexes are rejected.")
+		"A sold store slot cannot be purchased twice, and invalid indexes are rejected.")
 	manager.budget = 0
 	_check(not manager.purchase(1) and manager.inventory == ["AUG_001"],
 		"Purchases that exceed the available budget must fail without changing inventory.")
@@ -55,17 +74,18 @@ func _test_manager() -> void:
 		"Every character starts with exactly one augment slot.")
 	_check(is_equal_approx(BASE_ROSTER.conversion_chance_with_augments("nina", loadout), 0.68),
 		"Conversion augments add percentage points to the authored base stat.")
-	_check(manager.unequip("nina", 0) and manager.inventory == ["AUG_001"]
+	_check(not manager.unequip("nina", 0) and manager.inventory.is_empty()
 		and is_equal_approx(BASE_ROSTER.conversion_chance("nina"), 0.58),
-		"Unequipping restores the base stat and returns the item to inventory.")
-	_check(manager.equip("zip", 0) and manager.loadout("zip") == ["AUG_001"],
-		"Unequipped augments can be transferred to another character.")
+		"Installed augments cannot be unequipped or transferred.")
 
 	manager.budget = 500
-	manager.shop_offers = ["AUG_001", "AUG_002", "AUG_003"]
-	manager.purchased_offer_indexes.clear()
+	manager.store_offers[1] = _augment_offer("AUG_002", "Common", "standard")
+	manager.store_offers[2] = _augment_offer("AUG_003", "Rare", "standard")
 	_check(manager.purchase(1) and manager.purchase(2), "Speed and conversion augments should be purchasable.")
-	_check(manager.equip("nina", 0), "An available inventory item should equip successfully.")
+	var funds_before_replace := manager.budget
+	_check(manager.replace_slot_from_inventory("nina", 0, 0)
+		and manager.loadout("nina") == ["AUG_002"] and manager.budget == funds_before_replace,
+		"Replacing during Prepare destroys the old augment without another fee.")
 	var speed_loadout := manager.loadout("nina")
 	_check(is_equal_approx(BASE_ROSTER.handling_seconds_with_augments("nina", speed_loadout), 18.0 / 4.0 / 1.15),
 		"Speed augments must reduce call duration using the existing handling formula.")
@@ -85,9 +105,82 @@ func _test_manager() -> void:
 		18.0 / 4.0 / 1.30),
 		"Multiple Speed bonuses must add together before modifying handling time.")
 	var clamped_conversion: Array[String] = ["AUG_005"]
-	_check(is_equal_approx(BASE_ROSTER.conversion_chance_with_augments("victoria", clamped_conversion), 1.0),
-		"Conversion bonuses must clamp at 100 percent.")
+	_check(BASE_ROSTER.conversion_chance_with_augments("victoria", clamped_conversion) > 1.0,
+		"Modified Conversion remains uncapped for dependent effects; only actual rolls clamp.")
 	_check(not manager.equip("nina", 0), "A full augment loadout must reject further equipment.")
+
+	manager.budget = 500
+	var saved_store := manager.store_offers.duplicate(true)
+	var saved_revision := manager.store_revision
+	var saved_inventory := manager.bag.item_slots.duplicate(true)
+	var saved_equipment := manager.equipment_instances.duplicate(true)
+	var saved_employees := manager.bag.person_slots.duplicate()
+	_check(not manager.initialize_store_for_day(manager.store_day)
+		and manager.store_offers == saved_store,
+		"Re-entering the same Prepare day does not regenerate stock.")
+	for slot_index in manager.store_offers.size():
+		var emptied_offer := manager.store_offer(slot_index)
+		emptied_offer["status"] = "sold"
+		manager.store_offers[slot_index] = emptied_offer
+	var reroll_succeeded := manager.reroll_store()
+	var all_slots_refilled := true
+	for offer in manager.store_offers:
+		if offer.get("status", "") != "available":
+			all_slots_refilled = false
+	_check(reroll_succeeded and manager.budget == 400
+		and manager.store_revision == saved_revision + 1
+		and manager.bag.item_slots == saved_inventory
+		and manager.equipment_instances == saved_equipment
+		and manager.bag.person_slots == saved_employees
+		and all_slots_refilled,
+		"Reroll charges once, replaces all seven offers, and preserves owned items, equipment, and hires.")
+	manager.budget = 99
+	var before_unaffordable_reroll := manager.store_offers.duplicate(true)
+	_check(not manager.reroll_store() and manager.budget == 99
+		and manager.store_offers == before_unaffordable_reroll,
+		"An unaffordable reroll changes neither cash nor store contents.")
+	var restored_manager := MANAGER.new()
+	_check(restored_manager.load_state_dict(manager.state_to_dict())
+		and restored_manager.store_offers == manager.store_offers
+		and restored_manager.store_day == manager.store_day,
+		"Serialized store offers and their sold states restore without rerolling.")
+
+	var recruit_manager := MANAGER.new()
+	recruit_manager.store_offers[MANAGER.EMPLOYEE_STORE_START] = {
+		"kind": "employee", "status": "available", "employee_id": "zip",
+	}
+	_check(recruit_manager.hire_store_employee(MANAGER.EMPLOYEE_STORE_START)
+		and recruit_manager.budget == 400
+		and recruit_manager.bag.person_slots.has("zip")
+		and recruit_manager.store_offer(MANAGER.EMPLOYEE_STORE_START).get("status", "") == "sold",
+		"A Store hire charges once, enters reserve, and marks its offer sold.")
+	_check(recruit_manager.reroll_store() and recruit_manager.budget == 300,
+		"A reroll after hiring still costs the same fixed $100.")
+	for employee_id in ["victoria", "ada", "dex", "marcus", "brick"]:
+		_check(recruit_manager.bag.hire(employee_id),
+			"Recruitment fixture should fill the existing reserve.")
+	var hired_offer := recruit_manager.store_offer(MANAGER.EMPLOYEE_STORE_START)
+	var hired_again := recruit_manager.store_offer(MANAGER.EMPLOYEE_STORE_START + 1)
+	_check(hired_offer.get("employee_id", "") != "zip"
+		and hired_again.get("employee_id", "") != "zip",
+		"Previously hired employees remain excluded after rerolls.")
+	recruit_manager.store_offers[MANAGER.EMPLOYEE_STORE_START] = {
+		"kind": "employee", "status": "available", "employee_id": "mox",
+	}
+	var cash_before_full_reserve_hire := recruit_manager.budget
+	_check(not recruit_manager.hire_store_employee(MANAGER.EMPLOYEE_STORE_START)
+		and recruit_manager.budget == cash_before_full_reserve_hire,
+		"A full reserve rejects Store hires without charging.")
+
+
+func _augment_offer(augment_id: String, rarity: String, tier: String) -> Dictionary:
+	return {
+		"kind": "augment",
+		"tier": tier,
+		"status": "available",
+		"rarity": rarity,
+		"augment_id": augment_id,
+	}
 
 
 func _test_simulation() -> void:
@@ -138,37 +231,50 @@ func _test_workday_integration() -> void:
 	root.add_child(scene)
 	await process_frame
 	var panel: PlanningPanel = scene.planning_panel
-	_check(scene.augment_manager.budget == 500 and scene.augment_manager.shop_offers.size() == 3
-		and panel.offer_buttons.size() == 3,
-		"Prepare must display the initial budget and three shop offers.")
-	scene.augment_manager.shop_offers.assign(["AUG_001", "AUG_002", "AUG_003"])
-	panel.update_augment_state(scene.augment_manager, true)
-	_check(panel.offer_buttons[0].text.contains("Silver Tongue")
-		and panel.offer_buttons[0].text.contains("Common")
-		and panel.offer_buttons[0].text.contains("+10 pp Conversion")
-		and panel.offer_buttons[0].text.contains("$100"),
-		"Each offer must display its name, rarity, stat bonus, and price.")
-	scene._purchase_augment(0)
+	_check(scene.augment_manager.budget == 500 and scene.augment_manager.store_offers.size() == 7
+		and scene.prepare_view == scene.PrepareView.STORE and scene.store_panel.visible
+		and scene.store_panel.augment_buy_buttons.size() == 5
+		and scene.store_panel.employee_hire_buttons.size() == 2,
+		"Prepare opens the seven-slot Store with five augment cards and two recruitment cards.")
+	scene.augment_manager.store_offers[0] = _augment_offer("AUG_001", "Common", "standard")
+	scene._refresh_augment_views()
+	_check(scene.store_panel.cash_label.text.contains("$500")
+		and scene.store_panel.augment_buy_buttons[0].text == "BUY · $100",
+		"Store cards show the current Company Cash and the augment's rarity-tier price.")
+	scene._purchase_store_augment(0)
 	scene._equip_augment("nina", 0)
 	_check(scene.augment_manager.budget == 400 and scene.augment_manager.loadout("nina") == ["AUG_001"],
-		"Prepare controls must purchase and equip augments on the selected employee.")
+		"Purchases enter the shared inventory and can be installed using the existing equipment flow.")
 	scene._start_day()
-	_check(scene.call_queue.equipped_augments["nina"] == ["AUG_001"],
-		"Starting Play must snapshot the equipped augment loadouts.")
+	_check(scene.call_queue.equipped_augments["nina"] == ["AUG_001"]
+		and scene.store_panel.reroll_button.disabled,
+		"Starting Play snapshots equipment and disables Store rerolls outside Prepare.")
 	var unchanged_budget: int = scene.augment_manager.budget
 	var unchanged_inventory: Array = scene.augment_manager.inventory.duplicate()
-	scene._purchase_augment(1)
+	scene._purchase_store_augment(1)
 	_check(scene.augment_manager.budget == unchanged_budget
 		and scene.augment_manager.inventory == unchanged_inventory,
 		"Augment changes must be rejected during Play.")
 	scene.call_queue.revenue = 50
 	scene.call_queue.sale_log.append({"id": 0, "value": 50, "employee_id": "nina", "recovery": false})
+	scene._settle_sale({"employee_id": "nina", "value": 50, "timestamp": 1.0})
 	scene._finish_day()
-	_check(scene.augment_manager.budget == 450, "Workday revenue must be added to the department budget.")
+	_check(scene.augment_manager.budget == 350
+		and scene.augment_manager.pending_reward.get("choices", []).size() == 3
+		and scene.report_panel.next_day_button.disabled,
+		"Workday revenue is added to cash once, then the $100 daily employee upkeep is settled.")
 	scene._prepare_next_day()
-	_check(scene.augment_manager.loadout("nina") == ["AUG_001"]
+	_check(scene.day == 1 and scene.phase == scene.Phase.REPORT and not scene.store_panel.visible,
+		"The next day remains blocked until its reward is resolved.")
+	scene._claim_reward(0)
+	_check(scene.augment_manager.pending_reward.is_empty() and scene.inventory.item_count() == 1,
+		"Claiming one daily reward resolves the offer and adds only that augment to inventory.")
+	scene._prepare_next_day()
+	_check(scene.prepare_view == scene.PrepareView.STORE and scene.store_panel.visible
+		and scene.augment_manager.store_day == scene.day
+		and scene.augment_manager.loadout("nina") == ["AUG_001"]
 		and scene.call_queue.equipped_augments.is_empty(),
-		"Equipment persists into the next Prepare phase and is applied when that day starts.")
+		"Next-day Prepare regenerates store stock once while equipment persists.")
 	scene._start_day()
 	_check(scene.call_queue.equipped_augments["nina"] == ["AUG_001"],
 		"Persisted augments must be reapplied automatically on the next workday.")

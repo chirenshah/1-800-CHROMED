@@ -262,7 +262,7 @@ func _test_recycler_report() -> void:
 		and scene.report_panel.recovery_revenue_label.text == "Revenue recovered  $390"
 		and scene.report_panel.recycler_utilization_label.text == "Recycler utilization  50%"
 		and scene.report_panel.revenue_label.text == "Revenue  $390"
-		and scene.augment_manager.budget == 890
+		and scene.augment_manager.budget == 790
 		and scene.call_queue.get_discard_count() == 0,
 		"The report must separate normal failures and recovery results, preserve recovered revenue/utilization, and clear the pile.")
 	var recycler_row: Label = scene.report_panel.employee_rows.get_child(1)

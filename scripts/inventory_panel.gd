@@ -51,6 +51,18 @@ func toggle_people() -> void:
 	_sync_visibility()
 
 
+func show_all() -> void:
+	items_section.visible = true
+	people_section.visible = true
+	_sync_visibility()
+
+
+func hide_all() -> void:
+	items_section.visible = false
+	people_section.visible = false
+	_sync_visibility()
+
+
 func items_open() -> bool:
 	return items_section.visible
 
@@ -59,7 +71,8 @@ func people_open() -> bool:
 	return people_section.visible
 
 
-func show_state(inventory: InventoryManager, editable: bool) -> void:
+func show_state(augment_manager: AugmentManager, editable: bool) -> void:
+	var inventory: InventoryManager = augment_manager.bag
 	for slot_index in item_cells.size():
 		var cell := item_cells[slot_index]
 		cell.editable = editable
@@ -83,12 +96,20 @@ func show_state(inventory: InventoryManager, editable: bool) -> void:
 		var augment_names: Array[String] = []
 		for equipped: Dictionary in loadout:
 			augment_names.append(AugmentManager.CATALOG.profile(equipped["augment_id"])["name"])
-		var detail := "%s\nSPD %d · CNV %d%%" % [employee["archetype"], employee["speed"], employee["conversion"]]
+		var stats: Dictionary = augment_manager.modified_stats(employee["id"])
+		var detail := "%s\nSPD %.2f · CNV %.0f%%" % [
+			employee["archetype"], float(stats.get("speed", employee["speed"])),
+			float(stats.get("conversion", employee["conversion"])),
+		]
 		if not augment_names.is_empty():
 			detail += "\n◆ " + ", ".join(augment_names)
 		cell.show_contents(employee["name"], detail,
-			"%s · %s\nUpsell %d%% · ×%.1f\nAugments: %s" % [employee["name"], employee["archetype"], employee["upsell_chance"],
-				employee["upsell_multiplier"], ", ".join(augment_names) if not augment_names.is_empty() else "none"],
+			"%s · %s\nUpsell %.1f%% · ×%.2f · Upkeep $%.0f/day\nAugments: %s" % [
+				employee["name"], employee["archetype"], float(stats.get("upsell_chance", employee["upsell_chance"])),
+				float(stats.get("upsell_multiplier", employee["upsell_multiplier"])),
+				float(stats.get("daily_upkeep", FloorPlan.CATALOG.daily_upkeep(employee["id"]))),
+				", ".join(augment_names) if not augment_names.is_empty() else "none",
+			],
 			{"type": "person", "kind": InventoryManager.RESERVE, "index": slot_index})
 
 
@@ -126,4 +147,7 @@ func _make_cell(grid: Node, kind: String, slot_index: int) -> InventorySlot:
 
 
 func _effect_text(augment: Dictionary) -> String:
-	return "+%d pp Conversion" % int(augment["bonus"]) if augment["stat"] == "conversion" else "+%d%% Speed" % int(augment["bonus"])
+	if augment.has("stat") and augment.has("bonus"):
+		return "+%d pp Conversion" % int(augment["bonus"]) \
+			if augment["stat"] == "conversion" else "+%d%% Speed" % int(augment["bonus"])
+	return str(augment.get("description", "Rule-changing effect"))

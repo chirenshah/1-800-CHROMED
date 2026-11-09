@@ -46,14 +46,24 @@ func _test_items() -> void:
 		"An empty slot cannot be equipped, and a full loadout rejects equipment.")
 	while not inventory.is_item_full():
 		inventory.add_item("AUG_001")
-	_check(not manager.unequip("nina", 0) and inventory.equipped_instances("nina").size() == 1,
-		"Unequipping is blocked while the item inventory is full.")
+	var old_uid: String = inventory.equipped_instances("nina")[0]["uid"]
 	inventory.item_slots[7] = {}
-	_check(manager.unequip("nina", 0) and inventory.item_slots[7]["uid"] == first["uid"],
-		"Unequipping returns the same instance to the grid.")
+	var replacement_uid: String = inventory.item_slots[7]["uid"]
+	var funds_before := manager.budget
+	_check(manager.replace_slot_from_inventory("nina", 0, 7)
+		and inventory.equipped_instances("nina")[0]["uid"] == replacement_uid
+		and inventory.item_slots[7].is_empty()
+		and inventory.equipped_instances("nina")[0]["uid"] != old_uid
+		and manager.budget == funds_before and not manager.unequip("nina", 0),
+		"Replacement destroys the old instance, consumes the new one, and charges no fee; unequip is unavailable.")
+	while not inventory.is_item_full():
+		inventory.add_item("AUG_001")
 	_check(inventory.add_item("AUG_001").is_empty(), "A full grid refuses new items.")
 	manager.budget = 500
-	manager.shop_offers[0] = "AUG_001"
+	manager.store_offers[0] = {
+		"kind": "augment", "tier": "standard", "status": "available",
+		"rarity": "Common", "augment_id": "AUG_001",
+	}
 	_check(not manager.purchase(0) and manager.budget == 500, "A full inventory blocks purchase without charging.")
 
 
@@ -132,8 +142,10 @@ func _test_scene() -> void:
 	for frame in range(4):
 		await process_frame
 	var panel: InventoryPanel = scene.inventory_panel
-	_check(not panel.visible and scene.items_button != null and scene.people_button != null,
-		"Inventory is hidden until a button opens it.")
+	_check(not panel.visible and scene.store_panel.visible and scene.items_button != null
+		and scene.people_button != null,
+		"Prepare opens the Store while the separate inventory remains hidden.")
+	scene._select_prepare_view(scene.PrepareView.FLOOR)
 	scene._toggle_inventory(true)
 	_check(panel.visible and panel.items_open() and not panel.people_open() and panel.item_cells.size() == 12,
 		"The Items button must open the 12-slot item grid.")
@@ -141,7 +153,11 @@ func _test_scene() -> void:
 	_check(panel.people_open() and panel.person_cells.size() == 6, "The Salespeople button must open the six-slot reserve.")
 	scene.augment_manager.budget = 1000
 	scene._hire_employee("dex")
-	scene._purchase_augment(0)
+	scene.augment_manager.store_offers[0] = {
+		"kind": "augment", "tier": "standard", "status": "available",
+		"rarity": "Common", "augment_id": "AUG_001",
+	}
+	scene._purchase_store_augment(0)
 	_check(scene.inventory.person_slots[0] == "dex" and scene.inventory.item_count() == 1
 		and panel.person_cells[0].drag_data["type"] == "person" and panel.item_cells[0].drag_data["type"] == "item",
 		"Shop and hiring results must appear in the inventory views.")

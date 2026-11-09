@@ -6,7 +6,10 @@ class_name EmployeeRoster
 const BASE_HANDLING_SECONDS := 18.0
 const REAL_SECONDS_PER_GAME_HOUR := 3.0
 const DEFAULT_STAMINA_HOURS := 4.0
+## Temporary baseline until per-character upkeep is tuned in planning_roster.tres.
+const DEFAULT_DAILY_UPKEEP := 100
 const AUGMENTS: AugmentCatalog = preload("res://data/augment_catalog.tres")
+const EFFECT_ENGINE = preload("res://scripts/augment_effect_engine.gd")
 
 @export var employees: Array[Dictionary] = []
 
@@ -28,6 +31,12 @@ func stamina_hours(employee_id: String) -> float:
 	return maxf(float(employee.get("stamina_hours", DEFAULT_STAMINA_HOURS)), 0.1)
 
 
+func daily_upkeep(employee_id: String) -> int:
+	var employee := profile(employee_id)
+	assert(not employee.is_empty(), "Unknown employee: " + employee_id)
+	return maxi(int(employee.get("daily_upkeep", DEFAULT_DAILY_UPKEEP)), 0)
+
+
 static func format_game_duration(real_seconds: float) -> String:
 	var game_minutes := maxi(1, roundi(real_seconds / REAL_SECONDS_PER_GAME_HOUR * 60.0))
 	var hours := floori(game_minutes / 60.0)
@@ -40,10 +49,8 @@ func handling_seconds(employee_id: String) -> float:
 
 
 func handling_seconds_with_augments(employee_id: String, equipped_augments: Array[String]) -> float:
-	var employee := profile(employee_id)
-	assert(not employee.is_empty(), "Unknown employee: " + employee_id)
-	var speed_bonus := augment_bonus(equipped_augments, "speed") / 100.0
-	return BASE_HANDLING_SECONDS / clampf(float(employee["speed"]), 1.0, 5.0) / (1.0 + speed_bonus)
+	var speed: float = float(modified_stats(employee_id, equipped_augments).get("speed", 0.0))
+	return INF if speed <= 0.0 else BASE_HANDLING_SECONDS / float(speed)
 
 
 func conversion_chance(employee_id: String) -> float:
@@ -51,10 +58,7 @@ func conversion_chance(employee_id: String) -> float:
 
 
 func conversion_chance_with_augments(employee_id: String, equipped_augments: Array[String]) -> float:
-	var employee := profile(employee_id)
-	assert(not employee.is_empty(), "Unknown employee: " + employee_id)
-	var conversion_bonus := augment_bonus(equipped_augments, "conversion")
-	return clampf((float(employee["conversion"]) + conversion_bonus) / 100.0, 0.0, 1.0)
+	return float(modified_stats(employee_id, equipped_augments).get("conversion", 0.0)) / 100.0
 
 
 func augment_bonus(equipped_augments: Array[String], stat: String) -> float:
@@ -70,12 +74,21 @@ func augment_bonus(equipped_augments: Array[String], stat: String) -> float:
 
 
 func upsell_chance(employee_id: String) -> float:
-	var employee := profile(employee_id)
-	assert(not employee.is_empty(), "Unknown employee: " + employee_id)
-	return clampf(float(employee.get("upsell_chance", 0)) / 100.0, 0.0, 1.0)
+	return upsell_chance_with_augments(employee_id, [])
+
+
+func upsell_chance_with_augments(employee_id: String, equipped_augments: Array[String]) -> float:
+	return float(modified_stats(employee_id, equipped_augments).get("upsell_chance", 0.0)) / 100.0
 
 
 func upsell_multiplier(employee_id: String) -> float:
 	var employee := profile(employee_id)
 	assert(not employee.is_empty(), "Unknown employee: " + employee_id)
 	return maxf(float(employee.get("upsell_multiplier", 1.0)), 1.0)
+
+
+func modified_stats(employee_id: String, equipped_augments: Array = []) -> Dictionary:
+	var employee := profile(employee_id)
+	assert(not employee.is_empty(), "Unknown employee: " + employee_id)
+	var engine = EFFECT_ENGINE.new()
+	return engine.resolve_stats(self, employee_id, {employee_id: equipped_augments})

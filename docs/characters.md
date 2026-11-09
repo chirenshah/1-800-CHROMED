@@ -48,7 +48,7 @@ Six archetypes remain proposed. The Recycler is a confirmed and implemented role
 
 Prepare offers all 19 candidates described in this document. The roster order starts Nina, Zip, Victoria, Ada, and Dex, followed by Marcus, Brick, Zero, Mox, Tess, Rook, June, Sable, Patch, Switch, Nyx, Jinx, Echo, and Scrap. Nina alone starts in seat 01; the other 18 candidates can be hired into reserve, and seats 02–09 are open. The planner exposes prototype employee stats; conditional abilities remain previews apart from Recycler recovery.
 
-Seating controls lock during Play, pause, and Report. The lineup carries between days in the current session, while daily calls and counters reset. The planner enforces one seat per named employee and requires at least one occupied seat to start; these are bounded prototype rules, not a finalized hiring, duplicate-hire, or economy design. Speed and Conversion baselines are active for every occupied employee, including support roles; Upsell Chance and Upsell Multiplier affect successful sales. Scrap's Recycler role works exclusively from failed leads in the daily discard pile, and each lead can receive one recovery attempt. Other conditional archetype differentiation, adjacency buffs, qualification, transfers, hiring costs, and saving between launches remain future work.
+Seating controls lock during Play, pause, and Report. The lineup carries between days in the current session, while daily calls and counters reset. The planner enforces one seat per named employee and requires at least one occupied seat to start. Speed and Conversion baselines are active for every occupied employee, including support roles; Upsell Chance and Upsell Multiplier affect successful sales. Scrap's Recycler role works exclusively from failed leads in the daily discard pile, and each lead can receive one recovery attempt. Daily upkeep and Prepare-only permanent firing are implemented by the financial gameplay system; upkeep is currently a $100 default unless overridden by an employee's `daily_upkeep` roster field. Other conditional archetype differentiation, adjacency buffs, qualification, transfers, and save-game persistence remain future work.
 
 ## 3. Proposed character attribute model
 
@@ -56,8 +56,12 @@ Seating controls lock during Play, pause, and Report. The lineup carries between
 | --- | --- | --- |
 | **Speed** | Integer baseline from 1–5; higher values mean faster processing. Current prototype handling duration is 18 / Speed seconds. | Scale and duration formula are tuning placeholders. |
 | **Conversion** | Integer baseline from 0–100%; the current value is the seeded sale chance on a completed call. | Values and outcome balance are tuning placeholders; conditional modifiers and lead-condition interactions are future work. |
-| **Upsell Chance** | Integer baseline from 0–100%; determines the probability that a successful sale triggers an upsell, similar to a critical strike. | Starting values, maximum chance, and interactions with augments are tuning placeholders. |
+| **Upsell Chance** | Integer baseline from 0–100%; determines the probability that a successful sale triggers an upsell, similar to a critical strike. | Augment-modified values can exceed 100 internally; only the actual probability roll clamps to 0–100%. Baselines and balance remain placeholders. |
 | **Upsell Multiplier** | Decimal baseline starting at 1.0×; determines the revenue multiplier when an upsell triggers. For example, 2.0× doubles the original sale amount. | Multiplier range, stacking behavior, and interactions with augments are tuning placeholders. |
+
+### Augment-modified stats
+
+The authored table above remains each employee's baseline. The augment resolver derives effective stats without mutating those baselines. Fractions are preserved in simulation, and the UI rounds only for presentation. Speed changes during a call affect subsequent progress without resetting the call. Modified Conversion and Upsell Chance may exceed 100; only probability rolls are clamped. Augments can derive one stat from another, transfer available stats among orthogonal neighbors, and apply temporary effects. See [augments.md](augments.md) for the full mechanic rules and prototype catalog status.
 
 ### Prototype starting baselines
 

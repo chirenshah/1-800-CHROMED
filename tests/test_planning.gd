@@ -97,6 +97,20 @@ func _test_scene() -> void:
 	root.add_child(scene)
 	await _settle()
 	var panel: PlanningPanel = scene.planning_panel
+	_check(scene.prepare_view == scene.PrepareView.STORE and scene.store_panel.visible
+		and scene.augment_manager.store_offers.size() == 7
+		and scene.store_panel.augment_buy_buttons.size() == 5
+		and scene.store_panel.employee_hire_buttons.size() == 2,
+		"Prepare must open the fully stocked Store by default.")
+	var day_store := scene.augment_manager.store_offers.duplicate(true)
+	scene._select_prepare_view(scene.PrepareView.FLOOR)
+	await _settle()
+	scene._select_prepare_view(scene.PrepareView.STORE)
+	await _settle()
+	_check(scene.augment_manager.store_offers == day_store,
+		"Switching Prepare views preserves the current workday's store offerings.")
+	scene._select_prepare_view(scene.PrepareView.FLOOR)
+	await _settle()
 	_check(scene.staffed_seats.size() == 1 and panel.summary_label.text == "1 / 9 seated"
 		and scene.employee_cards.filter(func(card: EmployeeCard) -> bool: return card.staffed).size() == 1
 		and scene.inventory.owned_count() == 1 and scene.primary_button.disabled == false
@@ -105,8 +119,8 @@ func _test_scene() -> void:
 		and panel.assign_button.text.begins_with("Hire Zip"),
 		"Prepare must start with Nina alone and show a clear next hiring action.")
 	panel.views.current_tab = 1
-	_check(panel.budget_label.visible and panel.offer_buttons[0].visible,
-		"The Upgrades view must expose the budget and shop without filling the Team view.")
+	_check(panel.budget_label.visible and panel.equipment_label.visible,
+		"The Augments view must expose cash, inventory, and equipment without duplicating the Store.")
 	panel.views.current_tab = 2
 	_check(panel.strength_label.visible and panel.tradeoff_label.visible,
 		"Character descriptions must remain available in Details.")

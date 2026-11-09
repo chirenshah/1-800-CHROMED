@@ -113,19 +113,13 @@ Respect the existing augment-slot system, including the second slot unlocked thr
 
 Do not automatically unlock additional augment slots.
 
-### Unequipping
+### Permanent installation and replacement
 
-When an augment is unequipped:
+Installation is permanent: augments cannot be unequipped, refunded, or transferred after installation. A salesperson retains installed augments while moving between the floor and reserve; firing removes the employee and all installed augments from the run.
 
-1. Check for an available Item Inventory slot.
-2. Remove the augment from the salesperson.
-3. Return the same augment instance to Item Inventory.
-4. Remove its active stat modifiers and effects.
-5. Update the UI.
+During Prepare or pending-reward Team Management, a player may replace an occupied slot after explicit confirmation. The new augment is installed, the previous copy is permanently destroyed, and replacement has no extra fee. Canceling confirmation must not change either item. Surgery remains the only way to unlock an employee's second slot.
 
-If Item Inventory is full, prevent unequipping.
-
-Do not destroy, duplicate, or reset augments during equipment transfers.
+The pending daily reward may also be installed directly into an empty slot or replace an occupied slot without occupying item inventory. Full item inventory does not block this operation.
 
 ## 4. Shop Integration
 
@@ -134,6 +128,8 @@ Integrate the inventory system with existing purchasing and hiring functionality
 ### Purchasing Items
 
 - Purchased items enter the Item Inventory.
+- A shop offer may instead be purchased and installed directly on the selected employee when an empty unlocked slot exists.
+- Direct purchase still deducts the listed price and consumes the offer exactly once.
 - Every purchased item occupies its own slot.
 - Duplicate augments must remain separate instances.
 - Prevent purchases if Item Inventory is full.
@@ -218,10 +214,13 @@ Players should be able to:
 - Deploy salespeople.
 - Recall salespeople.
 - Rearrange the active board.
-- Equip and unequip augments.
+- Permanently install augments and confirm destructive replacement.
+- Discard uninstalled items with confirmation to free inventory space.
 - Rearrange inventory contents.
 
 Prevent roster, positioning, and equipment changes during the autonomous Play phase.
+
+At each completed workday, the reward interface offers three distinct augments and allows one claim or a skip-all resolution. Players can claim to inventory when space exists, directly install or replace on any owned salesperson, or open Team Management and return to the same pending offer. The next workday remains blocked until the reward is resolved.
 
 **Important:** Do not tightly couple inventory logic to the current Prepare phase layout.
 
@@ -252,7 +251,10 @@ Ensure the following cases are handled safely:
 - Active board full.
 - Invalid drag destination.
 - Attempting to equip an augment with no available equipment slot.
-- Attempting to unequip when item inventory is full.
+- Attempting to replace an occupied augment slot.
+- Attempting to claim a reward when item inventory is full.
+- Attempting to install a reward into an invalid or locked slot.
+- Attempting to discard or replace while confirmation is canceled.
 - Attempting to hire when salesperson inventory is full.
 - Attempting to purchase when item inventory is full.
 - Attempting to move or equip the same instance twice.
@@ -275,7 +277,11 @@ Verify the following:
 - [ ] Inventory contents can be rearranged.
 - [ ] Augments can be equipped to active and inactive salespeople.
 - [ ] Equipped augments stay attached when salespeople move.
-- [ ] Unequipped augments return to Item Inventory.
+- [ ] Installed augments cannot be unequipped or transferred.
+- [ ] Confirmed replacement permanently destroys the old augment at no extra fee.
+- [ ] Canceling replacement leaves inventory and equipment unchanged.
+- [ ] A full inventory does not block direct reward installation or skip.
+- [ ] Reward options survive navigation to and from Team Management.
 - [ ] Full inventories prevent invalid transactions.
 - [ ] No items or salespeople are duplicated or lost.
 - [ ] Inventory and board state persist between workdays.
@@ -289,7 +295,8 @@ Verify the following:
 - Keep business logic separate from visual components.
 - Avoid introducing unnecessary dependencies.
 - Do not modify existing salesperson stats, archetype definitions, augment effects, or lead-processing formulas unless required for integration.
-- Do not introduce inventory upgrades, item stacking, selling, firing, or discarding mechanics at this time.
+- Inventory remains limited to its existing slots and transfers. Employee firing is governed by [chromed_financial_gameplay_design.md](chromed_financial_gameplay_design.md): firing is Prepare-only, permanently removes that employee and installed augments, and leaves uninstalled items untouched.
+- For the augment ownership and effect rules that supersede the earlier inventory brief, see [augment_implementation_spec.md](augment_implementation_spec.md) and [augments.md](augments.md).
 - Do not redesign the Prepare phase.
 
 ## 12. Deliverables

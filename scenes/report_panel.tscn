@@ -127,6 +127,102 @@ theme_override_colors/font_color = Color(0.72, 0.77, 0.86, 1)
 text = "Complete a workday to receive an operational report."
 autowrap_mode = 2
 
+[node name="FinanceHeading" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 14
+text = "PAYROLL & FINANCE"
+
+[node name="FinanceLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "Gross revenue · upkeep · cash · debt"
+autowrap_mode = 2
+
+[node name="DisciplineLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "Write-ups and failure reasons"
+autowrap_mode = 2
+
+[node name="RewardHeading" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 14
+text = "DAILY AUGMENT REWARD"
+
+[node name="RewardStatus" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+text = "Choose one reward, claim it, install it, or skip."
+autowrap_mode = 2
+
+[node name="RewardOptions" type="VBoxContainer" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Reward1" type="Button" parent="Margin/Scroll/Content/RewardOptions"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "Reward option 1"
+autowrap_mode = true
+
+[node name="Reward2" type="Button" parent="Margin/Scroll/Content/RewardOptions"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "Reward option 2"
+autowrap_mode = true
+
+[node name="Reward3" type="Button" parent="Margin/Scroll/Content/RewardOptions"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "Reward option 3"
+autowrap_mode = true
+
+[node name="RewardTargetRow" type="HBoxContainer" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="RewardEmployee" type="OptionButton" parent="Margin/Scroll/Content/RewardTargetRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+fit_to_longest_item = false
+clip_text = true
+
+[node name="RewardSlot" type="OptionButton" parent="Margin/Scroll/Content/RewardTargetRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+fit_to_longest_item = false
+clip_text = true
+
+[node name="RewardClaimButton" type="Button" parent="Margin/Scroll/Content"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+text = "Claim to inventory"
+
+[node name="RewardInstallButton" type="Button" parent="Margin/Scroll/Content"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+text = "Install on selected employee"
+
+[node name="RewardSkipButton" type="Button" parent="Margin/Scroll/Content"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+text = "Skip all rewards"
+
+[node name="RewardManageButton" type="Button" parent="Margin/Scroll/Content"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+text = "Manage team / free inventory space"
+
+[node name="TerminationLabel" type="Label" parent="Margin/Scroll/Content"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.42, 0.45, 1)
+theme_override_font_sizes/font_size = 18
+text = "EMPLOYMENT TERMINATED"
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="NextDayButton" type="Button" parent="Margin/Scroll/Content"]
 layout_mode = 2
 text = "Prepare Next Day"

@@ -35,7 +35,7 @@ func _ready() -> void:
 	focus_exited.connect(_refresh_style)
 
 
-func configure(number: int, employee: Dictionary, loadout: Array[String] = []) -> void:
+func configure(number: int, employee: Dictionary, loadout: Array[String] = [], effective_stats: Dictionary = {}) -> void:
 	seat_number = number
 	employee_id = employee.get("id", "")
 	seat_label.text = "SEAT %02d" % number
@@ -45,9 +45,18 @@ func configure(number: int, employee: Dictionary, loadout: Array[String] = []) -
 	role_label.visible = staffed
 	name_label.add_theme_color_override("font_color", Color(0.94, 0.96, 1) if staffed else Color(0.62, 0.73, 0.79))
 	if staffed:
-		var conversion := roundi(FloorPlan.CATALOG.conversion_chance_with_augments(employee_id, loadout) * 100.0)
-		var talk_time := FloorPlan.CATALOG.handling_seconds_with_augments(employee_id, loadout)
-		stats_label.text = "%d%% close · %s/call\n%.0fh stamina" % [conversion, EmployeeRoster.format_game_duration(talk_time), float(employee.get("stamina_hours", EmployeeRoster.DEFAULT_STAMINA_HOURS))]
+		var stats := effective_stats
+		if stats.is_empty():
+			stats = FloorPlan.CATALOG.modified_stats(employee_id, loadout)
+		var speed := float(stats.get("speed", 0.0))
+		var talk_time := INF if speed <= 0.0 else EmployeeRoster.BASE_HANDLING_SECONDS / speed
+		stats_label.text = "%.0f%% close · SPD %.2f\n%s/call · Upsell %.1f%%\n%.0fh stamina · $%d/day" % [
+			float(stats.get("conversion", employee.get("conversion", 0.0))), speed,
+			"Paused" if speed <= 0.0 else EmployeeRoster.format_game_duration(talk_time),
+			float(stats.get("upsell_chance", employee.get("upsell_chance", 0.0))),
+			float(employee.get("stamina_hours", EmployeeRoster.DEFAULT_STAMINA_HOURS)),
+			FloorPlan.CATALOG.daily_upkeep(employee_id),
+		]
 		if not loadout.is_empty():
 			stats_label.text += " · ◆%d" % loadout.size()
 	else:
@@ -160,6 +169,6 @@ func show_call(call: Dictionary, state: String, completed: Dictionary = {}, brea
 		status_label.text = "%s #%03d" % [prefix, call["id"]]
 		status_label.add_theme_color_override("font_color",
 			Color(0.29, 0.94, 0.82) if state == "LIVE" else Color(0.98, 0.72, 0.25))
-		call_progress.max_value = call["duration"]
-		call_progress.value = float(call["duration"]) - float(call["remaining"])
+		call_progress.max_value = 1.0
+		call_progress.value = float(call.get("progress", 0.0))
 		tooltip_text = "Call #%03d · Potential sale $%d" % [call["id"], call["value"]]

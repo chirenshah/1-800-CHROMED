@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://p2s4qihj3jyh"]
+[gd_scene load_steps=10 format=3 uid="uid://p2s4qihj3jyh"]
 
 [ext_resource type="Script" uid="uid://oqlsuo4hvvgd" path="res://scripts/workday.gd" id="1_workday"]
 [ext_resource type="PackedScene" path="res://scenes/report_panel.tscn" id="2_report"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" path="res://scenes/music_button.tscn" id="5_music_button"]
 [ext_resource type="PackedScene" path="res://scenes/inventory_panel.tscn" id="6_inventory"]
 [ext_resource type="Script" path="res://scripts/sales_slam_board.gd" id="7_slam"]
+[ext_resource type="PackedScene" path="res://scenes/store_panel.tscn" id="8_store"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_floor"]
 bg_color = Color(0.05, 0.067, 0.106, 1)
@@ -109,6 +110,24 @@ text = "2  PLAY"
 [node name="ReportTab" type="Button" parent="PageMargin/Page/Tabs" unique_id=977918931]
 layout_mode = 2
 text = "3  REPORT"
+
+[node name="StoreViewTab" type="Button" parent="PageMargin/Page/Tabs"]
+visible = false
+layout_mode = 2
+toggle_mode = true
+text = "STORE"
+
+[node name="FloorViewTab" type="Button" parent="PageMargin/Page/Tabs"]
+visible = false
+layout_mode = 2
+toggle_mode = true
+text = "SALES FLOOR"
+
+[node name="RosterViewTab" type="Button" parent="PageMargin/Page/Tabs"]
+visible = false
+layout_mode = 2
+toggle_mode = true
+text = "ROSTER / INVENTORY"
 
 [node name="ItemsButton" type="Button" parent="PageMargin/Page/Tabs"]
 layout_mode = 2
@@ -230,12 +249,16 @@ layout_mode = 2
 [node name="PlanningPanel" parent="PageMargin/Page/Body" instance=ExtResource("4_planning")]
 layout_mode = 2
 
+[node name="StorePanel" parent="PageMargin/Page/Body" instance=ExtResource("8_store")]
+layout_mode = 2
+
 [node name="ReportPanel" parent="PageMargin/Page/Body" unique_id=720570923 instance=ExtResource("2_report")]
 visible = false
 layout_mode = 2
 
 [node name="InventoryPanel" parent="PageMargin/Page" instance=ExtResource("6_inventory")]
 layout_mode = 2
+size_flags_vertical = 3
 
 [node name="DayTimer" type="Timer" parent="." unique_id=779337678]
 wait_time = 0.75

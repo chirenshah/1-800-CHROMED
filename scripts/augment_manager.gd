@@ -454,8 +454,9 @@ func load_state_dict(data: Dictionary) -> bool:
 			if kind != "augment":
 				return false
 			var expected_tier := "standard" if slot_index < STANDARD_STORE_SLOTS else "premium"
-			var allowed_rarities: Array[String] = ["Common", "Uncommon", "Rare"] \
-				if expected_tier == "standard" else ["Epic", "Legendary"]
+			var allowed_rarities: Array[String] = []
+			allowed_rarities.assign(["Common", "Uncommon", "Rare"] \
+				if expected_tier == "standard" else ["Epic", "Legendary"])
 			if str(offer.get("tier", "")) != expected_tier:
 				return false
 			var augment_id := str(offer.get("augment_id", ""))

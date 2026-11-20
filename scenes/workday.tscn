@@ -95,6 +95,12 @@ vertical_alignment = 1
 layout_mode = 2
 size_flags_vertical = 4
 
+[node name="MainMenuButton" type="Button" parent="PageMargin/Page/Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(92, 36)
+size_flags_vertical = 4
+text = "Main Menu"
+
 [node name="Tabs" type="HBoxContainer" parent="PageMargin/Page" unique_id=591088129]
 layout_mode = 2
 theme_override_constants/separation = 8

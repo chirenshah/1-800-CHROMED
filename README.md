@@ -8,14 +8,16 @@ This project uses **Godot 4.7.2 Standard** and **GDScript**, with the **Compatib
 
 1. Open Godot and choose **Import** in the Project Manager.
 2. Select `project.godot` in this folder, then choose **Import & Edit**.
-3. Press **F5** (or the Run Project button) to run the opening cinematic and then the sales floor. On a Mac, you may need **Fn + F5**.
+3. Press **F5** (or the Run Project button) to open the main menu. On a Mac, you may need **Fn + F5**.
 4. Press **F8** (or the Stop button) to stop it.
 
-The opening runs for about 75 seconds. Click **Skip intro**, or press **Esc**, **Enter**, or **Space** to go straight to Prepare after a short fade. Choose **Start Workday** to watch incoming calls wait in the queue and move to staffed seats. **Pause** freezes arrivals and call progress. The report separates handled calls from calls still waiting or unfinished at close.
+Choose **New Quarter** to watch the roughly 75-second cinematic, then meet Nina on the first-day floor. Click **Skip intro**, or press **Esc**, **Enter**, or **Space** to go straight to that floor. A three-step guide explains Nina's automatic calls, the target, and the shift; **Start First Shift** begins day one before the Store opens. Later days use normal Prepare, Play, and Report views. **Pause** freezes arrivals and call progress. The report separates handled calls from calls still waiting or unfinished at close. **Main Menu** returns from any workday screen; leaving during Play asks for confirmation because the current shift is not saved.
+
+The game autosaves after each completed workday, including its report and pending reward. **Resume** loads that checkpoint; resolving the reward or changing the team updates it. Quitting during a shift returns to the latest checkpoint. **New Quarter** warns when a saved quarter exists; the old save is replaced when the new quarter completes its first day. Settings controls music for the current session.
 
 Background music starts with the opening and continues through the sales floor, including while the workday is paused. Use **Music: On/Off** in the opening or workday to mute or restore it. The starting level is -18 dB; the session control does not save a preference to disk.
 
-During **Prepare**, use **Team** to select a workstation, hire or assign a colleague, and compare effective Close, Speed, Upsell, Talk, and Stamina. **Upgrades** holds the shop and equipment; **Details** holds character descriptions. Installed augments are permanent; replacing one requires confirmation and destroys the old copy. The first open seat and a hireable candidate are selected on a fresh game. Moving an already seated colleague swaps the two occupants, or vacates their previous seat if the destination is empty. Assigning a reserve colleague sends the selected seat's occupant to reserve; **Recall** opens the seat. At least one employee is required to start. Assignments, hiring, and inventory changes lock during Play (including pause) and Report, then carry into the next Prepare phase within the current session.
+After the guided first day, use **Team** during Prepare to select a workstation, hire or assign a colleague, and compare effective Close, Speed, Upsell, Talk, and Stamina. **Upgrades** holds the shop and equipment; **Details** holds character descriptions. Installed augments are permanent; replacing one requires confirmation and destroys the old copy. Moving an already seated colleague swaps the two occupants, or vacates their previous seat if the destination is empty. Assigning a reserve colleague sends the selected seat's occupant to reserve; **Recall** opens the seat. At least one employee is required to start. Assignments, hiring, and inventory changes lock during Play (including pause) and Report, then carry into the next Prepare phase and autosave checkpoint.
 
 The **ITEMS** and **SALESPEOPLE** buttons next to the phase tabs open the 2×6 item inventory and 1×6 salesperson reserve. Drag salespeople between reserve and the board, drag augments onto any owned salesperson to equip, and rearrange either grid. Only Nina is owned at the start; every other candidate, including Zip and Ada, can be hired for $100 into reserve.
 
@@ -38,7 +40,9 @@ If you move Godot into Applications later, use `/Applications/Godot.app/Contents
 ## Project layout
 
 - `project.godot` — project settings and the default main scene.
-- `scenes/opening.tscn` / `scripts/opening.gd` — modular cinematic startup and handoff to Prepare.
+- `scenes/main_menu.tscn` / `scripts/main_menu.gd` — startup, New Quarter, Resume, and music settings.
+- `scenes/opening.tscn` / `scripts/opening.gd` — new-quarter cinematic and handoff to the guided first day.
+- `scripts/run_save.gd` — validated, versioned autosave and one-time Resume handoff.
 - `scenes/music_player.tscn` / `scripts/music_player.gd` — looping background music, registered as a runtime autoload.
 - `scenes/music_button.tscn` / `scripts/music_button.gd` — reusable Music: On/Off control used by the opening and workday.
 - `data/opening_sequence.tres` / `scripts/opening_sequence.gd` — opening copy and exported timing settings.
@@ -82,6 +86,7 @@ For a quick check from this folder:
 "$HOME/Downloads/Godot.app/Contents/MacOS/Godot" --headless --path . --script res://tests/test_employee_stats.gd
 "$HOME/Downloads/Godot.app/Contents/MacOS/Godot" --headless --path . --script res://tests/test_sales_slam.gd
 "$HOME/Downloads/Godot.app/Contents/MacOS/Godot" --headless --path . --script res://tests/test_financial_gameplay.gd
+"$HOME/Downloads/Godot.app/Contents/MacOS/Godot" --headless --path . --script res://tests/test_quarter_flow.gd
 ```
 
 Open `scenes/sales_slam_test.tscn` and press F6 to try the Sales Slam scenarios (no sales, one big sale, exactly equal, barely over, near miss, skip midway, and more).

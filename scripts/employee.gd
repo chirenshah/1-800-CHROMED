@@ -4,9 +4,10 @@ class_name EmployeeCard
 signal seat_selected(seat: int)
 signal dropped(data: Dictionary, target_kind: String, target_index: int)
 
-@onready var seat_label: Label = $Margin/Content/Seat
-@onready var name_label: Label = $Margin/Content/Name
-@onready var role_label: Label = $Margin/Content/Role
+@onready var portrait: TextureRect = $Margin/Content/Header/Portrait
+@onready var seat_label: Label = $Margin/Content/Header/Identity/Seat
+@onready var name_label: Label = $Margin/Content/Header/Identity/Name
+@onready var role_label: Label = $Margin/Content/Header/Identity/Role
 @onready var stats_label: Label = $Margin/Content/Stats
 @onready var status_label: Label = $Margin/Content/Status
 @onready var call_progress: ProgressBar = $Margin/Content/CallProgress
@@ -38,6 +39,8 @@ func _ready() -> void:
 func configure(number: int, employee: Dictionary, loadout: Array[String] = [], effective_stats: Dictionary = {}) -> void:
 	seat_number = number
 	employee_id = employee.get("id", "")
+	portrait.visible = employee_id == "nina"
+	portrait.modulate = Color(0.72, 0.79, 0.86)
 	seat_label.text = "SEAT %02d" % number
 	name_label.text = employee.get("name", "+ Add rep")
 	role_label.text = employee.get("archetype", "")
@@ -74,7 +77,8 @@ func set_planning_state(editable: bool, is_selected: bool) -> void:
 
 
 func set_compact(compact: bool) -> void:
-	custom_minimum_size = Vector2(134, 104 if compact else 116)
+	custom_minimum_size = Vector2(134, 124 if compact else 144)
+	portrait.custom_minimum_size = Vector2(40, 40) if compact else Vector2(48, 48)
 	name_label.add_theme_font_size_override("font_size", 16 if compact else 18)
 	seat_label.add_theme_font_size_override("font_size", 10 if compact else 11)
 	role_label.add_theme_font_size_override("font_size", 11 if compact else 13)
@@ -148,6 +152,13 @@ func show_call(call: Dictionary, state: String, completed: Dictionary = {}, brea
 			_assignment_tween.tween_property(self, "modulate", Color.WHITE, 0.25)
 		_displayed_call_id = call_id
 	call_progress.visible = not call.is_empty()
+	if portrait.visible:
+		if state == "PAUSED":
+			portrait.modulate = Color(0.72, 0.68, 0.88)
+		elif not call.is_empty() and state == "LIVE":
+			portrait.modulate = Color(0.9, 1.0, 1.0)
+		else:
+			portrait.modulate = Color(0.72, 0.79, 0.86)
 	status_label.visible = staffed and state != "PREPARE"
 	tooltip_text = "Select this workstation to plan its assignment. Intake priority stays with the seat." if state == "PREPARE" else ""
 	if not staffed:

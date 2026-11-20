@@ -22,6 +22,7 @@ const SCORE_TARGET_STEP := 250
 @onready var phase_label: Label = $PageMargin/Page/Tabs/PhaseLabel
 @onready var day_label: Label = $PageMargin/Page/Header/DayLabel
 @onready var shift_clock: Label = $PageMargin/Page/Header/ShiftClock
+@onready var main_menu_button: Button = $PageMargin/Page/Header/MainMenuButton
 @onready var floor_grid: GridContainer = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorScroll/FloorGrid
 @onready var revenue_label: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader/RevenueLabel
 @onready var target_label: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader/TargetLabel
@@ -50,6 +51,16 @@ var augment_manager := AugmentManager.new(inventory)
 var financial_ledger := FinancialLedger.new()
 var selected_seat := 1
 var day_payroll_snapshot: Dictionary = {}
+var first_day_complete := false
+var report_snapshot: Dictionary = {}
+var _restoring_run := false
+var tutorial_step := 0
+var tutorial_panel: PanelContainer
+var tutorial_title: Label
+var tutorial_body: Label
+var tutorial_button: Button
+var _leave_confirmation: ConfirmationDialog
+var _leave_was_paused := false
 var _pending_fire_id := ""
 var _fire_confirmation: ConfirmationDialog
 var _augment_confirmation: ConfirmationDialog
@@ -59,6 +70,7 @@ var _pending_augment_data: Dictionary = {}
 
 func _ready() -> void:
 	_build_floor()
+	_build_first_day_guide()
 	augment_manager.bind_financial_ledger(financial_ledger)
 	augment_manager.initialize_store_for_day(day)
 	financial_ledger.reset_daily_revenue(day)
@@ -94,6 +106,7 @@ func _ready() -> void:
 	store_panel.start_workday_requested.connect(_on_primary_pressed)
 	primary_button.pressed.connect(_on_primary_pressed)
 	pause_button.pressed.connect(_toggle_pause)
+	main_menu_button.pressed.connect(_request_main_menu)
 	report_panel.next_day_requested.connect(_prepare_next_day)
 	report_panel.reward_option_selected.connect(_select_reward_option)
 	report_panel.reward_claim_requested.connect(_claim_reward)
@@ -112,12 +125,23 @@ func _ready() -> void:
 	_augment_confirmation.confirmed.connect(_confirm_augment_action)
 	_augment_confirmation.canceled.connect(_cancel_augment_action)
 	add_child(_augment_confirmation)
+	_leave_confirmation = ConfirmationDialog.new()
+	_leave_confirmation.title = "Leave this shift?"
+	_leave_confirmation.dialog_text = "The current shift has not been saved. Resume will return to the latest completed-day checkpoint."
+	_leave_confirmation.ok_button_text = "Main Menu"
+	_leave_confirmation.confirmed.connect(_open_main_menu)
+	_leave_confirmation.canceled.connect(_cancel_main_menu)
+	add_child(_leave_confirmation)
 	day_timer.timeout.connect(_on_day_timer_timeout)
 	_refresh_augment_views()
 	_refresh_financial_ui()
 	resized.connect(_update_layout)
 	_update_layout()
 	_show_score_target()
+	var resume_data := RunSave.pending_resume.duplicate(true)
+	RunSave.pending_resume.clear()
+	if not resume_data.is_empty() and _restore_run(resume_data):
+		return
 	_show_phase(Phase.PREPARE)
 
 
@@ -139,8 +163,89 @@ func _build_floor() -> void:
 	staffed_seats.assign(floor_plan.occupied_seats())
 
 
+func _build_first_day_guide() -> void:
+	tutorial_panel = PanelContainer.new()
+	tutorial_panel.custom_minimum_size = Vector2(310, 0)
+	tutorial_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.045, 0.075, 0.105)
+	style.border_color = Color(0.29, 0.74, 0.65)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(10)
+	tutorial_panel.add_theme_stylebox_override("panel", style)
+	$PageMargin/Page/Body.add_child(tutorial_panel)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_top", 22)
+	margin.add_theme_constant_override("margin_bottom", 22)
+	tutorial_panel.add_child(margin)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 18)
+	margin.add_child(column)
+	tutorial_title = Label.new()
+	tutorial_title.add_theme_color_override("font_color", Color(0.38, 0.89, 0.8))
+	tutorial_title.add_theme_font_size_override("font_size", 19)
+	column.add_child(tutorial_title)
+	tutorial_body = Label.new()
+	tutorial_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tutorial_body.add_theme_font_size_override("font_size", 16)
+	tutorial_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(tutorial_body)
+	tutorial_button = Button.new()
+	tutorial_button.custom_minimum_size = Vector2(0, 46)
+	tutorial_button.pressed.connect(_advance_first_day_guide)
+	column.add_child(tutorial_button)
+	_refresh_first_day_guide()
+
+
+func _refresh_first_day_guide() -> void:
+	if tutorial_panel == null:
+		return
+	var titles := ["01 / YOUR SALES REP", "02 / TODAY'S TARGET", "03 / THE SHIFT"]
+	var explanations := [
+		"Nina handles incoming calls automatically. You manage the floor; you do not assign individual calls.",
+		"Reach the sales target shown above the floor. Sales also add to Company Cash, which funds future hires and augments.",
+		"A shift lasts 12 in-game hours. Pause to inspect the floor, then read the report. Miss the target or payroll and you get a write-up; three end the quarter.",
+	]
+	tutorial_title.text = titles[tutorial_step]
+	tutorial_body.text = explanations[tutorial_step]
+	tutorial_button.text = "Start First Shift" if tutorial_step == 2 else "Next"
+
+
+func _advance_first_day_guide() -> void:
+	if tutorial_step < 2:
+		tutorial_step += 1
+		_refresh_first_day_guide()
+	else:
+		_start_day()
+
+
+func _request_main_menu() -> void:
+	if phase == Phase.PLAY:
+		_leave_was_paused = paused
+		if not paused:
+			_toggle_pause()
+		_leave_confirmation.popup_centered()
+	else:
+		_open_main_menu()
+
+
+func _cancel_main_menu() -> void:
+	if phase == Phase.PLAY and not _leave_was_paused and paused:
+		_toggle_pause()
+
+
+func _open_main_menu() -> void:
+	if phase != Phase.PLAY:
+		_save_checkpoint()
+	RunSave.session_active = false
+	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+
+
 func _select_seat(seat: int) -> void:
-	if not _is_management_phase() or seat < 0 or seat >= FloorPlan.SEAT_COUNT:
+	if not _is_management_phase() or (day == 1 and not first_day_complete) \
+			or seat < 0 or seat >= FloorPlan.SEAT_COUNT:
 		return
 	selected_seat = seat
 	planning_panel.show_plan(floor_plan, selected_seat, true)
@@ -219,6 +324,8 @@ func _cancel_fire_request() -> void:
 
 
 func _toggle_inventory(items: bool) -> void:
+	if day == 1 and not first_day_complete:
+		return
 	if items:
 		inventory_panel.toggle_items()
 	else:
@@ -234,6 +341,8 @@ func _refresh_augment_views() -> void:
 	inventory_panel.show_state(augment_manager, _is_management_phase())
 	_refresh_store_panel()
 	_refresh_financial_ui()
+	if first_day_complete and not _restoring_run and phase != Phase.PLAY:
+		_save_checkpoint()
 
 
 func _refresh_store_panel() -> void:
@@ -297,6 +406,8 @@ func _refresh_financial_ui() -> void:
 
 ## Pure check shared by drag previews and the real transfer, so feedback matches outcomes.
 func _can_transfer(data: Dictionary, target_kind: String, target_index: int) -> bool:
+	if day == 1 and not first_day_complete:
+		return false
 	if not _is_management_phase():
 		return false
 	match data.get("type", ""):
@@ -473,6 +584,7 @@ func _select_reward_option(index: int) -> void:
 	if not _is_report_phase() or not augment_manager.select_reward_option(index):
 		return
 	_refresh_reward_ui()
+	_save_checkpoint()
 
 
 func _claim_reward(index: int) -> void:
@@ -484,6 +596,7 @@ func _claim_reward(index: int) -> void:
 	report_panel.show_reward_resolved()
 	status_label.text = "Augment claimed to inventory. All other reward choices were forfeited."
 	_refresh_augment_views()
+	_save_checkpoint()
 
 
 func _request_reward_install(index: int, employee_id: String, slot_index: int) -> void:
@@ -515,6 +628,7 @@ func _request_reward_install(index: int, employee_id: String, slot_index: int) -
 	status_label.text = "Reward installed directly; it never used an inventory slot."
 	_refresh_augment_views()
 	_refresh_card_stats()
+	_save_checkpoint()
 
 
 func _skip_reward() -> void:
@@ -523,6 +637,7 @@ func _skip_reward() -> void:
 	report_panel.show_reward_resolved()
 	status_label.text = "Daily reward skipped. All three choices were forfeited."
 	_refresh_augment_views()
+	_save_checkpoint()
 
 
 func _open_reward_management() -> void:
@@ -576,6 +691,7 @@ func _sync_floor_plan() -> void:
 	planning_panel.show_plan(floor_plan, selected_seat)
 	_refresh_floor()
 	_refresh_financial_ui()
+	_save_checkpoint()
 
 
 func _refresh_card_stats() -> void:
@@ -614,6 +730,8 @@ func _update_layout() -> void:
 func _select_prepare_view(view: PrepareView) -> void:
 	if phase != Phase.PREPARE:
 		return
+	if day == 1 and not first_day_complete and view != PrepareView.FLOOR:
+		return
 	prepare_view = view
 	_show_phase(Phase.PREPARE, false)
 
@@ -622,7 +740,7 @@ func _show_phase(next_phase: Phase, reset_prepare_view := true) -> void:
 	if financial_ledger.writeups >= FinancialLedger.WRITEUPS_TO_TERMINATE and next_phase != Phase.TERMINATED:
 		return
 	if next_phase == Phase.PREPARE and reset_prepare_view:
-		prepare_view = PrepareView.STORE
+		prepare_view = PrepareView.FLOOR if day == 1 and not first_day_complete else PrepareView.STORE
 	phase = next_phase
 	var report_visible := phase in [Phase.REPORT, Phase.TERMINATED]
 	var management_visible := _is_management_phase()
@@ -634,21 +752,22 @@ func _show_phase(next_phase: Phase, reset_prepare_view := true) -> void:
 	store_panel.visible = store_visible
 	$PageMargin/Page/Body.visible = not roster_visible
 	$PageMargin/Page/Body/FloorPanel.visible = floor_visible
-	planning_panel.visible = management_visible and (
+	planning_panel.visible = management_visible and not (day == 1 and not first_day_complete) and (
 		phase != Phase.PREPARE or prepare_view == PrepareView.FLOOR
 	)
 	planning_guide.visible = planning_panel.visible
+	tutorial_panel.visible = phase == Phase.PREPARE and day == 1 and not first_day_complete
 	floor_grid.get_parent().visible = not report_visible
 	slam_board.visible = report_visible
 	revenue_label.visible = phase != Phase.PREPARE
-	store_view_tab.visible = phase == Phase.PREPARE
+	store_view_tab.visible = phase == Phase.PREPARE and (day > 1 or first_day_complete)
 	floor_view_tab.visible = phase == Phase.PREPARE
-	roster_view_tab.visible = phase == Phase.PREPARE
+	roster_view_tab.visible = phase == Phase.PREPARE and (day > 1 or first_day_complete)
 	store_view_tab.set_pressed_no_signal(store_visible)
 	floor_view_tab.set_pressed_no_signal(phase == Phase.PREPARE and prepare_view == PrepareView.FLOOR)
 	roster_view_tab.set_pressed_no_signal(roster_visible)
-	items_button.visible = not store_visible and not roster_visible
-	people_button.visible = not store_visible and not roster_visible
+	items_button.visible = not store_visible and not roster_visible and not tutorial_panel.visible
+	people_button.visible = not store_visible and not roster_visible and not tutorial_panel.visible
 	if store_visible:
 		inventory_panel.hide_all()
 		items_button.set_pressed_no_signal(false)
@@ -663,16 +782,17 @@ func _show_phase(next_phase: Phase, reset_prepare_view := true) -> void:
 	report_tab.disabled = not report_visible
 	pause_button.disabled = phase != Phase.PLAY
 	pause_button.visible = phase == Phase.PLAY
-	primary_button.visible = phase in [Phase.PREPARE, Phase.PLAY] and not store_visible and not roster_visible
+	primary_button.visible = phase in [Phase.PREPARE, Phase.PLAY] and not store_visible and not roster_visible and not tutorial_panel.visible
 	match phase:
 		Phase.PREPARE:
 			phase_label.text = "CHROME MARKET" if store_visible \
 				else "ROSTER / INVENTORY" if roster_visible else "PREPARATION OPEN"
-			status_label.text = "Arrange your team before opening the floor."
-			primary_button.text = "Start Workday"
+			status_label.text = "Nina is ready. Start your first 12-hour shift." if day == 1 and not first_day_complete else "Arrange your team before opening the floor."
+			primary_button.text = "Start First Shift" if day == 1 and not first_day_complete else "Start Workday"
 			floor_title.text = "FLOOR PLAN"
 			if prepare_view == PrepareView.FLOOR:
-				planning_panel.show_plan(floor_plan, selected_seat, true)
+				if planning_panel.visible:
+					planning_panel.show_plan(floor_plan, selected_seat, true)
 		Phase.REWARD_MANAGEMENT:
 			phase_label.text = "TEAM MANAGEMENT · REWARD PENDING"
 			status_label.text = "Manage augments or inventory, then return to the same reward offer."
@@ -780,6 +900,19 @@ func _finish_day() -> void:
 		var profile := floor_plan.profile(employee["employee_id"])
 		employee["name"] = profile.get("name", employee["employee_id"])
 		employee["archetype"] = profile.get("archetype", "")
+	report_snapshot = {
+		"day": day, "revenue": call_queue.revenue, "handled": call_queue.handled,
+		"normal_sales": call_queue.normal_sales, "sales": call_queue.sales,
+		"failed": call_queue.failed_interactions, "discarded": call_queue.discarded_today,
+		"recovery_attempts": call_queue.recovery_attempts, "recovered": call_queue.recovered,
+		"failed_recoveries": call_queue.failed_recoveries,
+		"recovered_revenue": call_queue.recovered_revenue,
+		"received": call_queue.received, "waiting": call_queue.waiting.size(),
+		"unfinished": call_queue.active.size(), "abandoned": call_queue.abandoned,
+		"elapsed_seconds": call_queue.elapsed_seconds,
+		"workload": workload.duplicate(true), "finance": finance_result.duplicate(true),
+		"sale_log": call_queue.sale_log.duplicate(true),
+	}
 	report_panel.show_results(
 		day, call_queue.revenue, call_queue.handled, call_queue.normal_sales, call_queue.sales,
 		call_queue.failed_interactions, call_queue.discarded_today,
@@ -791,8 +924,10 @@ func _finish_day() -> void:
 	report_panel.show_financial_results(finance_result)
 	call_queue.clear_discard_pile()
 	augment_manager.generate_daily_reward()
+	first_day_complete = true
 	_refresh_reward_ui()
 	_show_phase(Phase.TERMINATED if finance_result["terminated"] else Phase.REPORT)
+	_save_checkpoint()
 	# The slam only replays recorded sales; the budget above is already final and is never touched again.
 	var recorded := call_queue.sale_log.duplicate(true)
 	assert(slam_board.plan.total(recorded) == call_queue.revenue, "Recorded sales must add up to the day's revenue.")
@@ -810,10 +945,105 @@ func _prepare_next_day() -> void:
 	day_label.text = "DAY %02d / 60" % day
 	_show_score_target()
 	augment_manager.initialize_store_for_day(day)
-	_refresh_augment_views()
 	call_queue.reset(floor_plan.seats)
 	pause_button.text = "Pause"
 	_show_phase(Phase.PREPARE)
+	_save_checkpoint()
+
+
+func _save_checkpoint() -> void:
+	if not RunSave.session_active or not first_day_complete or phase == Phase.PLAY:
+		return
+	var data := {
+		"day": day,
+		"phase": "report" if phase in [Phase.REPORT, Phase.TERMINATED, Phase.REWARD_MANAGEMENT] else "prepare",
+		"first_day_complete": first_day_complete,
+		"inventory": inventory.to_dict(),
+		"augments": augment_manager.state_to_dict(),
+		"finance": financial_ledger.to_dict(),
+		"report": report_snapshot.duplicate(true),
+	}
+	if not RunSave.write(data):
+		push_error("Could not autosave the quarter.")
+		status_label.text = "Autosave failed. Your latest completed day may not be available to Resume."
+
+
+func load_saved_run(data: Dictionary) -> bool:
+	return _restore_run(data)
+
+
+func _restore_run(data: Dictionary) -> bool:
+	_restoring_run = true
+	var saved_day := int(data.get("day", 0))
+	var saved_phase := str(data.get("phase", ""))
+	if saved_day < 1 or saved_day > 60 or saved_phase not in ["prepare", "report"]:
+		_restoring_run = false
+		return false
+	var saved_inventory: Variant = data.get("inventory", {})
+	var saved_augments: Variant = data.get("augments", {})
+	var saved_finance: Variant = data.get("finance", {})
+	var saved_report: Variant = data.get("report", {})
+	if not saved_inventory is Dictionary or not saved_augments is Dictionary \
+			or not saved_finance is Dictionary or not saved_report is Dictionary:
+		_restoring_run = false
+		return false
+	if saved_phase == "report" and saved_report.is_empty():
+		_restoring_run = false
+		return false
+	if not inventory.load_dict(saved_inventory):
+		_restoring_run = false
+		return false
+	if not financial_ledger.load_dict(saved_finance):
+		_restoring_run = false
+		return false
+	if not augment_manager.load_state_dict(saved_augments):
+		_restoring_run = false
+		return false
+	if augment_manager.budget != financial_ledger.company_cash:
+		_restoring_run = false
+		return false
+	day = saved_day
+	first_day_complete = bool(data.get("first_day_complete", true))
+	report_snapshot = saved_report.duplicate(true)
+	selected_seat = 0
+	staffed_seats.assign(floor_plan.occupied_seats())
+	call_queue.reset(floor_plan.seats)
+	if saved_phase == "report":
+		call_queue.revenue = int(report_snapshot.get("revenue", 0))
+		call_queue.elapsed_seconds = float(report_snapshot.get("elapsed_seconds", DAY_TICKS * CallQueueSimulation.TICK_SECONDS))
+		call_queue.elapsed_ticks = floori(call_queue.elapsed_seconds / CallQueueSimulation.TICK_SECONDS)
+	day_label.text = "DAY %02d / 60" % day
+	_show_score_target()
+	_refresh_augment_views()
+	if saved_phase == "report":
+		_display_saved_report()
+		_show_phase(Phase.TERMINATED if financial_ledger.writeups >= FinancialLedger.WRITEUPS_TO_TERMINATE else Phase.REPORT)
+		var sales: Array = report_snapshot.get("sale_log", [])
+		slam_board.play(sales, score_target(day))
+		slam_board.skip()
+	else:
+		_show_phase(Phase.PREPARE)
+	_restoring_run = false
+	return true
+
+
+func _display_saved_report() -> void:
+	var report := report_snapshot
+	var workload: Array[Dictionary] = []
+	workload.assign(report.get("workload", []))
+	report_panel.show_results(
+		int(report.get("day", day)), int(report.get("revenue", 0)), int(report.get("handled", 0)),
+		int(report.get("normal_sales", 0)), int(report.get("sales", 0)),
+		int(report.get("failed", 0)), int(report.get("discarded", 0)),
+		int(report.get("recovery_attempts", 0)), int(report.get("recovered", 0)),
+		int(report.get("failed_recoveries", 0)), int(report.get("recovered_revenue", 0)),
+		int(report.get("received", 0)), int(report.get("waiting", 0)),
+		int(report.get("unfinished", 0)), int(report.get("abandoned", 0)), workload
+	)
+	report_panel.show_financial_results(report.get("finance", {}))
+	_refresh_reward_ui()
+	if augment_manager.pending_reward.is_empty():
+		report_panel.show_reward_resolved()
 
 
 func _refresh_floor() -> void:

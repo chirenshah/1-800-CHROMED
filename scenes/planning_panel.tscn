@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/planning_panel.gd" id="1_planning"]
 
@@ -13,18 +13,6 @@ corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_left = 10
 corner_radius_bottom_right = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleAction"]
-bg_color = Color(0.07, 0.27, 0.25, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.29, 0.74, 0.65, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_left = 5
-corner_radius_bottom_right = 5
 
 [node name="PlanningPanel" type="PanelContainer"]
 custom_minimum_size = Vector2(320, 0)
@@ -76,12 +64,14 @@ text = "Return to pending reward"
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="Team" type="MarginContainer" parent="Margin/Content/Views"]
+[node name="Team" type="ScrollContainer" parent="Margin/Content/Views"]
 layout_mode = 2
+horizontal_scroll_mode = 0
 metadata/_tab_index = 0
 
 [node name="TeamContent" type="VBoxContainer" parent="Margin/Content/Views/Team"]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
 [node name="FinancialSummary" type="Label" parent="Margin/Content/Views/Team/TeamContent"]
@@ -96,13 +86,6 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "SEAT 01"
 
-[node name="CandidateSelector" type="OptionButton" parent="Margin/Content/Views/Team/TeamContent"]
-custom_minimum_size = Vector2(0, 42)
-layout_mode = 2
-theme_override_font_sizes/font_size = 15
-fit_to_longest_item = false
-clip_text = true
-
 [node name="Profiles" type="Label" parent="Margin/Content/Views/Team/TeamContent"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
@@ -115,24 +98,11 @@ theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.62, 0.73, 0.79, 1)
 text = "CURRENTLY IN SEAT 01"
 
-[node name="AssignButton" type="Button" parent="Margin/Content/Views/Team/TeamContent"]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = SubResource("StyleAction")
-text = "Assign to selected seat"
-
-[node name="BenchButton" type="Button" parent="Margin/Content/Views/Team/TeamContent"]
-custom_minimum_size = Vector2(0, 36)
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "Recall selected rep"
-
 [node name="TeamHint" type="Label" parent="Margin/Content/Views/Team/TeamContent"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.62, 0.73, 0.79, 1)
-text = "Select a seat, choose a rep, then hire or assign. New hires go to reserve."
+text = "Drag reps between seats to move or swap them. Drag between the floor and Salesperson Reserve to deploy or recall. Hire in HR."
 autowrap_mode = 2
 
 [node name="Upgrades" type="ScrollContainer" parent="Margin/Content/Views"]
@@ -214,6 +184,13 @@ metadata/_tab_index = 2
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
+
+[node name="CandidateSelector" type="OptionButton" parent="Margin/Content/Views/Details/DetailContent"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+fit_to_longest_item = false
+clip_text = true
 
 [node name="DetailsTitle" type="Label" parent="Margin/Content/Views/Details/DetailContent"]
 layout_mode = 2

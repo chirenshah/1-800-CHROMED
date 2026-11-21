@@ -51,6 +51,16 @@ func toggle_people() -> void:
 	_sync_visibility()
 
 
+func set_compact(compact: bool) -> void:
+	for cell in person_cells:
+		cell.custom_minimum_size.y = 62 if compact else 78
+
+
+func show_people() -> void:
+	people_section.visible = true
+	_sync_visibility()
+
+
 func show_all() -> void:
 	items_section.visible = true
 	people_section.visible = true
@@ -85,6 +95,7 @@ func show_state(augment_manager: AugmentManager, editable: bool) -> void:
 		cell.show_contents(augment["name"], "%s\n%s" % [augment["rarity"], effect],
 			"%s · %s\n%s\nWorth $%d" % [augment["name"], augment["rarity"], effect, augment["price"]],
 			{"type": "item", "slot": slot_index}, Color(0.98, 0.72, 0.4))
+	var effective_stats := augment_manager.modified_floor_stats()
 	for slot_index in person_cells.size():
 		var cell := person_cells[slot_index]
 		cell.editable = editable
@@ -96,13 +107,15 @@ func show_state(augment_manager: AugmentManager, editable: bool) -> void:
 		var augment_names: Array[String] = []
 		for equipped: Dictionary in loadout:
 			augment_names.append(AugmentManager.CATALOG.profile(equipped["augment_id"])["name"])
-		var stats: Dictionary = augment_manager.modified_stats(employee["id"])
-		var detail := "%s\nSPD %.2f · CNV %.0f%%" % [
-			employee["archetype"], float(stats.get("speed", employee["speed"])),
-			float(stats.get("conversion", employee["conversion"])),
+		var stats: Dictionary = effective_stats.get(employee["id"], {})
+		var speed := float(stats.get("speed", employee["speed"]))
+		var handling := EmployeeRoster.format_game_duration(EmployeeRoster.BASE_HANDLING_SECONDS / speed) if speed > 0.0 else "Paused"
+		var detail := "Close %.0f%% · SPD %.2f\n%s · Upsell %.0f%%\n%.0fh stam · $%.0f/day" % [
+			float(stats.get("conversion", employee["conversion"])), speed,
+			handling, float(stats.get("upsell_chance", employee["upsell_chance"])),
+			FloorPlan.CATALOG.stamina_hours(employee["id"]),
+			float(stats.get("daily_upkeep", FloorPlan.CATALOG.daily_upkeep(employee["id"]))),
 		]
-		if not augment_names.is_empty():
-			detail += "\n◆ " + ", ".join(augment_names)
 		cell.show_contents(employee["name"], detail,
 			"%s · %s\nUpsell %.1f%% · ×%.2f · Upkeep $%.0f/day\nAugments: %s" % [
 				employee["name"], employee["archetype"], float(stats.get("upsell_chance", employee["upsell_chance"])),

@@ -42,7 +42,7 @@ func configure(number: int, employee: Dictionary, loadout: Array[String] = [], e
 	portrait.visible = employee_id == "nina"
 	portrait.modulate = Color(0.72, 0.79, 0.86)
 	seat_label.text = "SEAT %02d" % number
-	name_label.text = employee.get("name", "+ Add rep")
+	name_label.text = employee.get("name", "Drop rep here")
 	role_label.text = employee.get("archetype", "")
 	staffed = not employee_id.is_empty()
 	role_label.visible = staffed
@@ -72,12 +72,14 @@ func set_planning_state(editable: bool, is_selected: bool) -> void:
 	planning_enabled = editable
 	selected = is_selected and editable
 	focus_mode = Control.FOCUS_ALL if editable else Control.FOCUS_NONE
-	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if editable else Control.CURSOR_ARROW
+	mouse_default_cursor_shape = Control.CURSOR_DRAG if editable and staffed else Control.CURSOR_ARROW
+	if not staffed:
+		name_label.text = "Drop rep here" if editable else "Open seat"
 	_refresh_style()
 
 
 func set_compact(compact: bool) -> void:
-	custom_minimum_size = Vector2(134, 124 if compact else 144)
+	custom_minimum_size = Vector2(134, 110 if compact else 144)
 	portrait.custom_minimum_size = Vector2(40, 40) if compact else Vector2(48, 48)
 	name_label.add_theme_font_size_override("font_size", 16 if compact else 18)
 	seat_label.add_theme_font_size_override("font_size", 10 if compact else 11)

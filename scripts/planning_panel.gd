@@ -1,13 +1,10 @@
 extends PanelContainer
 class_name PlanningPanel
 
-signal assignment_requested(seat: int, employee_id: String)
-signal bench_requested(seat: int)
 signal augment_equip_requested(employee_id: String, inventory_index: int)
 signal augment_replace_requested(employee_id: String, slot_index: int, inventory_slot: int)
 signal augment_discard_requested(inventory_slot: int)
 signal surgery_requested(employee_id: String)
-signal hire_requested(employee_id: String)
 signal fire_requested(employee_id: String)
 signal return_reward_requested
 
@@ -17,7 +14,7 @@ signal return_reward_requested
 @onready var reward_banner: Label = $Margin/Content/RewardBanner
 @onready var return_reward_button: Button = $Margin/Content/ReturnRewardButton
 @onready var seat_label: Label = $Margin/Content/Views/Team/TeamContent/SeatLabel
-@onready var candidate_selector: OptionButton = $Margin/Content/Views/Team/TeamContent/CandidateSelector
+@onready var candidate_selector: OptionButton = $Margin/Content/Views/Details/DetailContent/CandidateSelector
 @onready var location_label: Label = $Margin/Content/Views/Team/TeamContent/Location
 @onready var detail_scroll: ScrollContainer = $Margin/Content/Views/Details
 @onready var strength_label: Label = $Margin/Content/Views/Details/DetailContent/Strength
@@ -26,8 +23,6 @@ signal return_reward_requested
 @onready var hint_label: Label = $Margin/Content/Views/Details/DetailContent/Hint
 @onready var details_title: Label = $Margin/Content/Views/Details/DetailContent/DetailsTitle
 @onready var more_stats: Label = $Margin/Content/Views/Details/DetailContent/MoreStats
-@onready var assign_button: Button = $Margin/Content/Views/Team/TeamContent/AssignButton
-@onready var bench_button: Button = $Margin/Content/Views/Team/TeamContent/BenchButton
 @onready var budget_label: Label = $Margin/Content/Views/Upgrades/UpgradeContent/Budget
 @onready var equipment_label: Label = $Margin/Content/Views/Upgrades/UpgradeContent/Equipment
 @onready var inventory_selector: OptionButton = $Margin/Content/Views/Upgrades/UpgradeContent/InventoryRow/Inventory
@@ -41,7 +36,7 @@ signal return_reward_requested
 @onready var fire_button: Button = $Margin/Content/Views/Details/DetailContent/FireButton
 
 var selected_seat := 0
-var candidate_id := "zip"
+var candidate_id := "nina"
 var _plan: FloorPlan
 var _augment_manager: AugmentManager
 var _augment_editable := false
@@ -51,8 +46,6 @@ var _financial_summary := ""
 func _ready() -> void:
 	candidate_selector.get_popup().max_size = Vector2i(0, 320)
 	candidate_selector.item_selected.connect(_on_candidate_selected)
-	assign_button.pressed.connect(_on_assign_pressed)
-	bench_button.pressed.connect(func() -> void: bench_requested.emit(selected_seat))
 	equip_button.pressed.connect(_equip_selected)
 	for slot_index in unequip_buttons.size():
 		unequip_buttons[slot_index].pressed.connect(_on_replace_pressed.bind(slot_index))
@@ -73,11 +66,12 @@ func show_plan(plan: FloorPlan, seat: int, select_occupant := false) -> void:
 	if select_occupant and not plan.seats[seat].is_empty():
 		candidate_id = plan.seats[seat]
 	summary_label.text = "%d / 9 seated" % plan.occupied_seats().size()
-	seat_label.text = "SEAT %02d" % (seat + 1)
+	var occupant := plan.profile(plan.seats[seat])
+	seat_label.text = "Seat %02d · %s" % [seat + 1, occupant.get("name", "Open seat")]
 	candidate_selector.clear()
 	for index in plan.roster.size():
 		var employee := plan.roster[index]
-		var suffix := " · FIRED" if _is_fired(employee["id"]) else ""
+		var suffix := " · DEPARTED" if _is_fired(employee["id"]) else ""
 		candidate_selector.add_item("%s · %s · $%d/day%s" % [
 			employee["name"], employee["archetype"], FloorPlan.CATALOG.daily_upkeep(employee["id"]), suffix
 		])
@@ -123,6 +117,9 @@ func _on_candidate_selected(index: int) -> void:
 
 
 func _show_candidate() -> void:
+	var show_seat_stats := _plan.seats[selected_seat] == candidate_id
+	profile_label.visible = show_seat_stats
+	location_label.visible = show_seat_stats
 	var candidate := _plan.profile(candidate_id)
 	if candidate.is_empty():
 		return
@@ -163,50 +160,17 @@ func _show_candidate() -> void:
 	var fired := _is_fired(candidate_id)
 	var owned := bag != null and (source != -1 or reserve_slot != -1)
 	if fired:
-		location_label.text = "FIRED  /  Permanently unavailable this run"
+		location_label.text = "DEPARTED  /  Permanently unavailable this run"
 	elif source != -1:
 		location_label.text = "CURRENTLY IN SEAT %02d" % (source + 1)
 	elif owned:
 		location_label.text = "IN RESERVE  /  Ready to deploy"
 	else:
 		location_label.text = "NOT HIRED  /  $%d to hire into reserve" % AugmentManager.HIRE_COST
-	assign_button.disabled = source == selected_seat
-	if fired:
-		assign_button.text = "Cannot rehire"
-		assign_button.disabled = true
-		assign_button.tooltip_text = "This employee was permanently fired during this run."
-	elif not owned:
-		assign_button.text = "Hire %s — $%d" % [candidate["name"], AugmentManager.HIRE_COST]
-		assign_button.disabled = not _augment_editable or bag.is_reserve_full() or _augment_manager.budget < AugmentManager.HIRE_COST
-		assign_button.tooltip_text = "New hires join the salesperson reserve. Reserve holds %d people." % InventoryManager.PERSON_SLOTS
-	elif source == selected_seat:
-		assign_button.text = "Already in this seat"
-	elif source != -1:
-		assign_button.text = "%s Seat %02d → %02d" % ["Move" if _plan.seats[selected_seat].is_empty() else "Swap", source + 1, selected_seat + 1]
-	else:
-		var current := _plan.profile(_plan.seats[selected_seat])
-		assign_button.text = "Assign %s to Seat %02d" % [candidate["name"], selected_seat + 1] if current.is_empty() else "Replace %s with %s" % [current["name"], candidate["name"]]
-	if owned:
-		assign_button.tooltip_text = "A seated colleague swaps with this seat. Assigning from reserve sends the occupant to reserve."
 	fire_button.visible = owned and not fired
 	fire_button.disabled = not _augment_editable or not owned or fired
 	fire_button.text = "Fire %s permanently" % candidate["name"]
-	var occupant := _plan.profile(_plan.seats[selected_seat])
-	bench_button.disabled = occupant.is_empty() or (bag != null and bag.is_reserve_full())
-	if occupant.is_empty():
-		bench_button.text = "Seat already empty"
-	elif bag != null and bag.is_reserve_full():
-		bench_button.text = "Reserve full"
-	else:
-		bench_button.text = "Recall " + str(occupant["name"])
 	_refresh_augment_controls()
-
-
-func _on_assign_pressed() -> void:
-	if _augment_manager != null and not _augment_manager.bag.owns(candidate_id):
-		hire_requested.emit(candidate_id)
-	else:
-		assignment_requested.emit(selected_seat, candidate_id)
 
 
 func _equip_selected() -> void:

@@ -231,6 +231,8 @@ func _test_workday_integration() -> void:
 	root.add_child(scene)
 	await process_frame
 	var panel: PlanningPanel = scene.planning_panel
+	scene.first_day_complete = true
+	scene._select_prepare_view(scene.PrepareView.STORE)
 	_check(scene.augment_manager.budget == 500 and scene.augment_manager.store_offers.size() == 7
 		and scene.prepare_view == scene.PrepareView.STORE and scene.store_panel.visible
 		and scene.store_panel.augment_buy_buttons.size() == 5
@@ -245,6 +247,7 @@ func _test_workday_integration() -> void:
 	scene._equip_augment("nina", 0)
 	_check(scene.augment_manager.budget == 400 and scene.augment_manager.loadout("nina") == ["AUG_001"],
 		"Purchases enter the shared inventory and can be installed using the existing equipment flow.")
+	scene._set_commission_rate("nina", 30)
 	scene._start_day()
 	_check(scene.call_queue.equipped_augments["nina"] == ["AUG_001"]
 		and scene.store_panel.reroll_button.disabled,
@@ -259,10 +262,10 @@ func _test_workday_integration() -> void:
 	scene.call_queue.sale_log.append({"id": 0, "value": 50, "employee_id": "nina", "recovery": false})
 	scene._settle_sale({"employee_id": "nina", "value": 50, "timestamp": 1.0})
 	scene._finish_day()
-	_check(scene.augment_manager.budget == 350
+	_check(scene.augment_manager.budget == unchanged_budget + 50 - 100 - 15
 		and scene.augment_manager.pending_reward.get("choices", []).size() == 3
 		and scene.report_panel.next_day_button.disabled,
-		"Workday revenue is added to cash once, then the $100 daily employee upkeep is settled.")
+		"Workday revenue is added to cash once, then base salary and earned commission are settled.")
 	scene._prepare_next_day()
 	_check(scene.day == 1 and scene.phase == scene.Phase.REPORT and not scene.store_panel.visible,
 		"The next day remains blocked until its reward is resolved.")

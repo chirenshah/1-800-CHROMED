@@ -74,13 +74,10 @@ func _click(control: Control) -> void:
 	await _settle()
 
 
-func _choose_candidate(panel: PlanningPanel, employee_id: String) -> void:
-	for index in panel.candidate_selector.item_count:
-		if panel.candidate_selector.get_item_metadata(index) == employee_id:
-			panel.candidate_selector.select(index)
-			panel.candidate_selector.item_selected.emit(index)
-			return
-	_check(false, "Missing planning candidate: " + employee_id)
+func _drop_rep(source_kind: String, source_index: int, target: Control) -> void:
+	var payload := {"type": "person", "kind": source_kind, "index": source_index}
+	if target._can_drop_data(Vector2.ZERO, payload):
+		target._drop_data(Vector2.ZERO, payload)
 
 
 func _capture(name: String) -> void:
@@ -97,12 +94,14 @@ func _test_scene() -> void:
 	root.add_child(scene)
 	await _settle()
 	var panel: PlanningPanel = scene.planning_panel
+	scene.first_day_complete = true
+	scene._select_prepare_view(scene.PrepareView.STORE)
 	_check(scene.prepare_view == scene.PrepareView.STORE and scene.store_panel.visible
 		and scene.augment_manager.store_offers.size() == 7
 		and scene.store_panel.augment_buy_buttons.size() == 5
 		and scene.store_panel.employee_hire_buttons.size() == 2,
 		"Prepare must open the fully stocked Store by default.")
-	var day_store := scene.augment_manager.store_offers.duplicate(true)
+	var day_store: Array = scene.augment_manager.store_offers.duplicate(true)
 	scene._select_prepare_view(scene.PrepareView.FLOOR)
 	await _settle()
 	scene._select_prepare_view(scene.PrepareView.STORE)
@@ -115,9 +114,8 @@ func _test_scene() -> void:
 		and scene.employee_cards.filter(func(card: EmployeeCard) -> bool: return card.staffed).size() == 1
 		and scene.inventory.owned_count() == 1 and scene.primary_button.disabled == false
 		and panel.views.current_tab == 0 and not panel.detail_scroll.visible
-		and scene.selected_seat == 1 and panel.candidate_id == "zip"
-		and panel.assign_button.text.begins_with("Hire Zip"),
-		"Prepare must start with Nina alone and show a clear next hiring action.")
+		and scene.inventory_panel.people_open(),
+		"Prepare must start with Nina alone and show the reserve drop targets.")
 	panel.views.current_tab = 1
 	_check(panel.budget_label.visible and panel.equipment_label.visible,
 		"The Augments view must expose cash, inventory, and equipment without duplicating the Store.")
@@ -131,13 +129,17 @@ func _test_scene() -> void:
 	scene.inventory.person_slots[0] = "ada"
 	scene.inventory.person_slots[1] = "echo"
 	scene._sync_floor_plan()
+	scene._refresh_augment_views()
+	var reserve_stats: String = scene.inventory_panel.person_cells[0]._detail.text
+	_check(reserve_stats.contains("Close 35% · SPD 2.00") and reserve_stats.contains("3h00m · Upsell 15%")
+		and reserve_stats.contains("4h stam · $100/day"), "Reserve cards show the same core stats as floor cards.")
 	_check(panel.visible and not scene.queue_panel.visible and panel.candidate_selector.item_count == 19,
-		"Prepare must show all nineteen candidates in its planner.")
+		"Details must retain roster inspection.")
 	for screen_size in [Vector2i(1280, 720), Vector2i(960, 540)]:
 		root.size = screen_size
 		await _settle()
 		var screen := Rect2(Vector2.ZERO, Vector2(screen_size))
-		for control: Control in [panel, panel.candidate_selector, panel.profile_label, panel.assign_button, panel.bench_button, scene.primary_button]:
+		for control: Control in [panel, panel.profile_label, scene.primary_button, scene.inventory_panel.person_cells[0]]:
 			_check(screen.encloses(control.get_global_rect()), "Planning control is off screen at %s: %s" % [screen_size, control.name])
 		var floor_scroll: ScrollContainer = scene.floor_grid.get_parent()
 		var floor_view: Rect2 = floor_scroll.get_global_rect()
@@ -164,71 +166,62 @@ func _test_scene() -> void:
 	root.push_input(accept, true)
 	await _settle()
 	_check(scene.selected_seat == 4, "Keyboard activation must select a focused workstation.")
+	scene.floor_grid.get_parent().ensure_control_visible(scene.employee_cards[2])
+	await _settle()
 	await _click(scene.employee_cards[2])
 	_check(scene.selected_seat == 2 and panel.selected_seat == 2 and scene.employee_cards[2].selected,
 		"Clicking an empty seat must select it in the planner.")
-	_choose_candidate(panel, "ada")
-	_check(panel.strength_label.text.contains("Conversion") and panel.tradeoff_label.text.contains("weak personal output"),
-		"Candidate inspection must show the source character's strength and tradeoff.")
-	_check(panel.profile_label.text == "Close 35% · Talk 3h00m · Stamina 4h",
-		"The Team view must show the three core decision stats for each candidate.")
-	await _capture("ada-preview")
-	await _click(panel.assign_button)
+	_drop_rep(InventoryManager.RESERVE, 0, scene.employee_cards[2])
 	_check(scene.floor_plan.seats[2] == "ada" and scene.employee_cards[2].employee_id == "ada"
-		and scene.staffed_seats == [0, 1, 2, 3], "Assignment must update the floor and simulation's staffing input.")
-	await _click(scene.employee_cards[1])
-	_choose_candidate(panel, "nina")
-	await _click(panel.assign_button)
-	_check(scene.floor_plan.seats[1] == "nina" and scene.floor_plan.seats[0] == "zip", "Assignment must swap two seated employees.")
-	await _click(panel.bench_button)
-	_check(scene.floor_plan.seats[1].is_empty() and not scene.employee_cards[1].staffed, "Bench button must open the selected workstation.")
-	# The final candidate must be inspectable and assignable beyond the nine seats.
-	_choose_candidate(panel, "echo")
-	_check(panel.profile_label.text == "Close 45% · Talk 3h00m · Stamina 4h", "The last roster entry must expose its own stats.")
-	await _click(panel.assign_button)
-	_check(scene.floor_plan.seats[1] == "echo", "Candidates beyond the first nine must be assignable.")
-	# Hiring: an unowned candidate is hired into reserve, never deployed, and charged once.
-	_choose_candidate(panel, "dex")
-	_check(panel.assign_button.text.begins_with("Hire") and not scene.inventory.owns("dex"),
-		"Unowned candidates must offer hiring instead of assignment.")
-	await _click(panel.assign_button)
+		and scene.staffed_seats == [0, 1, 2, 3], "Dropping from reserve deploys the rep.")
+	_drop_rep(InventoryManager.BOARD, 0, scene.employee_cards[1])
+	_check(scene.floor_plan.seats[1] == "nina" and scene.floor_plan.seats[0] == "zip", "Dropping onto an occupied seat swaps reps.")
+	_drop_rep(InventoryManager.BOARD, 1, scene.inventory_panel.person_cells[0])
+	_check(scene.floor_plan.seats[1].is_empty() and scene.inventory.person_slots[0] == "nina",
+		"Dropping onto an empty reserve slot recalls the rep.")
+	_drop_rep(InventoryManager.RESERVE, 1, scene.employee_cards[1])
+	_check(scene.floor_plan.seats[1] == "echo", "Any owned reserve rep can be deployed.")
+	scene._hire_employee("dex")
 	_check(scene.inventory.person_slots.has("dex") and not scene.floor_plan.seats.has("dex")
 		and scene.augment_manager.budget == AugmentManager.STARTING_BUDGET - AugmentManager.HIRE_COST,
 		"Hiring must place the salesperson in reserve and charge the hire cost.")
-	scene._assign_employee(4, "nina")
-	scene._assign_employee(5, "dex")
+	_drop_rep(InventoryManager.RESERVE, 0, scene.employee_cards[4])
+	_drop_rep(InventoryManager.RESERVE, 1, scene.employee_cards[5])
 	_check(scene.staffed_seats.size() == 6 and scene.inventory.person_slots.count("") == InventoryManager.PERSON_SLOTS,
 		"Owned reserve members must be deployable and leave no duplicates behind.")
-	scene._assign_employee(8, "scrap")
-	_check(not scene.floor_plan.seats.has("scrap"), "Unhired salespeople cannot be deployed directly.")
 	_unique_assignments(scene.floor_plan)
 	# No empty-floor workday, including attempts to bypass the disabled button.
 	for seat in range(9):
-		scene._bench_employee(seat)
+		var reserve_slot: int = scene.inventory.first_free_person_slot()
+		if reserve_slot >= 0:
+			_drop_rep(InventoryManager.BOARD, seat, scene.inventory_panel.person_cells[reserve_slot])
 	_check(scene.primary_button.disabled and panel.summary_label.text == "0 / 9 seated", "Empty floors must explain that staffing is required.")
 	scene._start_day()
 	_check(scene.phase == scene.Phase.PREPARE and scene.day_timer.is_stopped(), "An empty floor cannot start through the controller.")
-	scene._assign_employee(8, "nina")
+	_drop_rep(InventoryManager.RESERVE, scene.inventory.person_slots.find("nina"), scene.employee_cards[8])
 	_check(not scene.primary_button.disabled, "Assigning a colleague must re-enable Start Workday.")
 	var lineup: Array = scene.floor_plan.seats.duplicate()
+	scene.augment_manager.budget = 1000
 	scene._start_day()
 	scene.day_timer.stop()
 	scene.call_queue.receive_call()
 	scene._simulate_tick(0.25)
 	_check(scene.queue_panel.visible and not panel.visible and scene.call_queue.active.has(8),
 		"Play must use the planned occupied seats and show its queue.")
-	scene._assign_employee(0, "ada")
-	scene._bench_employee(8)
+	_drop_rep(InventoryManager.RESERVE, scene.inventory.person_slots.find("ada"), scene.employee_cards[0])
+	_drop_rep(InventoryManager.BOARD, 8, scene.inventory_panel.person_cells[5])
 	scene._select_seat(0)
 	_check(scene.floor_plan.seats == lineup and not scene.employee_cards[8].planning_enabled,
 		"Assignments must lock during Play, including direct controller calls.")
 	scene._toggle_pause()
-	scene._assign_employee(0, "dex")
+	_drop_rep(InventoryManager.RESERVE, scene.inventory.person_slots.find("dex"), scene.employee_cards[0])
 	_check(scene.floor_plan.seats == lineup, "Pause must not unlock roster editing.")
 	scene._finish_day()
-	scene._bench_employee(8)
+	_drop_rep(InventoryManager.BOARD, 8, scene.inventory_panel.person_cells[5])
 	_check(scene.floor_plan.seats == lineup and not panel.visible, "Report must preserve the planned lineup without editing.")
+	scene._skip_reward()
 	scene._prepare_next_day()
+	scene._select_prepare_view(scene.PrepareView.FLOOR)
 	await _settle()
 	_check(scene.floor_plan.seats == lineup and panel.visible and scene.call_queue.received == 0
 		and scene.employee_cards[8].planning_enabled, "Next day must retain seating, reset calls, and reopen planning.")

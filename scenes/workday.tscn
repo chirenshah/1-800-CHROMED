@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://p2s4qihj3jyh"]
+[gd_scene load_steps=12 format=3 uid="uid://p2s4qihj3jyh"]
 
 [ext_resource type="Script" uid="uid://oqlsuo4hvvgd" path="res://scripts/workday.gd" id="1_workday"]
 [ext_resource type="PackedScene" path="res://scenes/report_panel.tscn" id="2_report"]
@@ -8,6 +8,9 @@
 [ext_resource type="PackedScene" path="res://scenes/inventory_panel.tscn" id="6_inventory"]
 [ext_resource type="Script" path="res://scripts/sales_slam_board.gd" id="7_slam"]
 [ext_resource type="PackedScene" path="res://scenes/store_panel.tscn" id="8_store"]
+
+[ext_resource type="PackedScene" path="res://scenes/hr_panel.tscn" id="9_hr"]
+[ext_resource type="Script" path="res://scripts/marketing_panel.gd" id="10_marketing"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_floor"]
 bg_color = Color(0.05, 0.067, 0.106, 1)
@@ -115,7 +118,7 @@ text = "2  PLAY"
 
 [node name="ReportTab" type="Button" parent="PageMargin/Page/Tabs" unique_id=977918931]
 layout_mode = 2
-text = "3  REPORT"
+text = "3  RESULTS"
 
 [node name="StoreViewTab" type="Button" parent="PageMargin/Page/Tabs"]
 visible = false
@@ -154,6 +157,29 @@ theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
 text = "PREPARATION OPEN"
 horizontal_alignment = 2
 vertical_alignment = 1
+
+[node name="DepartmentNav" type="HBoxContainer" parent="PageMargin/Page"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HRTab" type="Button" parent="PageMargin/Page/DepartmentNav"]
+layout_mode = 2
+toggle_mode = true
+text = "HR"
+
+[node name="MarketingTab" type="Button" parent="PageMargin/Page/DepartmentNav"]
+layout_mode = 2
+toggle_mode = true
+text = "MARKETING"
+
+[node name="Spacer" type="Control" parent="PageMargin/Page/DepartmentNav"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StartShift" type="Button" parent="PageMargin/Page/DepartmentNav"]
+visible = false
+layout_mode = 2
+text = "Start Workday"
 
 [node name="Body" type="HBoxContainer" parent="PageMargin/Page" unique_id=1780260572]
 layout_mode = 2
@@ -221,8 +247,57 @@ columns = 3
 [node name="SalesSlamBoard" type="Control" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent"]
 visible = false
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 1
 script = ExtResource("7_slam")
+
+[node name="ResultsOverview" type="VBoxContainer" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 14
+
+[node name="OverviewHeading" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/ResultsOverview"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 16
+text = "SHIFT AT A GLANCE"
+
+[node name="OverviewStats" type="GridContainer" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/ResultsOverview"]
+layout_mode = 2
+theme_override_constants/h_separation = 24
+theme_override_constants/v_separation = 16
+columns = 2
+
+[node name="Sales" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/ResultsOverview/OverviewStats"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "SALES\n0"
+
+[node name="Handled" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/ResultsOverview/OverviewStats"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "CALLS HANDLED\n0"
+
+[node name="Conversion" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/ResultsOverview/OverviewStats"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "NORMAL CONVERSION\n0%"
+
+[node name="Abandoned" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/ResultsOverview/OverviewStats"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "LEFT WHILE WAITING\n0"
+
+[node name="OverviewInsight" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/ResultsOverview"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.77, 0.86, 1)
+theme_override_font_sizes/font_size = 15
+text = "Review the day’s performance."
+autowrap_mode = 2
 
 [node name="Footer" type="HBoxContainer" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent" unique_id=293973583]
 layout_mode = 2
@@ -243,6 +318,11 @@ layout_mode = 2
 disabled = true
 text = "Pause"
 
+[node name="SpeedSelector" type="OptionButton" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer"]
+custom_minimum_size = Vector2(125, 42)
+layout_mode = 2
+disabled = true
+
 [node name="PrimaryButton" type="Button" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer" unique_id=1912375388]
 custom_minimum_size = Vector2(150, 42)
 layout_mode = 2
@@ -257,6 +337,15 @@ layout_mode = 2
 
 [node name="StorePanel" parent="PageMargin/Page/Body" instance=ExtResource("8_store")]
 layout_mode = 2
+
+[node name="HRPanel" parent="PageMargin/Page/Body" instance=ExtResource("9_hr")]
+visible = false
+layout_mode = 2
+
+[node name="MarketingPanel" type="PanelContainer" parent="PageMargin/Page/Body"]
+visible = false
+layout_mode = 2
+script = ExtResource("10_marketing")
 
 [node name="ReportPanel" parent="PageMargin/Page/Body" unique_id=720570923 instance=ExtResource("2_report")]
 visible = false

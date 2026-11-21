@@ -25,7 +25,11 @@ signal reward_manage_requested
 @onready var abandoned_label: Label = $Margin/Scroll/Content/AbandonedLabel
 @onready var employee_rows: VBoxContainer = $Margin/Scroll/Content/EmployeeRows
 @onready var insight_label: Label = $Margin/Scroll/Content/Insight
-@onready var finance_label: Label = $Margin/Scroll/Content/FinanceLabel
+@onready var finance_summary: Label = $Margin/Scroll/Content/FinanceSummary
+@onready var finance_rows: GridContainer = $Margin/Scroll/Content/FinanceRows
+@onready var finance_closing: Label = $Margin/Scroll/Content/FinanceClosing
+@onready var finance_details: Label = $Margin/Scroll/Content/FinanceDetails
+@onready var outcome_label: Label = $Margin/Scroll/Content/OutcomeLabel
 @onready var discipline_label: Label = $Margin/Scroll/Content/DisciplineLabel
 @onready var termination_label: Label = $Margin/Scroll/Content/TerminationLabel
 @onready var next_day_button: Button = $Margin/Scroll/Content/NextDayButton
@@ -59,9 +63,9 @@ func _ready() -> void:
 	_set_reward_controls_visible(false)
 
 
-func show_results(day: int, revenue: int, calls: int, normal_sales: int, sales: int, failed: int, discarded: int, recovery_attempts: int, recovered: int, failed_recoveries: int, recovered_revenue: int, received: int, waiting: int, unfinished: int, abandoned: int, workload: Array[Dictionary]) -> void:
+func show_results(day: int, revenue: int, calls: int, normal_sales: int, sales: int, failed: int, discarded: int, recovery_attempts: int, recovered: int, failed_recoveries: int, recovered_revenue: int, received: int, waiting: int, unfinished: int, abandoned: int, workload: Array[Dictionary], rep_pay: Dictionary = {}) -> void:
 	var conversion := 0.0 if calls == 0 else float(normal_sales) / float(calls) * 100.0
-	title_label.text = "Day %d Performance" % day
+	title_label.text = "Day %d Results" % day
 	revenue_label.text = "Revenue  $%s" % _format_number(revenue)
 	calls_label.text = "Calls handled  %d" % calls
 	conversion_label.text = "Normal conversion  %.0f%%" % conversion
@@ -83,9 +87,16 @@ func show_results(day: int, revenue: int, calls: int, normal_sales: int, sales: 
 	for row in employee_rows.get_children():
 		employee_rows.remove_child(row)
 		row.queue_free()
+	var rows := workload.duplicate()
+	var seen := {}
 	for employee in workload:
-		var busy_ticks := float(employee["busy_ticks"])
-		var idle_ticks := float(employee["idle_ticks"])
+		seen[employee.get("employee_id", "")] = true
+	for employee_id in rep_pay:
+		if not seen.has(employee_id):
+			rows.append({"employee_id": employee_id, "name": rep_pay[employee_id]["name"], "seat": -1})
+	for employee in rows:
+		var busy_ticks := float(employee.get("busy_ticks", 0))
+		var idle_ticks := float(employee.get("idle_ticks", 0))
 		var break_ticks := float(employee.get("break_ticks", 0.0))
 		if employee.get("archetype", "") == "Recycler":
 			recycler_busy_ticks += busy_ticks
@@ -93,14 +104,33 @@ func show_results(day: int, revenue: int, calls: int, normal_sales: int, sales: 
 		var row := Label.new()
 		row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		row.add_theme_font_size_override("font_size", 13)
-		row.text = "Seat %02d · %s · %s\nAssigned %d · Handled %d\nSales %d · $%s\nCalling %.1fs · Break %.1fs (%d) · Idle %.1fs" % [
-			int(employee["seat"]) + 1, employee["name"], employee.get("archetype", ""),
-			employee["assigned"], employee["handled"],
-			employee["sales"], _format_number(int(employee["revenue"])),
-			busy_ticks * CallQueueSimulation.TICK_SECONDS,
-			break_ticks * CallQueueSimulation.TICK_SECONDS, int(employee.get("breaks_taken", 0)),
-			idle_ticks * CallQueueSimulation.TICK_SECONDS,
+		var seat := int(employee.get("seat", -1))
+		var location := "Seat %02d" % (seat + 1) if seat >= 0 else "Reserve"
+		var handled := int(employee.get("handled", 0))
+		var closed := int(employee.get("sales", 0))
+		row.text = "%s · %s · %s\nAssigned %d · Handled %d\nSales %d · $%s · Conversion %s" % [
+			location, employee["name"], employee.get("archetype", "Sales rep"),
+			employee.get("assigned", 0), handled, closed, _format_number(int(employee.get("revenue", 0))),
+			"%.0f%%" % (100.0 * closed / handled) if handled > 0 else "—",
 		]
+		if seat >= 0:
+			row.text += "\nCalling %.1fs · Break %.1fs (%d) · Idle %.1fs" % [
+				busy_ticks * CallQueueSimulation.TICK_SECONDS,
+				break_ticks * CallQueueSimulation.TICK_SECONDS, int(employee.get("breaks_taken", 0)),
+				idle_ticks * CallQueueSimulation.TICK_SECONDS,
+			]
+		var stats: Dictionary = employee.get("shift_stats", {})
+		if not stats.is_empty():
+			row.text += "\nSpeed %.1f · Close chance %.0f%% · Upsell %.0f%% · Stamina %.1fh" % [
+				stats.get("speed", 0), stats.get("conversion", 0),
+				stats.get("upsell_chance", 0), FloorPlan.CATALOG.stamina_hours(employee["employee_id"]),
+			]
+		var pay: Dictionary = rep_pay.get(employee.get("employee_id", ""), {})
+		if not pay.is_empty():
+			row.text += "\nBase $%s · Commission $%s · Paid $%s / $%s expected" % [
+				_format_number(int(pay["base_salary"])), _format_number(int(pay["commission"])),
+				_format_number(int(pay["paid"])), _format_number(int(pay["expectation"])),
+			]
 		employee_rows.add_child(row)
 	if recycler_total_ticks == 0.0:
 		recycler_utilization_label.text = "Recycler utilization  N/A"
@@ -108,7 +138,7 @@ func show_results(day: int, revenue: int, calls: int, normal_sales: int, sales: 
 		recycler_utilization_label.text = "Recycler utilization  %.0f%%" % (
 			recycler_busy_ticks / recycler_total_ticks * 100.0
 		)
-	# Each new day opens at the aggregate results, even after scrolling an old report.
+	# Start each report at the cash summary.
 	$Margin/Scroll.scroll_vertical = 0
 
 
@@ -121,26 +151,41 @@ func show_financial_results(finance: Dictionary) -> void:
 		reason_text = "Revenue goal missed"
 	elif reasons.has("current_upkeep_unpaid"):
 		reason_text = "Current-day payroll unpaid"
-	var payroll_result := "Covered" if finance.get("payroll_met", false) else "SHORT $%s" % _format_number(int(finance.get("current_upkeep_shortfall", 0)))
-	var goal_result := "Met" if finance.get("goal_met", false) else "Missed"
 	var augment_cash_net := int(finance.get("augment_cash_effect_net", 0))
-	var augment_cash_text := ("+" if augment_cash_net >= 0 else "-") \
-		+ "$" + _format_number(absi(augment_cash_net))
-	finance_label.text = "DAILY SALES  $%s · CREDITED TO CASH  +$%s\nCASH FLOW  Opening $%s · Augment effects %s · Before payroll $%s\nUPKEEP  $%s (Floor $%s · Bench $%s) · Paid $%s\nDEBT  $%s brought forward → $%s remaining\nENDING CASH  $%s\nRevenue goal: %s · Payroll: %s" % [
-		_format_number(int(finance.get("gross_revenue", 0))),
-		_format_number(int(finance.get("sales_cash_credited", 0))),
-		_format_number(int(finance.get("day_opening_cash", finance.get("opening_cash", 0)))),
-		augment_cash_text,
-		_format_number(int(finance.get("cash_before_payroll", 0))),
+	var opening := int(finance.get("day_opening_cash", finance.get("opening_cash", 0)))
+	var ending := int(finance.get("ending_cash", 0))
+	var net := ending - opening
+	finance_summary.text = "%s net today" % _signed_cash(net)
+	finance_summary.add_theme_color_override("font_color", Color(0.29, 0.94, 0.82) if net >= 0 else Color(1, 0.42, 0.45))
+	for child in finance_rows.get_children():
+		finance_rows.remove_child(child)
+		child.queue_free()
+	_add_finance_row("Opening cash", "$%s" % _format_number(opening))
+	_add_finance_row("Sales collected", _signed_cash(int(finance.get("sales_cash_credited", 0))))
+	_add_finance_row("Lead purchases", _signed_cash(-int(finance.get("lead_cost", 0))))
+	_add_finance_row("Augment effects", _signed_cash(augment_cash_net))
+	_add_finance_row("Payroll paid", _signed_cash(-int(finance.get("paid_current_upkeep", 0))))
+	_add_finance_row("Old debt paid", _signed_cash(-int(finance.get("paid_old_debt", 0))))
+	finance_closing.text = "Closing cash     $%s" % _format_number(ending)
+	finance_details.text = "Payroll due $%s\nBase $%s  ·  Commission $%s\nDebt brought forward $%s  ·  Remaining $%s" % [
 		_format_number(int(finance.get("current_upkeep", 0))),
-		_format_number(int(finance.get("active_upkeep", 0))),
-		_format_number(int(finance.get("bench_upkeep", 0))),
-		_format_number(int(finance.get("paid_current_upkeep", 0))),
+		_format_number(int(finance.get("base_payroll", finance.get("current_upkeep", 0)))),
+		_format_number(int(finance.get("commission", 0))),
 		_format_number(int(finance.get("debt_brought_forward", 0))),
 		_format_number(int(finance.get("debt_remaining", 0))),
-		_format_number(int(finance.get("ending_cash", 0))),
-		goal_result, payroll_result,
 	]
+	var payroll_result := "covered" if finance.get("payroll_met", false) else "short $%s" % _format_number(int(finance.get("current_upkeep_shortfall", 0)))
+	var goal_result := "met" if finance.get("goal_met", false) else "missed"
+	outcome_label.text = "Sales goal %s  ·  Payroll %s" % [goal_result, payroll_result]
+	if finance.has("leads_purchased"):
+		outcome_label.text += "\n%s  ·  %d leads purchased" % [
+			finance["lead_source_name"], finance["leads_purchased"],
+		]
+	for departure: Dictionary in finance.get("departures", []):
+		outcome_label.text += "\n%s quit after receiving $%s against an earnings expectation of $%s." % [
+			departure["name"], _format_number(int(departure["paid"])),
+			_format_number(int(departure["expectation"])),
+		]
 	discipline_label.text = "Write-up today: %s · Total: %d / %d\nReasons: %s" % [
 		"YES" if finance.get("writeup_issued", false) else "NO",
 		int(finance.get("total_writeups", 0)), FinancialLedger.WRITEUPS_TO_TERMINATE, reason_text,
@@ -151,6 +196,25 @@ func show_financial_results(finance: Dictionary) -> void:
 		termination_label.text = "EMPLOYMENT TERMINATED\nThree cumulative write-ups. This report preserves today's failure reasons."
 	next_day_button.visible = not terminated
 	next_day_button.disabled = terminated or _reward_pending
+
+
+func _add_finance_row(label_text: String, value_text: String) -> void:
+	var name_label := Label.new()
+	name_label.text = label_text
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.add_theme_font_size_override("font_size", 13)
+	name_label.add_theme_color_override("font_color", Color(0.72, 0.77, 0.86))
+	finance_rows.add_child(name_label)
+	var value_label := Label.new()
+	value_label.text = value_text
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value_label.add_theme_font_size_override("font_size", 14)
+	value_label.add_theme_color_override("font_color", Color(0.94, 0.96, 1.0))
+	finance_rows.add_child(value_label)
+
+
+func _signed_cash(amount: int) -> String:
+	return ("+" if amount >= 0 else "-") + "$" + _format_number(absi(amount))
 
 
 func show_reward(reward: Dictionary, employee_options: Array[Dictionary], inventory_full: bool) -> void:

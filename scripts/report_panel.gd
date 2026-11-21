@@ -63,7 +63,7 @@ func _ready() -> void:
 	_set_reward_controls_visible(false)
 
 
-func show_results(day: int, revenue: int, calls: int, normal_sales: int, sales: int, failed: int, discarded: int, recovery_attempts: int, recovered: int, failed_recoveries: int, recovered_revenue: int, received: int, waiting: int, unfinished: int, abandoned: int, workload: Array[Dictionary], rep_pay: Dictionary = {}) -> void:
+func show_results(day: int, revenue: int, calls: int, normal_sales: int, sales: int, failed: int, discarded: int, recovery_attempts: int, recovered: int, failed_recoveries: int, recovered_revenue: int, received: int, waiting: int, unfinished: int, abandoned: int, workload: Array[Dictionary], rep_pay: Dictionary = {}, goal: int = 0) -> void:
 	var conversion := 0.0 if calls == 0 else float(normal_sales) / float(calls) * 100.0
 	title_label.text = "Day %d Results" % day
 	revenue_label.text = "Revenue  $%s" % _format_number(revenue)
@@ -81,7 +81,7 @@ func show_results(day: int, revenue: int, calls: int, normal_sales: int, sales: 
 	waiting_label.text = "Waiting at close  %d" % waiting
 	unfinished_label.text = "Unfinished calls  %d" % unfinished
 	abandoned_label.text = "Left while waiting  %d" % abandoned
-	insight_label.text = _build_insight(calls, conversion, received, waiting, abandoned)
+	insight_label.text = _build_insight(revenue, goal, calls, conversion, received, waiting, unfinished, abandoned)
 	var recycler_busy_ticks := 0.0
 	var recycler_total_ticks := 0.0
 	for row in employee_rows.get_children():
@@ -262,18 +262,22 @@ func show_reward_resolved() -> void:
 	next_day_button.disabled = false
 
 
-func _build_insight(calls: int, conversion: float, received: int, waiting: int, abandoned: int) -> String:
+func _build_insight(revenue: int, goal: int, calls: int, conversion: float, received: int, waiting: int, unfinished: int, abandoned: int) -> String:
 	if received == 0:
-		return "No activity was recorded. Check the incoming lead source before the next day."
+		return "No calls arrived. Review the lead order in Marketing before the next shift."
 	if abandoned > 0:
-		return "%d callers left before anyone could answer. Review who received the early calls and how long the team stayed busy." % abandoned
+		return "%d callers left before an answer. Review seat capacity and call handling time before buying more leads." % abandoned
 	if calls == 0:
-		return "The day ended before any calls finished. Waiting and unfinished calls are shown separately above."
+		return "No calls finished. Check the unfinished calls and team speed before the next shift."
 	if waiting > 0:
-		return "Demand exceeded available capacity. %d calls were still waiting at close." % waiting
+		return "%d calls were still waiting at close. Review team capacity before increasing the lead order." % waiting
+	if unfinished > 0:
+		return "%d calls were still in progress at close. Review handling time and shift timing." % unfinished
 	if conversion < 20.0:
-		return "The floor handled demand, but few calls converted. Review the team's completed interactions."
-	return "The floor converted demand reliably. Look for idle capacity before increasing lead volume."
+		return "Only %.0f%% of handled calls became normal sales. Compare close chance and lead source before the next shift." % conversion
+	if goal > 0 and revenue < goal:
+		return "$%s short of the goal. Review lead quantity, close chance, and sale value before changing the team." % _format_number(goal - revenue)
+	return "Goal met. Compare each rep's results below to see which choices helped this shift."
 
 
 func _set_reward_controls_visible(show_controls: bool) -> void:

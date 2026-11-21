@@ -15,7 +15,9 @@ const TEAL := Color(0.38, 0.89, 0.8)
 @onready var music_slider: HSlider = %MusicVolume
 @onready var volume_value: Label = %VolumeValue
 @onready var notice: Label = %Notice
-@onready var replace_confirmation: ConfirmationDialog = %ReplaceConfirmation
+@onready var replace_overlay: Control = %ReplaceOverlay
+@onready var cancel_new_quarter: Button = %CancelNewQuarter
+@onready var confirm_new_quarter: Button = %ConfirmNewQuarter
 @onready var music = get_node("/root/MusicPlayer")
 
 
@@ -24,7 +26,8 @@ func _ready() -> void:
 	resume_button.pressed.connect(_resume_quarter)
 	settings_button.pressed.connect(_show_settings)
 	back_button.pressed.connect(_show_home)
-	replace_confirmation.confirmed.connect(_start_quarter)
+	cancel_new_quarter.pressed.connect(_close_replace_confirmation)
+	confirm_new_quarter.pressed.connect(_confirm_new_quarter)
 	music_toggle.toggled.connect(_update_music_toggle)
 	music_slider.value_changed.connect(_set_music_volume)
 	resized.connect(queue_redraw)
@@ -34,9 +37,26 @@ func _ready() -> void:
 
 func _request_new_quarter() -> void:
 	if RunSave.has_save():
-		replace_confirmation.popup_centered()
+		replace_overlay.show()
+		new_quarter_button.disabled = true
+		resume_button.disabled = true
+		settings_button.disabled = true
+		cancel_new_quarter.grab_focus()
 	else:
 		_start_quarter()
+
+
+func _close_replace_confirmation() -> void:
+	replace_overlay.hide()
+	new_quarter_button.disabled = false
+	settings_button.disabled = false
+	_refresh_resume()
+	new_quarter_button.grab_focus()
+
+
+func _confirm_new_quarter() -> void:
+	_close_replace_confirmation()
+	_start_quarter()
 
 
 func _start_quarter() -> void:
@@ -100,7 +120,10 @@ func _set_music_volume(value: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if settings.visible and event.is_action_pressed("ui_cancel"):
+	if replace_overlay.visible and event.is_action_pressed("ui_cancel"):
+		_close_replace_confirmation()
+		get_viewport().set_input_as_handled()
+	elif settings.visible and event.is_action_pressed("ui_cancel"):
 		_show_home()
 		get_viewport().set_input_as_handled()
 

@@ -120,36 +120,6 @@ text = "2  PLAY"
 layout_mode = 2
 text = "3  RESULTS"
 
-[node name="StoreViewTab" type="Button" parent="PageMargin/Page/Tabs"]
-visible = false
-layout_mode = 2
-toggle_mode = true
-text = "STORE"
-
-[node name="FloorViewTab" type="Button" parent="PageMargin/Page/Tabs"]
-visible = false
-layout_mode = 2
-toggle_mode = true
-text = "SALES FLOOR"
-
-[node name="RosterViewTab" type="Button" parent="PageMargin/Page/Tabs"]
-visible = false
-layout_mode = 2
-toggle_mode = true
-text = "ROSTER / INVENTORY"
-
-[node name="ItemsButton" type="Button" parent="PageMargin/Page/Tabs"]
-layout_mode = 2
-toggle_mode = true
-text = "ITEMS"
-tooltip_text = "Open the 2×6 item inventory."
-
-[node name="PeopleButton" type="Button" parent="PageMargin/Page/Tabs"]
-layout_mode = 2
-toggle_mode = true
-text = "SALESPEOPLE"
-tooltip_text = "Open the 1×6 salesperson reserve."
-
 [node name="PhaseLabel" type="Label" parent="PageMargin/Page/Tabs" unique_id=173177693]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -162,6 +132,18 @@ vertical_alignment = 1
 layout_mode = 2
 theme_override_constants/separation = 8
 
+[node name="StoreViewTab" type="Button" parent="PageMargin/Page/DepartmentNav"]
+layout_mode = 2
+toggle_mode = true
+theme_override_colors/font_disabled_color = Color(0.72, 0.77, 0.86, 1)
+text = "MARKETPLACE"
+tooltip_text = "Opens after your first completed shift."
+
+[node name="FloorViewTab" type="Button" parent="PageMargin/Page/DepartmentNav"]
+layout_mode = 2
+toggle_mode = true
+text = "SALES FLOOR"
+
 [node name="HRTab" type="Button" parent="PageMargin/Page/DepartmentNav"]
 layout_mode = 2
 toggle_mode = true
@@ -172,14 +154,37 @@ layout_mode = 2
 toggle_mode = true
 text = "MARKETING"
 
+[node name="RosterViewTab" type="Button" parent="PageMargin/Page/DepartmentNav"]
+layout_mode = 2
+toggle_mode = true
+theme_override_colors/font_disabled_color = Color(0.72, 0.77, 0.86, 1)
+text = "ROSTER"
+
 [node name="Spacer" type="Control" parent="PageMargin/Page/DepartmentNav"]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="ItemsButton" type="Button" parent="PageMargin/Page/DepartmentNav"]
+layout_mode = 2
+toggle_mode = true
+text = "ITEMS"
+tooltip_text = "Open the 2×6 item inventory."
+
+[node name="PeopleButton" type="Button" parent="PageMargin/Page/DepartmentNav"]
+layout_mode = 2
+toggle_mode = true
+text = "SALESPEOPLE"
+tooltip_text = "Open the 1×6 salesperson reserve."
 
 [node name="StartShift" type="Button" parent="PageMargin/Page/DepartmentNav"]
 visible = false
 layout_mode = 2
 text = "Start Workday"
+
+[node name="UtilityNav" type="HBoxContainer" parent="PageMargin/Page"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="Body" type="HBoxContainer" parent="PageMargin/Page" unique_id=1780260572]
 layout_mode = 2

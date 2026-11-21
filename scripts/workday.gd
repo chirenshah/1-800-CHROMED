@@ -18,11 +18,11 @@ const COMMISSION_FORECAST_SAMPLES := 6
 @onready var prepare_tab: Button = $PageMargin/Page/Tabs/PrepareTab
 @onready var play_tab: Button = $PageMargin/Page/Tabs/PlayTab
 @onready var report_tab: Button = $PageMargin/Page/Tabs/ReportTab
-@onready var store_view_tab: Button = $PageMargin/Page/Tabs/StoreViewTab
-@onready var floor_view_tab: Button = $PageMargin/Page/Tabs/FloorViewTab
-@onready var roster_view_tab: Button = $PageMargin/Page/Tabs/RosterViewTab
-@onready var items_button: Button = $PageMargin/Page/Tabs/ItemsButton
-@onready var people_button: Button = $PageMargin/Page/Tabs/PeopleButton
+@onready var store_view_tab: Button = $PageMargin/Page/DepartmentNav/StoreViewTab
+@onready var floor_view_tab: Button = $PageMargin/Page/DepartmentNav/FloorViewTab
+@onready var roster_view_tab: Button = $PageMargin/Page/DepartmentNav/RosterViewTab
+@onready var items_button: Button = $PageMargin/Page/DepartmentNav/ItemsButton
+@onready var people_button: Button = $PageMargin/Page/DepartmentNav/PeopleButton
 @onready var inventory_panel: InventoryPanel = $PageMargin/Page/InventoryPanel
 @onready var phase_label: Label = $PageMargin/Page/Tabs/PhaseLabel
 @onready var day_label: Label = $PageMargin/Page/Header/DayLabel
@@ -47,6 +47,7 @@ const COMMISSION_FORECAST_SAMPLES := 6
 @onready var hr_panel: HRPanel = $PageMargin/Page/Body/HRPanel
 @onready var marketing_panel: MarketingPanel = $PageMargin/Page/Body/MarketingPanel
 @onready var department_nav: HBoxContainer = $PageMargin/Page/DepartmentNav
+@onready var utility_nav: HBoxContainer = $PageMargin/Page/UtilityNav
 @onready var hr_tab: Button = $PageMargin/Page/DepartmentNav/HRTab
 @onready var marketing_tab: Button = $PageMargin/Page/DepartmentNav/MarketingTab
 @onready var department_start: Button = $PageMargin/Page/DepartmentNav/StartShift
@@ -251,7 +252,10 @@ func _refresh_first_day_guide() -> void:
 
 func _advance_first_day_guide() -> void:
 	if not _can_start_day() and tutorial_step == 2:
-		_select_prepare_view(PrepareView.MARKETING if _lead_cost() > financial_ledger.company_cash else PrepareView.HR)
+		if _lead_cost() > financial_ledger.company_cash:
+			_select_prepare_view(PrepareView.MARKETING)
+		elif floor_plan.occupied_seats().is_empty():
+			_select_prepare_view(PrepareView.FLOOR if inventory.person_slots.any(func(id: String) -> bool: return not id.is_empty()) else PrepareView.HR)
 		return
 	if tutorial_step < 2:
 		tutorial_step += 1
@@ -406,6 +410,16 @@ func _can_start_day() -> bool:
 	return phase == Phase.PREPARE and not floor_plan.occupied_seats().is_empty() \
 		and financial_ledger.writeups < FinancialLedger.WRITEUPS_TO_TERMINATE \
 		and augment_manager.pending_reward.is_empty() and _lead_cost() <= financial_ledger.company_cash
+
+
+func _start_blocker() -> String:
+	if floor_plan.occupied_seats().is_empty():
+		return "Seat at least one rep on the Sales Floor to start."
+	if _lead_cost() > financial_ledger.company_cash:
+		return "Reduce the lead order in Marketing to fit your cash."
+	if not augment_manager.pending_reward.is_empty():
+		return "Resolve the pending reward before starting."
+	return ""
 
 
 func _forecast_sales() -> Dictionary:
@@ -855,7 +869,6 @@ func _update_layout() -> void:
 	if not is_node_ready():
 		return
 	var compact := size.y < 650
-	roster_view_tab.text = "ROSTER" if compact else "ROSTER / INVENTORY"
 	people_button.text = "RESERVE" if compact else "SALESPEOPLE"
 	inventory_panel.set_compact(compact)
 	for edge in ["left", "right"]:
@@ -892,6 +905,10 @@ func _show_phase(next_phase: Phase, reset_prepare_view := true) -> void:
 	if next_phase == Phase.PREPARE and reset_prepare_view:
 		prepare_view = PrepareView.FLOOR if day == 1 and not first_day_complete else PrepareView.STORE
 	phase = next_phase
+	var inventory_nav: HBoxContainer = department_nav if phase == Phase.PREPARE else utility_nav
+	if items_button.get_parent() != inventory_nav:
+		items_button.reparent(inventory_nav)
+		people_button.reparent(inventory_nav)
 	var report_visible := phase in [Phase.REPORT, Phase.TERMINATED]
 	var management_visible := _is_management_phase()
 	var store_visible := phase == Phase.PREPARE and prepare_view == PrepareView.STORE
@@ -903,6 +920,8 @@ func _show_phase(next_phase: Phase, reset_prepare_view := true) -> void:
 	hr_panel.visible = hr_visible
 	marketing_panel.visible = marketing_visible
 	department_nav.visible = phase == Phase.PREPARE
+	hr_tab.visible = phase == Phase.PREPARE
+	marketing_tab.visible = phase == Phase.PREPARE
 	hr_tab.set_pressed_no_signal(hr_visible)
 	marketing_tab.set_pressed_no_signal(marketing_visible)
 	department_start.visible = department_visible or roster_visible
@@ -922,14 +941,19 @@ func _show_phase(next_phase: Phase, reset_prepare_view := true) -> void:
 	slam_board.visible = report_visible
 	results_overview.visible = report_visible
 	revenue_label.visible = phase != Phase.PREPARE
-	store_view_tab.visible = phase == Phase.PREPARE and (day > 1 or first_day_complete)
+	store_view_tab.visible = phase == Phase.PREPARE
+	store_view_tab.disabled = day == 1 and not first_day_complete
+	store_view_tab.text = "MARKETPLACE · DAY 2" if store_view_tab.disabled else "MARKETPLACE"
 	floor_view_tab.visible = phase == Phase.PREPARE
-	roster_view_tab.visible = phase == Phase.PREPARE and (day > 1 or first_day_complete)
+	roster_view_tab.visible = phase == Phase.PREPARE
+	roster_view_tab.disabled = day == 1 and not first_day_complete
+	roster_view_tab.tooltip_text = "Opens after your first completed shift." if roster_view_tab.disabled else "Review the team and both inventories."
 	store_view_tab.set_pressed_no_signal(store_visible)
 	floor_view_tab.set_pressed_no_signal(phase == Phase.PREPARE and prepare_view == PrepareView.FLOOR)
 	roster_view_tab.set_pressed_no_signal(roster_visible)
 	items_button.visible = floor_visible and not tutorial_panel.visible
 	people_button.visible = floor_visible and not tutorial_panel.visible
+	utility_nav.visible = phase != Phase.PREPARE and (items_button.visible or people_button.visible)
 	inventory_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if roster_visible else Control.SIZE_FILL
 	if store_visible or department_visible:
 		inventory_panel.hide_all()
@@ -957,7 +981,7 @@ func _show_phase(next_phase: Phase, reset_prepare_view := true) -> void:
 	primary_button.visible = phase in [Phase.PREPARE, Phase.PLAY] and floor_visible and not tutorial_panel.visible
 	match phase:
 		Phase.PREPARE:
-			phase_label.text = "CHROME MARKET" if store_visible \
+			phase_label.text = "MARKETPLACE" if store_visible \
 				else "ROSTER / INVENTORY" if roster_visible \
 				else "HUMAN RESOURCES" if hr_visible else "MARKETING" if marketing_visible \
 				else "PREPARATION OPEN"
@@ -1145,7 +1169,7 @@ func _finish_day() -> void:
 		call_queue.recovery_attempts, call_queue.recovered, call_queue.failed_recoveries,
 		call_queue.recovered_revenue,
 		call_queue.received, call_queue.waiting.size(), call_queue.active.size(),
-		call_queue.abandoned, workload, pay_by_rep
+		call_queue.abandoned, workload, pay_by_rep, score_target(day)
 	)
 	report_panel.show_financial_results(finance_result)
 	_update_results_overview(report_snapshot)
@@ -1328,7 +1352,7 @@ func _display_saved_report() -> void:
 		int(report.get("failed_recoveries", 0)), int(report.get("recovered_revenue", 0)),
 		int(report.get("received", 0)), int(report.get("waiting", 0)),
 		int(report.get("unfinished", 0)), int(report.get("abandoned", 0)), workload,
-		finance.get("rep_pay", {})
+		finance.get("rep_pay", {}), score_target(day)
 	)
 	report_panel.show_financial_results(finance)
 	_update_results_overview(report)
@@ -1367,15 +1391,12 @@ func _refresh_floor() -> void:
 			call_queue.completed_this_tick.get(index, {}), break_remaining)
 	primary_button.disabled = phase == Phase.PREPARE and not _can_start_day()
 	department_start.disabled = not _can_start_day()
-	var start_hint := ""
-	if phase == Phase.PREPARE:
-		if staffed_seats.is_empty():
-			start_hint = "Seat at least one rep on the Sales Floor."
-		elif _lead_cost() > financial_ledger.company_cash:
-			start_hint = "Reduce your lead order in Marketing before starting."
+	var start_hint := _start_blocker() if phase == Phase.PREPARE else ""
 	primary_button.tooltip_text = start_hint
 	department_start.tooltip_text = start_hint
 	store_panel.start_button.tooltip_text = start_hint
+	if phase == Phase.PREPARE and not tutorial_panel.visible and not start_hint.is_empty():
+		status_label.text = start_hint
 	if tutorial_panel.visible:
 		_refresh_first_day_guide()
 	revenue_label.text = "SALES $%d · CASH $%d" % [

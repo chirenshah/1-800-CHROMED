@@ -51,7 +51,7 @@ func _build() -> void:
 	var heading := VBoxContainer.new()
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(heading)
-	var title := _label("CHROME MARKET", 22, Color(0.98, 0.30, 0.76))
+	var title := _label("MARKETPLACE", 22, Color(0.98, 0.30, 0.76))
 	heading.add_child(title)
 	day_label = _label("DAY 01 · PREPARE", 12, MUTED)
 	heading.add_child(day_label)

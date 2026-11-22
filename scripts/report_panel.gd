@@ -126,8 +126,9 @@ func show_financial_results(finance: Dictionary) -> void:
 	var augment_cash_net := int(finance.get("augment_cash_effect_net", 0))
 	var augment_cash_text := ("+" if augment_cash_net >= 0 else "-") \
 		+ "$" + _format_number(absi(augment_cash_net))
-	finance_label.text = "DAILY SALES  $%s · CREDITED TO CASH  +$%s\nCASH FLOW  Opening $%s · Augment effects %s · Before payroll $%s\nUPKEEP  $%s (Floor $%s · Bench $%s) · Paid $%s\nDEBT  $%s brought forward → $%s remaining\nENDING CASH  $%s\nRevenue goal: %s · Payroll: %s" % [
+	finance_label.text = "DAILY SALES  $%s / GOAL $%s · SURPLUS TO CASH  +$%s\nCASH FLOW  Opening $%s · Augment effects %s · Before payroll $%s\nUPKEEP  $%s (Floor $%s · Bench $%s) · Paid $%s\nDEBT  $%s brought forward → $%s remaining\nENDING CASH  $%s\nRevenue goal: %s · Payroll: %s" % [
 		_format_number(int(finance.get("gross_revenue", 0))),
+		_format_number(int(finance.get("sales_goal", 0))),
 		_format_number(int(finance.get("sales_cash_credited", 0))),
 		_format_number(int(finance.get("day_opening_cash", finance.get("opening_cash", 0)))),
 		augment_cash_text,

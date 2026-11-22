@@ -103,7 +103,7 @@ func equip_item(employee_id: String, item_slot: int, slot_limit: int) -> bool:
 	return true
 
 
-func unequip_item(employee_id: String, equip_index: int, target_slot: int = -1) -> bool:
+func unequip_item(_employee_id: String, _equip_index: int, _target_slot: int = -1) -> bool:
 	return false
 
 

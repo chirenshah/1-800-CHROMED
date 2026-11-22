@@ -51,11 +51,11 @@ func _test_model() -> void:
 			_check(model.active[seat]["remaining"] > 0, "Finished calls must leave active seats.")
 			ids.append(model.active[seat]["id"])
 		var previous_id := 0
-		for call in model.waiting:
-			_check(call["id"] > previous_id, "Waiting callers must retain FIFO order.")
-			previous_id = call["id"]
-			_check(not ids.has(call["id"]), "A caller must not be both waiting and active.")
-			ids.append(call["id"])
+		for lead in model.waiting:
+			_check(lead["id"] > previous_id, "Waiting callers must retain FIFO order.")
+			previous_id = lead["id"]
+			_check(not ids.has(lead["id"]), "A caller must not be both waiting and active.")
+			ids.append(lead["id"])
 		_check(model.sales <= model.handled, "Only a completed interaction can produce a sale.")
 	model.reset([], 321)
 	_check(model.received == 0 and model.handled == 0 and model.revenue == 0
@@ -262,7 +262,7 @@ func _test_recycler_report() -> void:
 		and scene.report_panel.recovery_revenue_label.text == "Revenue recovered  $390"
 		and scene.report_panel.recycler_utilization_label.text == "Recycler utilization  50%"
 		and scene.report_panel.revenue_label.text == "Revenue  $390"
-		and scene.augment_manager.budget == 790
+		and scene.augment_manager.budget == 400
 		and scene.call_queue.get_discard_count() == 0,
 		"The report must separate normal failures and recovery results, preserve recovered revenue/utilization, and clear the pile.")
 	var recycler_row: Label = scene.report_panel.employee_rows.get_child(1)

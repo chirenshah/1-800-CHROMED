@@ -317,6 +317,22 @@ func _test_event_chains() -> void:
 	_check(joint_roots == [70, 71],
 		"A call jointly completed by independent roots carries their sorted union for downstream chains.")
 
+	var effect_engine: AugmentEffectEngine = ENGINE_SCRIPT.new()
+	effect_engine.catalog = _custom_catalog([{
+		"id": "reserve_listener",
+		"effects": [{
+			"type": "stat_buff", "trigger": "failure", "selector": "self",
+			"stat": "speed", "value": 1.0, "duration": "timed", "seconds": 3.0,
+		}],
+	}])
+	var active_employees: Array[String] = ["active"]
+	var reserve_operations: Array[Dictionary] = effect_engine.trigger_effects(
+		"failure", active_employees, {"reserve": [_instance("reserve-listener", "reserve_listener")]},
+		{}, 72, {}
+	)
+	_check(reserve_operations.is_empty(),
+		"Employees outside the active floor lineup must not trigger their equipped augments.")
+
 
 func _test_financial_effects() -> void:
 	var roster: EmployeeRoster = ROSTER_SCRIPT.new()
@@ -363,6 +379,7 @@ func _test_financial_effects() -> void:
 
 	_finance_test_ledger = FinancialLedger.new()
 	_finance_test_ledger.company_cash = 10
+	_finance_test_ledger.reset_daily_revenue(30, 1000)
 	model.reset(["rep"], 30, {
 		"rep": [_instance("commission", "commission")],
 	})
@@ -380,13 +397,14 @@ func _test_financial_effects() -> void:
 		and outcomes[1]["type"] == "upsell",
 		"Upsold calls emit a separate event after completing their sale outcome.")
 	model._process_event_waves(outcomes)
-	_check(_finance_test_ledger.company_cash == 235
+	_check(_finance_test_ledger.company_cash == 35
 		and _finance_test_ledger.daily_sales_revenue == 200
 		and model.revenue == 200,
-		"Upsell proceeds credit both ledgers once; triggered grants affect Company Cash only.")
+		"Below-goal sale and upsell revenue do not add cash; triggered grants affect Company Cash only.")
 
 	_finance_test_ledger = FinancialLedger.new()
 	_finance_test_ledger.company_cash = 100
+	_finance_test_ledger.reset_daily_revenue(32, 1000)
 	model.reset(["rep"], 32, {
 		"rep": [_instance("commission-no-upsell", "commission")],
 	})
@@ -402,9 +420,9 @@ func _test_financial_effects() -> void:
 	_check(outcomes.size() == 2 and outcomes[1]["type"] == "call_completed_without_upsell",
 		"Completed calls without an upsell emit the corresponding financial trigger.")
 	model._process_event_waves(outcomes)
-	_check(_finance_test_ledger.company_cash == 175
+	_check(_finance_test_ledger.company_cash == 75
 		and _finance_test_ledger.daily_sales_revenue == 100,
-		"A no-upsell penalty reduces cash only, leaving the completed sale's revenue intact.")
+		"A below-goal sale is performance-only and a no-upsell penalty reduces cash without altering revenue.")
 
 	_finance_test_ledger = FinancialLedger.new()
 	_finance_test_ledger.company_cash = 40

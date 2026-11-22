@@ -14,6 +14,7 @@ var item_cells: Array[InventorySlot] = []
 var person_cells: Array[InventorySlot] = []
 var items_section: VBoxContainer
 var people_section: VBoxContainer
+var _updating_cell_sizes := false
 
 
 func _ready() -> void:
@@ -25,50 +26,44 @@ func _ready() -> void:
 	style.set_content_margin_all(10)
 	add_theme_stylebox_override("panel", style)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 18)
+	row.add_theme_constant_override("separation", 12)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(row)
-	items_section = _build_section(row, "ITEM INVENTORY  ·  %d slots" % InventoryManager.ITEM_SLOTS, InventoryManager.ITEM_COLUMNS)
-	for slot_index in InventoryManager.ITEM_SLOTS:
-		item_cells.append(_make_cell(items_section.get_child(1), "item", slot_index))
-		item_cells[slot_index].custom_minimum_size = Vector2(88, 52)
-	people_section = _build_section(row, "SALESPERSON RESERVE  ·  %d slots" % InventoryManager.PERSON_SLOTS, InventoryManager.PERSON_SLOTS)
+	people_section = _build_section(
+		row, "RESERVE EMPLOYEES  ·  %d slots" % InventoryManager.PERSON_SLOTS,
+		InventoryManager.PERSON_SLOTS
+	)
 	for slot_index in InventoryManager.PERSON_SLOTS:
 		var cell := _make_cell(people_section.get_child(1), InventoryManager.RESERVE, slot_index)
-		cell.custom_minimum_size = Vector2(96, 78)
 		person_cells.append(cell)
-	items_section.visible = false
-	people_section.visible = false
+	items_section = _build_section(
+		row, "AUGMENTS & ITEMS  ·  %d slots" % InventoryManager.ITEM_SLOTS,
+		InventoryManager.ITEM_COLUMNS
+	)
+	for slot_index in InventoryManager.ITEM_SLOTS:
+		item_cells.append(_make_cell(items_section.get_child(1), "item", slot_index))
+	var size_source := get_parent() as Control
+	if size_source == null:
+		push_error("InventoryPanel requires a Control parent for responsive sizing.")
+		return
+	size_source.resized.connect(_update_cell_sizes)
+	call_deferred("_update_cell_sizes")
+	items_section.visible = true
+	people_section.visible = true
 	visible = false
-
-
-func toggle_items() -> void:
-	items_section.visible = not items_section.visible
-	_sync_visibility()
-
-
-func toggle_people() -> void:
-	people_section.visible = not people_section.visible
-	_sync_visibility()
 
 
 func show_all() -> void:
 	items_section.visible = true
 	people_section.visible = true
-	_sync_visibility()
+	visible = true
 
 
 func hide_all() -> void:
 	items_section.visible = false
 	people_section.visible = false
-	_sync_visibility()
-
-
-func items_open() -> bool:
-	return items_section.visible
-
-
-func people_open() -> bool:
-	return people_section.visible
+	visible = false
 
 
 func show_state(augment_manager: AugmentManager, editable: bool) -> void:
@@ -113,14 +108,11 @@ func show_state(augment_manager: AugmentManager, editable: bool) -> void:
 			{"type": "person", "kind": InventoryManager.RESERVE, "index": slot_index})
 
 
-func _sync_visibility() -> void:
-	visible = items_section.visible or people_section.visible
-
-
 func _build_section(parent: Control, title: String, columns: int) -> VBoxContainer:
 	var section := VBoxContainer.new()
 	section.add_theme_constant_override("separation", 6)
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.size_flags_stretch_ratio = 1.0
 	parent.add_child(section)
 	var heading := Label.new()
 	heading.text = title
@@ -129,6 +121,8 @@ func _build_section(parent: Control, title: String, columns: int) -> VBoxContain
 	section.add_child(heading)
 	var grid := GridContainer.new()
 	grid.columns = columns
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	grid.add_theme_constant_override("h_separation", 6)
 	grid.add_theme_constant_override("v_separation", 6)
 	section.add_child(grid)
@@ -140,10 +134,36 @@ func _make_cell(grid: Node, kind: String, slot_index: int) -> InventorySlot:
 	cell.kind = kind
 	cell.index = slot_index
 	cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	cell.dropped.connect(func(data: Dictionary, target_kind: String, target_index: int) -> void:
 		transfer_requested.emit(data, target_kind, target_index))
 	grid.add_child(cell)
 	return cell
+
+
+func _update_cell_sizes() -> void:
+	if not is_node_ready() or _updating_cell_sizes:
+		return
+	_updating_cell_sizes = true
+	var size_source := get_parent() as Control
+	if size_source == null:
+		push_error("InventoryPanel requires a Control parent for responsive sizing.")
+		_updating_cell_sizes = false
+		return
+	var available_width := maxf(0.0, size_source.size.x - 32.0)
+	var cell_width := maxf(64.0, (available_width / 2.0 - 30.0) / 6.0)
+	var available_height := maxf(0.0, size_source.size.y - 42.0)
+	var item_height := maxf(34.0, (available_height - 6.0) / 2.0)
+	var person_height := maxf(52.0, available_height)
+	var person_size := Vector2(cell_width, person_height)
+	for cell in person_cells:
+		if not cell.custom_minimum_size.is_equal_approx(person_size):
+			cell.custom_minimum_size = person_size
+	var item_size := Vector2(cell_width, item_height)
+	for cell in item_cells:
+		if not cell.custom_minimum_size.is_equal_approx(item_size):
+			cell.custom_minimum_size = item_size
+	_updating_cell_sizes = false
 
 
 func _effect_text(augment: Dictionary) -> String:

@@ -66,7 +66,7 @@ func _test_speed() -> void:
 	var model := MODEL.new()
 	model.reset(["victoria", "zip"], 12)
 	model.next_arrival_seconds = INF
-	for call in range(3):
+	for _attempt in range(3):
 		model.receive_call()
 	_check(model.active[0]["employee_id"] == "victoria" and model.active[0]["id"] == 1,
 		"Slot priority must still give the slow first employee the first lead.")
@@ -95,10 +95,10 @@ func _test_conversion() -> void:
 	for chance in [0, 50, 100]:
 		var model := _conversion_fixture(chance, 991)
 		var total_value := 0
-		for call in range(1000):
+		for attempt_index in range(1000):
 			var sales_before := model.sales
 			model.receive_call()
-			_check(model.handled == call and model.sales == sales_before,
+			_check(model.handled == attempt_index and model.sales == sales_before,
 				"Starting a lead must never count as completion or generate a sale.")
 			total_value += int(model.active[0]["value"])
 			model.advance(model.roster.handling_seconds("seller"))
@@ -130,7 +130,7 @@ func _test_upsell() -> void:
 		model.reset(["seller"], 77)
 		model.next_arrival_seconds = INF
 		var total_value := 0
-		for call in range(100):
+		for _attempt in range(100):
 			model.receive_call()
 			total_value += int(model.active[0]["value"])
 			model.advance(model.roster.handling_seconds("seller"))
@@ -276,12 +276,12 @@ func _test_seeded_streams() -> void:
 		"Different handling speeds and sales-roll counts must not change the seeded arrival schedule.")
 	var replay := _conversion_fixture(50, 991)
 	var reference := _conversion_fixture(50, 991)
-	for call in range(10):
+	for _attempt in range(10):
 		replay.receive_call()
 		replay.advance(replay.roster.handling_seconds("seller"))
 	replay.reset(["seller"], 991)
 	replay.next_arrival_seconds = INF
-	for call in range(50):
+	for _attempt in range(50):
 		replay.receive_call()
 		reference.receive_call()
 		replay.advance(replay.roster.handling_seconds("seller"))

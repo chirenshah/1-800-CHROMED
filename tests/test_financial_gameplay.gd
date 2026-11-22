@@ -16,28 +16,48 @@ func _check(condition: bool, message: String) -> void:
 
 func _test_ledger() -> void:
 	var ledger := FinancialLedger.new()
-	ledger.company_cash = 0
-	ledger.reset_daily_revenue(1)
+	ledger.company_cash = 500
+	ledger.reset_daily_revenue(1, 1000)
 	ledger.begin_workday()
 	var sale := ledger.settle_sale("rep", 600, 1.25)
-	_check(ledger.daily_sales_revenue == 600 and ledger.company_cash == 600
-		and sale["ledger"] == ["daily_sales_revenue", "company_cash"],
-		"A successful sale atomically credits daily sales and company cash.")
-	var day_one := ledger.settle(1, ledger.company_cash, ledger.daily_sales_revenue, 1000, false, 700, 300)
-	_check(day_one["debt_remaining"] == 400 and day_one["ending_cash"] == 0
+	_check(ledger.daily_sales_revenue == 600 and ledger.company_cash == 500
+		and sale["ledger"] == ["daily_sales_revenue"]
+		and sale["sales_cash_credit"] == 0,
+		"Below-goal sales count toward performance but do not add to opening Company Cash.")
+	var day_one := ledger.settle(
+		1, ledger.company_cash, ledger.daily_sales_revenue, 1000, false, 700, 300
+	)
+	_check(day_one["debt_remaining"] == 500 and day_one["ending_cash"] == 0
 		and day_one["writeup_issued"] and day_one["failure_reasons"].size() == 2,
-		"Payroll and revenue failures are both recorded, but issue only one write-up.")
-	ledger.reset_daily_revenue(2)
+		"Existing cash does not count toward the revenue goal; payroll and goal failures issue one write-up.")
+	ledger.reset_daily_revenue(2, 1000)
 	ledger.begin_workday()
-	ledger.settle_sale("rep", 1200, 1.0)
-	var day_two := ledger.settle(2, ledger.company_cash, ledger.daily_sales_revenue, 1000, true, 700, 300)
-	_check(day_two["debt_brought_forward"] == 400 and day_two["debt_remaining"] == 200
-		and day_two["ending_cash"] == 0 and not day_two["writeup_issued"],
-		"Current payroll is covered before old debt, and old debt alone creates no write-up.")
-	ledger.reset_daily_revenue(3)
+	ledger.settle_sale("rep", 600, 1.0)
+	var surplus_sale := ledger.settle_sale("rep", 1400, 2.0)
+	_check(ledger.daily_sales_revenue == 2000 and ledger.company_cash == 0
+		and surplus_sale["sales_cash_credit"] == 0,
+		"Sales during Play update revenue without changing cash before settlement.")
+	var day_two := ledger.settle(
+		2, ledger.company_cash, ledger.daily_sales_revenue, 1000, true, 700, 300
+	)
+	var surplus_recorded := false
+	for transaction: Dictionary in ledger.transactions:
+		if transaction.get("type", "") == "sales_surplus_credit" \
+			and transaction.get("day", 0) == 2 \
+			and transaction.get("company_cash_delta", 0) == 1000:
+			surplus_recorded = true
+	_check(day_two["debt_brought_forward"] == 500 and day_two["debt_remaining"] == 500
+		and day_two["sales_cash_credited"] == 1000
+		and day_two["cash_before_payroll"] == 1000
+		and day_two["ending_cash"] == 0 and not day_two["writeup_issued"]
+		and surplus_recorded,
+		"Only over-goal surplus enters cash at settlement, covering current payroll before old debt.")
+	ledger.reset_daily_revenue(3, 1000)
 	ledger.begin_workday()
-	ledger.settle_sale("rep", 1500, 1.0)
-	var day_three := ledger.settle(3, ledger.company_cash, ledger.daily_sales_revenue, 1000, true, 700, 300)
+	ledger.settle_sale("rep", 2100, 1.0)
+	var day_three := ledger.settle(
+		3, ledger.company_cash, ledger.daily_sales_revenue, 300, true, 200, 100
+	)
 	_check(day_three["debt_remaining"] == 0 and day_three["ending_cash"] == 300
 		and ledger.writeups == 1, "Surplus cash pays old debt before remaining as cash.")
 
@@ -69,6 +89,7 @@ func _test_ledger() -> void:
 		"A cash grant affects Company Cash only, not Daily Sales Revenue.")
 
 	var idempotent := FinancialLedger.new()
+	idempotent.reset_daily_revenue(1, 1000)
 	var first := idempotent.settle(1, 100, 0, 80, true, 80, 0)
 	var repeated := idempotent.settle(1, 0, 0, 900, false, 0, 900)
 	_check(first == repeated and idempotent.upkeep_debt == 0 and idempotent.writeups == 0,
@@ -78,8 +99,9 @@ func _test_ledger() -> void:
 		and restored.settle(1, 0, 0, 900, false, 0, 900) == first,
 		"Serialized settlement history prevents duplicate charges after restore.")
 	_check(restored.company_cash == idempotent.company_cash
+		and restored.daily_sales_goal == 1000
 		and restored.transactions == idempotent.transactions,
-		"Cash and the auditable transaction log survive ledger serialization.")
+		"Cash, the sales goal, and the auditable transaction log survive serialization.")
 	var day_cap := FinancialLedger.new()
 	day_cap.settle(60, 100, 0, 0, true, 0, 0, 60)
 	day_cap.settle(61, 100, 0, 0, true, 0, 0, 60)
@@ -157,16 +179,18 @@ func _test_workday_finances() -> void:
 	scene.call_queue.sale_log.append({"id": 1, "value": 1500, "employee_id": "nina", "recovery": false})
 	var cash_before := scene.augment_manager.budget
 	scene._settle_sale({"employee_id": "nina", "value": 1500, "timestamp": 1.0})
-	_check(scene.augment_manager.budget == cash_before + 1500
+	_check(scene.augment_manager.budget == cash_before
 		and scene.financial_ledger.daily_sales_revenue == scene.call_queue.revenue,
-		"Sales immediately credit both ledgers before payroll settlement.")
+		"Sales update revenue during Play while Company Cash stays available at its opening amount.")
 	scene._finish_day()
 	_check(scene.financial_ledger.settlements[1]["active_upkeep"] == 100
 		and scene.financial_ledger.settlements[1]["bench_upkeep"] == 100
 		and scene.financial_ledger.settlements[1]["current_upkeep"] == 200
-		and scene.augment_manager.budget == cash_before + 1500 - 200,
-		"End-of-day payroll includes the bench and settles revenue exactly once.")
-	_check(scene.report_panel.finance_label.text.contains("Floor $100 · Bench $100")
+		and scene.augment_manager.budget == cash_before + 500 - 200,
+		"End-of-day payroll includes the bench and settles the sales surplus exactly once.")
+	_check(scene.report_panel.finance_label.text.contains("DAILY SALES  $1,500 / GOAL $1,000")
+		and scene.report_panel.finance_label.text.contains("SURPLUS TO CASH  +$500")
+		and scene.report_panel.finance_label.text.contains("Floor $100 · Bench $100")
 		and scene.report_panel.finance_label.text.contains("ENDING CASH")
 		and scene.report_panel.discipline_label.text.contains("Total: 0 / 3"),
 		"The report shows payroll subtotals, cash, goal result and write-up status.")

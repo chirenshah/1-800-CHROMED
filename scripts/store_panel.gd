@@ -5,7 +5,6 @@ class_name StorePanel
 signal augment_purchase_requested(slot_index: int)
 signal employee_hire_requested(slot_index: int)
 signal reroll_requested
-signal start_workday_requested
 
 const COMMON := Color(0.30, 0.80, 0.92)
 const UNCOMMON := Color(0.35, 0.88, 0.59)
@@ -16,11 +15,13 @@ const TEXT := Color(0.92, 0.95, 1.0)
 const MUTED := Color(0.57, 0.67, 0.76)
 const DARK := Color(0.035, 0.052, 0.082)
 
-var cash_label: Label
-var day_label: Label
 var reroll_button: Button
-var start_button: Button
 var feedback_label: Label
+var _margin: MarginContainer
+var _content: VBoxContainer
+var _standard_row: HBoxContainer
+var _premium_panel: PanelContainer
+var _employee_row: HBoxContainer
 var augment_buy_buttons: Array[Button] = []
 var employee_hire_buttons: Array[Button] = []
 var _standard_cards: Array[Dictionary] = []
@@ -33,30 +34,29 @@ func _ready() -> void:
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_theme_stylebox_override("panel", _panel_style(Color(0.17, 0.33, 0.40), DARK))
 	_build()
+	resized.connect(_update_layout)
+	_update_layout()
+	call_deferred("_update_layout")
 
 
 func _build() -> void:
-	var margin := MarginContainer.new()
+	_margin = MarginContainer.new()
 	for edge in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + edge, 14)
-	add_child(margin)
+		_margin.add_theme_constant_override("margin_" + edge, 10)
+	add_child(_margin)
 
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 7)
-	margin.add_child(content)
+	_content = VBoxContainer.new()
+	_content.add_theme_constant_override("separation", 5)
+	_margin.add_child(_content)
 
 	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 12)
-	content.add_child(header)
+	header.add_theme_constant_override("separation", 8)
+	_content.add_child(header)
 	var heading := VBoxContainer.new()
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(heading)
 	var title := _label("CHROME MARKET", 22, Color(0.98, 0.30, 0.76))
 	heading.add_child(title)
-	day_label = _label("DAY 01 · PREPARE", 12, MUTED)
-	heading.add_child(day_label)
-	cash_label = _label("COMPANY CASH  $500", 17, LEGENDARY)
-	header.add_child(cash_label)
 	reroll_button = Button.new()
 	reroll_button.text = "REROLL STORE — $100"
 	reroll_button.custom_minimum_size = Vector2(188, 42)
@@ -66,48 +66,42 @@ func _build() -> void:
 	reroll_button.add_theme_color_override("font_color", TEXT)
 	reroll_button.pressed.connect(func() -> void: reroll_requested.emit())
 	header.add_child(reroll_button)
-	start_button = Button.new()
-	start_button.text = "START WORKDAY"
-	start_button.custom_minimum_size = Vector2(150, 42)
-	start_button.add_theme_stylebox_override("normal", _panel_style(Color(0.25, 0.78, 0.67), Color(0.035, 0.14, 0.13)))
-	start_button.add_theme_color_override("font_color", TEXT)
-	start_button.pressed.connect(func() -> void: start_workday_requested.emit())
-	header.add_child(start_button)
 
-	content.add_child(_section_heading("CYBERNETIC AUGMENTS — 4 STANDARD SLOTS"))
-	var standard_row := HBoxContainer.new()
-	standard_row.add_theme_constant_override("separation", 8)
-	standard_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_child(standard_row)
+	_content.add_child(_section_heading("CYBERNETIC AUGMENTS — 4 STANDARD SLOTS"))
+	_standard_row = HBoxContainer.new()
+	_standard_row.add_theme_constant_override("separation", 8)
+	_standard_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_content.add_child(_standard_row)
 	for slot_index in AugmentManager.STANDARD_STORE_SLOTS:
-		var card := _build_augment_card(standard_row, slot_index, false)
+		var card := _build_augment_card(_standard_row, slot_index, false)
 		_standard_cards.append(card)
 		augment_buy_buttons.append(card["buy_button"])
 
-	content.add_child(_section_heading("PREMIUM AUGMENT — EPIC / LEGENDARY"))
-	_premium_card = _build_augment_card(content, AugmentManager.PREMIUM_STORE_SLOT, true)
+	_content.add_child(_section_heading("PREMIUM AUGMENT — EPIC / LEGENDARY"))
+	_premium_card = _build_augment_card(_content, AugmentManager.PREMIUM_STORE_SLOT, true)
+	_premium_panel = _premium_card["card"]
 	augment_buy_buttons.append(_premium_card["buy_button"])
 
-	content.add_child(_section_heading("RECRUITMENT — 2 SALESPEOPLE"))
-	var employee_row := HBoxContainer.new()
-	employee_row.add_theme_constant_override("separation", 8)
-	employee_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_child(employee_row)
+	_content.add_child(_section_heading("RECRUITMENT — 2 SALESPEOPLE"))
+	_employee_row = HBoxContainer.new()
+	_employee_row.add_theme_constant_override("separation", 8)
+	_employee_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_content.add_child(_employee_row)
 	for slot_index in AugmentManager.EMPLOYEE_STORE_SLOTS:
 		var card := _build_employee_card(
-			employee_row, AugmentManager.EMPLOYEE_STORE_START + slot_index
+			_employee_row, AugmentManager.EMPLOYEE_STORE_START + slot_index
 		)
 		_employee_cards.append(card)
 		employee_hire_buttons.append(card["hire_button"])
 
 	feedback_label = _label("Offers stay fixed until reroll or the next workday.", 11, MUTED)
 	feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	content.add_child(feedback_label)
+	_content.add_child(feedback_label)
 
 
 func _build_augment_card(parent: Control, slot_index: int, premium: bool) -> Dictionary:
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(0, 108 if premium else 116)
+	card.custom_minimum_size = Vector2(0, 76 if premium else 108)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.add_theme_stylebox_override(
 		"panel", _panel_style(EPIC if premium else COMMON, Color(0.045, 0.065, 0.10))
@@ -122,7 +116,7 @@ func _build_augment_card(parent: Control, slot_index: int, premium: bool) -> Dic
 		inner.add_theme_constant_override("separation", 3)
 	var margin := MarginContainer.new()
 	for edge in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + edge, 9)
+		margin.add_theme_constant_override("margin_" + edge, 6)
 	margin.add_child(inner)
 	card.add_child(margin)
 
@@ -140,7 +134,7 @@ func _build_augment_card(parent: Control, slot_index: int, premium: bool) -> Dic
 	details.add_child(effect_label)
 
 	var buy_button := Button.new()
-	buy_button.custom_minimum_size = Vector2(82 if premium else 0, 32)
+	buy_button.custom_minimum_size = Vector2(82 if premium else 0, 28)
 	buy_button.pressed.connect(func() -> void: augment_purchase_requested.emit(slot_index))
 	if premium:
 		inner.add_child(buy_button)
@@ -157,11 +151,12 @@ func _build_augment_card(parent: Control, slot_index: int, premium: bool) -> Dic
 
 func _build_employee_card(parent: Control, slot_index: int) -> Dictionary:
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(0, 126)
+	card.custom_minimum_size = Vector2(0, 100)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.add_theme_stylebox_override("panel", _panel_style(Color(0.30, 0.76, 0.75), Color(0.045, 0.065, 0.10)))
 	parent.add_child(card)
 	var margin := MarginContainer.new()
+	margin.name = "Margin"
 	for edge in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + edge, 9)
 	card.add_child(margin)
@@ -169,7 +164,7 @@ func _build_employee_card(parent: Control, slot_index: int) -> Dictionary:
 	row.add_theme_constant_override("separation", 10)
 	margin.add_child(row)
 	var portrait := PanelContainer.new()
-	portrait.custom_minimum_size = Vector2(66, 82)
+	portrait.custom_minimum_size = Vector2(54, 60)
 	portrait.add_theme_stylebox_override("panel", _panel_style(Color(0.21, 0.49, 0.55), Color(0.025, 0.04, 0.065)))
 	row.add_child(portrait)
 	var portrait_label := _label("NO\nART", 11, MUTED)
@@ -189,29 +184,26 @@ func _build_employee_card(parent: Control, slot_index: int) -> Dictionary:
 	stats_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	details.add_child(stats_label)
 	var hire_button := Button.new()
-	hire_button.custom_minimum_size = Vector2(112, 34)
+	hire_button.custom_minimum_size = Vector2(112, 30)
 	hire_button.pressed.connect(func() -> void: employee_hire_requested.emit(slot_index))
 	details.add_child(hire_button)
 	return {
+		"card": card,
 		"name_label": name_label,
 		"class_label": class_label,
 		"stats_label": stats_label,
 		"hire_button": hire_button,
+		"portrait": portrait,
 	}
 
 
 func show_state(
 		manager: AugmentManager,
-		day: int,
-		editable: bool,
-		can_start_workday: bool
+		editable: bool
 	) -> void:
-	day_label.text = "DAY %02d · PREPARE" % day
-	cash_label.text = "COMPANY CASH  $%d" % manager.budget
 	var reroll_cost := maxi(AugmentManager.CATALOG.store_reroll_cost, 0)
 	reroll_button.text = "REROLL STORE — $%d" % reroll_cost
 	reroll_button.disabled = not editable or manager.budget < reroll_cost
-	start_button.disabled = not editable or not can_start_workday
 
 	for slot_index in _standard_cards.size():
 		_show_augment_card(_standard_cards[slot_index], manager, slot_index, editable)
@@ -220,6 +212,55 @@ func show_state(
 		_show_employee_card(
 			_employee_cards[index], manager, AugmentManager.EMPLOYEE_STORE_START + index, editable
 		)
+
+
+func _update_layout() -> void:
+	if _margin == null:
+		return
+	var compact := size.y < 420.0
+	var margin_size := 7 if compact else 10
+	var card_height := 92.0 if compact else 108.0
+	var premium_height := 64.0 if compact else 76.0
+	var employee_height := 90.0 if compact else 108.0
+	for edge in ["left", "right", "top", "bottom"]:
+		_margin.add_theme_constant_override("margin_" + edge, margin_size)
+	_content.add_theme_constant_override("separation", 3 if compact else 5)
+	_standard_row.add_theme_constant_override("separation", 5 if compact else 8)
+	_standard_row.custom_minimum_size.y = card_height
+	for card_data in _standard_cards:
+		var card: PanelContainer = card_data["card"]
+		card.custom_minimum_size.y = card_height
+		var rarity_label: Label = card_data["rarity_label"]
+		var name_label: Label = card_data["name_label"]
+		var effect_label: Label = card_data["effect_label"]
+		var buy_button: Button = card_data["buy_button"]
+		rarity_label.add_theme_font_size_override("font_size", 9 if compact else 10)
+		name_label.add_theme_font_size_override("font_size", 12 if compact else 14)
+		effect_label.add_theme_font_size_override("font_size", 9 if compact else 10)
+		buy_button.custom_minimum_size.y = 24 if compact else 28
+	_premium_panel.custom_minimum_size.y = premium_height
+	_employee_row.add_theme_constant_override("separation", 5 if compact else 8)
+	_employee_row.custom_minimum_size.y = employee_height
+	for child in _content.get_children():
+		if child is Label and child != feedback_label:
+			(child as Label).add_theme_font_size_override("font_size", 10 if compact else 12)
+	feedback_label.visible = not compact
+	for card_data in _employee_cards:
+		var card: PanelContainer = card_data["card"]
+		card.custom_minimum_size.y = employee_height
+		var hire_button: Button = card_data["hire_button"]
+		hire_button.custom_minimum_size.y = 26 if compact else 30
+		var portrait: PanelContainer = card_data["portrait"]
+		portrait.custom_minimum_size = Vector2(44, 44) if compact else Vector2(54, 60)
+		var card_margin := card.get_node("Margin") as MarginContainer
+		for edge in ["left", "right", "top", "bottom"]:
+			card_margin.add_theme_constant_override("margin_" + edge, 5 if compact else 9)
+		var name_label: Label = card_data["name_label"]
+		var class_label: Label = card_data["class_label"]
+		var stats_label: Label = card_data["stats_label"]
+		name_label.add_theme_font_size_override("font_size", 12 if compact else 15)
+		class_label.add_theme_font_size_override("font_size", 9 if compact else 11)
+		stats_label.add_theme_font_size_override("font_size", 9 if compact else 10)
 
 
 func _show_augment_card(

@@ -33,12 +33,12 @@ Maintain two **separate** quantities, both displayed in dollars:
 | **Daily Sales Revenue** | Performance score credited toward the daily sales target and sales-board animation | Starts at zero each workday; resets for the next day |
 | **Company Cash** | Actual spendable money for purchases, surgery, hiring, payroll, and cash-based effects | Persists across workdays; cannot go below zero |
 
-**Immediate settlement:** Whenever a successful sale (including an upsell) earns its monetary amount, credit that amount **immediately to both Daily Sales Revenue and Company Cash**, not at end-of-day review. Define one atomic sale-settlement operation so these credits cannot diverge accidentally.
+**Sale settlement and above-goal cash:** Whenever a successful sale (including an upsell) earns its monetary amount, credit the full amount **immediately to Daily Sales Revenue**. At day-end settlement, Company Cash receives only cumulative daily sales revenue above the day's sales goal: `max(0, daily_sales_revenue - daily_sales_goal)`. Existing Company Cash remains available to augments during Play and carries forward, but it never contributes to the daily sales goal. Sales-derived surplus is not available to cash-based augments until settlement.
 
 | Event | Daily Sales Revenue | Company Cash |
 | --- | --- | --- |
-| Successful sale for $X | +X immediately | +X immediately |
-| Successful upsell amount $Y | +Y immediately | +Y immediately |
+| Successful sale for $X | +X immediately | No immediate credit; cumulative above-goal surplus is added at day-end settlement |
+| Successful upsell amount $Y | +Y immediately | No immediate credit; cumulative above-goal surplus is added at day-end settlement |
 | Cash-granting augment | Unchanged unless effect explicitly says otherwise | +grant immediately |
 | Cash-penalty augment | Unchanged | Deduct up to available cash immediately |
 | Shop, hiring, surgery | Unchanged | Deduct purchase cost |
@@ -47,7 +47,7 @@ Maintain two **separate** quantities, both displayed in dollars:
 
 **Cash-limited penalties — CONFIRMED:** Direct augment cash penalties cannot reduce Company Cash below $0. Example: cash $20, penalty $50 => deduct $20, discard the $30 excess; **do not create debt**. Existing **unpaid upkeep** is the separate exception: outstanding payroll obligations carry forward. A direct cash penalty never reduces Daily Sales Revenue. Cash-granting effects do not automatically count toward the sales goal.
 
-**Sales-board presentation:** The scoreboard measures **Daily Sales Revenue**, not Company Cash or net profit. Its tally/impact animation uses sales totals; the board is demolished **only when the sales goal is beaten**, even if the company is cash-poor. Avoid double-crediting during the end-of-day animation: the animation replays/visualizes already-settled sales, not additional financial transactions.
+**Sales-board presentation:** The scoreboard measures **Daily Sales Revenue**, not Company Cash or net profit. Existing Company Cash does not count toward the goal. Its tally/impact animation uses sales totals; the board is demolished **only when the sales goal is beaten**, even if the company is cash-poor. Avoid double-crediting during the end-of-day animation: the animation replays/visualizes already-settled sales, not additional financial transactions.
 
 **Accounting:** Keep traceable transactions/events with source employee/augment, timestamp, amount requested, amount actually applied, and ledger affected. Display cash and revenue separately in relevant screens; review should show sales performance, cash flow, upkeep paid, unpaid carryover, and write-up cause(s).
 
@@ -160,7 +160,7 @@ Do not make a passive stat query mutate Company Cash. All cash changes should go
 
 ## 11. Required verification scenarios
 
-- A $300 sale immediately adds $300 to both ledgers. A $50 cash augment grant adds only to cash; a $25 penalty subtracts only from cash. End-of-day board animation causes **no second credit**.
+- With a $1,000 daily goal and $1,300 in cumulative sales, sales revenue is $1,300 and the day-end sales-derived Company Cash credit is $300. Existing Company Cash does not change the goal. A $50 cash augment grant adds only to cash; a $25 penalty subtracts only from cash. End-of-day board animation causes **no second credit**.
 - Company Cash $20 + $50 direct augment penalty => cash $0, no new debt. Separately, insufficient payroll creates carryover unpaid upkeep.
 - Cash crossing $500 activates/deactivates Desperation Protocol without a new call or equipment change; already-running call progress responds to any Speed changes without resetting.
 - Employee in inventory is charged applicable upkeep; firing employee removes its augments and future upkeep.

@@ -160,8 +160,8 @@ func time_until_next_event() -> float:
 		if speed > 0.0:
 			var progress: float = active[seat].get("progress", 0.0)
 			deadline = minf(deadline, elapsed_seconds + maxf(0.0, 1.0 - progress) * 18.0 / speed)
-	for call in waiting:
-		deadline = minf(deadline, _patience_deadline(call))
+	for lead in waiting:
+		deadline = minf(deadline, _patience_deadline(lead))
 	for employee_id in employee_stats:
 		var break_remaining := float(employee_stats[employee_id]["break_remaining_seconds"])
 		if break_remaining > TIME_EPSILON:
@@ -183,10 +183,10 @@ func _account_interval(seconds: float) -> void:
 			stats["busy_ticks"] += ticks
 			stats["stamina_remaining_seconds"] = maxf(0.0, float(stats["stamina_remaining_seconds"]) - seconds)
 			var speed := float(floor_stats.get(employees[seat], {}).get("speed", 0.0))
-			var call: Dictionary = active[seat]
-			call["progress"] = minf(1.0, float(call.get("progress", 0.0)) + speed / 18.0 * seconds)
-			call["remaining"] = 0.0 if speed <= 0.0 else maxf(
-				0.0, (1.0 - float(call["progress"])) * 18.0 / speed / TICK_SECONDS
+			var active_lead: Dictionary = active[seat]
+			active_lead["progress"] = minf(1.0, float(active_lead.get("progress", 0.0)) + speed / 18.0 * seconds)
+			active_lead["remaining"] = 0.0 if speed <= 0.0 else maxf(
+				0.0, (1.0 - float(active_lead["progress"])) * 18.0 / speed / TICK_SECONDS
 			)
 		elif float(stats["break_remaining_seconds"]) > TIME_EPSILON:
 			stats["break_ticks"] += ticks
@@ -218,12 +218,12 @@ func _resolve_events() -> void:
 	# A waiting lead leaves at its deadline, including a tie with a completion.
 	# Filter every lead, preserving the relative FIFO order of survivors.
 	var survivors: Array[Dictionary] = []
-	for call in waiting:
-		if _patience_deadline(call) <= elapsed_seconds + TIME_EPSILON:
+	for lead in waiting:
+		if _patience_deadline(lead) <= elapsed_seconds + TIME_EPSILON:
 			abandoned += 1
-			abandoned_this_tick.append(call.duplicate(true))
+			abandoned_this_tick.append(lead.duplicate(true))
 		else:
-			survivors.append(call)
+			survivors.append(lead)
 	waiting.assign(survivors)
 
 	if next_arrival_seconds <= elapsed_seconds + TIME_EPSILON:
@@ -254,21 +254,21 @@ func _complete_calls(
 			continue
 		var employee_id: String = employees[seat]
 		var stats: Dictionary = employee_stats[employee_id]
-		var call: Dictionary = active[seat]
-		var is_recovery: bool = call.get("recovery", false)
+		var lead: Dictionary = active[seat]
+		var is_recovery: bool = lead.get("recovery", false)
 		if not is_recovery:
 			handled += 1
 		stats["handled"] += 1
 		var effective: Dictionary = stats_snapshot.get(employee_id, {})
-		call["progress"] = 1.0
-		call["sold"] = _makes_sale(employee_id, call, effective)
-		call["upsold"] = false
-		if call["sold"]:
-			var payout := int(call["value"])
+		lead["progress"] = 1.0
+		lead["sold"] = _makes_sale(employee_id, lead, effective)
+		lead["upsold"] = false
+		if lead["sold"]:
+			var payout := int(lead["value"])
 			if _rolls_upsell(employee_id, effective):
-				call["upsold"] = true
+				lead["upsold"] = true
 				payout = roundi(payout * float(effective.get("upsell_multiplier", 1.0)))
-			call["payout"] = payout
+			lead["payout"] = payout
 			sales += 1
 			if is_recovery:
 				recovered += 1
@@ -277,7 +277,7 @@ func _complete_calls(
 				normal_sales += 1
 			revenue += payout
 			var sale_record := {
-				"id": call["id"],
+				"id": lead["id"],
 				"value": payout,
 				"employee_id": employee_id,
 				"recovery": is_recovery,
@@ -292,10 +292,10 @@ func _complete_calls(
 				failed_recoveries += 1
 			else:
 				failed_interactions += 1
-		completed_this_tick[seat] = call.duplicate(true)
+		completed_this_tick[seat] = lead.duplicate(true)
 		active.erase(seat)
-		if not call["sold"] and not is_recovery:
-			discard_lead(call)
+		if not lead["sold"] and not is_recovery:
+			discard_lead(lead)
 		if float(stats["stamina_remaining_seconds"]) <= TIME_EPSILON:
 			stats["break_remaining_seconds"] = BREAK_SECONDS
 			stats["breaks_taken"] += 1
@@ -308,16 +308,16 @@ func _complete_calls(
 		var parents: Array[int] = []
 		parents.assign(causal_parents_by_seat.get(seat, []))
 		var outcome_event := _make_event(
-			"conversion" if call["sold"] else "failure", employee_id, seat, call, chains,
+			"conversion" if lead["sold"] else "failure", employee_id, seat, lead, chains,
 			0 if parents.is_empty() else parents[0]
 		)
-		if call["sold"]:
+		if lead["sold"]:
 			sale_log.back()["event_id"] = int(outcome_event["event_id"])
 			sales_to_settle.back()["event_id"] = int(outcome_event["event_id"])
 		outcome_events.append(outcome_event)
-		var followup_trigger := "upsell" if call["upsold"] else "call_completed_without_upsell"
+		var followup_trigger := "upsell" if lead["upsold"] else "call_completed_without_upsell"
 		outcome_events.append(_make_event(
-			followup_trigger, employee_id, seat, call, chains, int(outcome_event["event_id"])
+			followup_trigger, employee_id, seat, lead, chains, int(outcome_event["event_id"])
 		))
 	for sale: Dictionary in sales_to_settle:
 		if sale_settlement_callback.is_valid():
@@ -423,14 +423,14 @@ func _apply_effect_batch(operations: Array[Dictionary]) -> Array[Dictionary]:
 	for seat in progress_deltas:
 		if not active.has(seat):
 			continue
-		var call: Dictionary = active[seat]
-		var old_progress := float(call.get("progress", 0.0))
-		call["progress"] = clampf(old_progress + float(progress_deltas[seat]), 0.0, 1.0)
+		var active_lead: Dictionary = active[seat]
+		var old_progress := float(active_lead.get("progress", 0.0))
+		active_lead["progress"] = clampf(old_progress + float(progress_deltas[seat]), 0.0, 1.0)
 		var speed := float(_effective_floor_stats().get(employees[seat], {}).get("speed", 0.0))
-		call["remaining"] = 0.0 if speed <= 0.0 else maxf(
-			0.0, (1.0 - float(call["progress"])) * 18.0 / speed / TICK_SECONDS
+		active_lead["remaining"] = 0.0 if speed <= 0.0 else maxf(
+			0.0, (1.0 - float(active_lead["progress"])) * 18.0 / speed / TICK_SECONDS
 		)
-		if float(call["progress"]) >= 1.0 and old_progress < 1.0:
+		if float(active_lead["progress"]) >= 1.0 and old_progress < 1.0:
 			newly_completed.append(int(seat))
 	if newly_completed.is_empty():
 		return []
@@ -546,7 +546,7 @@ func _make_event(
 		trigger: String,
 		employee_id: String,
 		seat: int,
-		call: Dictionary,
+		lead: Dictionary,
 		chains: Array[int],
 		parent_event_id: int = 0
 	) -> Dictionary:
@@ -557,7 +557,7 @@ func _make_event(
 		"type": trigger,
 		"employee_id": employee_id,
 		"seat": seat,
-		"call_id": int(call.get("id", -1)),
+		"call_id": int(lead.get("id", -1)),
 		"chain_ids": chains.duplicate(),
 	}
 	_next_event_id += 1
@@ -588,10 +588,10 @@ func receive_call() -> void:
 		_process_event_waves(roots)
 
 
-func discard_lead(call: Dictionary) -> void:
+func discard_lead(lead: Dictionary) -> void:
 	for discarded_call in lead_discard_pile:
-		assert(discarded_call["id"] != call["id"], "A lead may only enter the discard pile once.")
-	lead_discard_pile.append(call)
+		assert(discarded_call["id"] != lead["id"], "A lead may only enter the discard pile once.")
+	lead_discard_pile.append(lead)
 	discarded_today += 1
 
 
@@ -621,8 +621,8 @@ func _arrival_delay() -> float:
 	return _arrival_rng.randf_range(MIN_ARRIVAL_SECONDS, MAX_ARRIVAL_SECONDS)
 
 
-func _patience_deadline(call: Dictionary) -> float:
-	return (float(call["arrived_tick"]) + float(call["patience_ticks"])) * TICK_SECONDS
+func _patience_deadline(lead: Dictionary) -> float:
+	return (float(lead["arrived_tick"]) + float(lead["patience_ticks"])) * TICK_SECONDS
 
 
 func _dispatch_waiting() -> void:
@@ -632,18 +632,18 @@ func _dispatch_waiting() -> void:
 		var seat := ASSIGNMENT.next_available_seat(employees, active, takes_incoming)
 		if seat == -1:
 			break
-		var call: Dictionary = waiting.pop_front()
-		call["employee_id"] = employees[seat]
-		call["seat"] = seat
+		var lead: Dictionary = waiting.pop_front()
+		lead["employee_id"] = employees[seat]
+		lead["seat"] = seat
 		var speed := float(_effective_floor_stats().get(employees[seat], {}).get("speed", 0.0))
-		call["duration"] = INF if speed <= 0.0 else 18.0 / speed / TICK_SECONDS
-		call["remaining"] = call["duration"]
-		call["progress"] = 0.0
-		active[seat] = call
+		lead["duration"] = INF if speed <= 0.0 else 18.0 / speed / TICK_SECONDS
+		lead["remaining"] = lead["duration"]
+		lead["progress"] = 0.0
+		active[seat] = lead
 		employee_stats[employees[seat]]["assigned"] += 1
-		assigned_this_tick.append(call.duplicate(true))
-		last_dispatch = "Call #%03d → Seat %02d" % [call["id"], seat + 1]
-		_queue_root_event("call_started", employees[seat], seat, call)
+		assigned_this_tick.append(lead.duplicate(true))
+		last_dispatch = "Call #%03d → Seat %02d" % [lead["id"], seat + 1]
+		_queue_root_event("call_started", employees[seat], seat, lead)
 	_dispatch_recoveries()
 
 
@@ -655,23 +655,23 @@ func _dispatch_recoveries() -> void:
 		var seat := ASSIGNMENT.next_available_seat(employees, active, takes_discards)
 		if seat == -1:
 			break
-		var call := take_discarded_lead()
-		call.erase("sold")
-		call.erase("upsold")
-		call.erase("payout")
-		call["recovery"] = true
-		call["employee_id"] = employees[seat]
-		call["seat"] = seat
+		var lead := take_discarded_lead()
+		lead.erase("sold")
+		lead.erase("upsold")
+		lead.erase("payout")
+		lead["recovery"] = true
+		lead["employee_id"] = employees[seat]
+		lead["seat"] = seat
 		var speed := float(_effective_floor_stats().get(employees[seat], {}).get("speed", 0.0))
-		call["duration"] = INF if speed <= 0.0 else 18.0 / speed / TICK_SECONDS
-		call["remaining"] = call["duration"]
-		call["progress"] = 0.0
-		active[seat] = call
+		lead["duration"] = INF if speed <= 0.0 else 18.0 / speed / TICK_SECONDS
+		lead["remaining"] = lead["duration"]
+		lead["progress"] = 0.0
+		active[seat] = lead
 		recovery_attempts += 1
 		employee_stats[employees[seat]]["assigned"] += 1
-		assigned_this_tick.append(call.duplicate(true))
-		last_dispatch = "Discard #%03d → Seat %02d" % [call["id"], seat + 1]
-		_queue_root_event("call_started", employees[seat], seat, call)
+		assigned_this_tick.append(lead.duplicate(true))
+		last_dispatch = "Discard #%03d → Seat %02d" % [lead["id"], seat + 1]
+		_queue_root_event("call_started", employees[seat], seat, lead)
 
 
 func employee_results() -> Array[Dictionary]:
@@ -692,7 +692,7 @@ func effective_stats_snapshot() -> Dictionary:
 
 # Base stats affect handling only. Future conditional behaviors can extend these
 # hooks while intake continues to use fixed slot priority.
-func _handling_ticks(employee_id: String, _call: Dictionary) -> float:
+func _handling_ticks(employee_id: String, _lead: Dictionary) -> float:
 	var loadout: Array[String] = []
 	loadout.assign(equipped_augments.get(employee_id, []))
 	if loadout.is_empty():
@@ -708,7 +708,7 @@ func _rolls_upsell(employee_id: String, effective_stats: Dictionary = {}) -> boo
 	return roll < chance
 
 
-func _makes_sale(employee_id: String, _call: Dictionary, effective_stats: Dictionary = {}) -> bool:
+func _makes_sale(employee_id: String, _lead: Dictionary, effective_stats: Dictionary = {}) -> bool:
 	var roll := _conversion_rng.randf()
 	var stats: Dictionary = effective_stats \
 		if not effective_stats.is_empty() else _effective_floor_stats().get(employee_id, {})
@@ -716,7 +716,7 @@ func _makes_sale(employee_id: String, _call: Dictionary, effective_stats: Dictio
 	return roll < chance
 
 
-func _queue_root_event(trigger: String, employee_id: String, seat: int, call: Dictionary) -> void:
+func _queue_root_event(trigger: String, employee_id: String, seat: int, lead: Dictionary) -> void:
 	var chain_id := _next_chain_id
 	_next_chain_id += 1
-	_pending_root_events.append(_make_event(trigger, employee_id, seat, call, [chain_id]))
+	_pending_root_events.append(_make_event(trigger, employee_id, seat, lead, [chain_id]))

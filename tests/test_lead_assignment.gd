@@ -229,30 +229,30 @@ func _test_repeatability_and_accounting() -> void:
 			_check(_snapshot(first) == _snapshot(second), "Identical initial states and seeds must reproduce every tick.")
 			_check(first.received == first.handled + first.abandoned + first.active.size() + first.waiting.size(),
 				"Every received lead must occupy exactly one queue lifecycle state.")
-			for call in first.assigned_this_tick:
-				_check(not assigned_ids.has(call["id"]) and not terminal_ids.has(call["id"]), "A lead may only be assigned once.")
-				assigned_ids[call["id"]] = true
-			for call: Dictionary in first.completed_this_tick.values():
-				_check(assigned_ids.has(call["id"]) and not terminal_ids.has(call["id"]), "Only an assigned, unfinished lead can complete.")
-				terminal_ids[call["id"]] = true
-			for call in first.abandoned_this_tick:
-				_check(not assigned_ids.has(call["id"]) and not terminal_ids.has(call["id"]), "Only an unassigned waiting lead can abandon once.")
-				terminal_ids[call["id"]] = true
+			for lead in first.assigned_this_tick:
+				_check(not assigned_ids.has(lead["id"]) and not terminal_ids.has(lead["id"]), "A lead may only be assigned once.")
+				assigned_ids[lead["id"]] = true
+			for lead: Dictionary in first.completed_this_tick.values():
+				_check(assigned_ids.has(lead["id"]) and not terminal_ids.has(lead["id"]), "Only an assigned, unfinished lead can complete.")
+				terminal_ids[lead["id"]] = true
+			for lead in first.abandoned_this_tick:
+				_check(not assigned_ids.has(lead["id"]) and not terminal_ids.has(lead["id"]), "Only an unassigned waiting lead can abandon once.")
+				terminal_ids[lead["id"]] = true
 			var pile_ids := {}
-			for call in first.lead_discard_pile:
-				_check(not pile_ids.has(call["id"]) and assigned_ids.has(call["id"])
-					and terminal_ids.has(call["id"]) and not call["sold"],
+			for lead in first.lead_discard_pile:
+				_check(not pile_ids.has(lead["id"]) and assigned_ids.has(lead["id"])
+					and terminal_ids.has(lead["id"]) and not lead["sold"],
 					"Only a completed assigned lead can enter the discard pile.")
-				pile_ids[call["id"]] = true
+				pile_ids[lead["id"]] = true
 			var seen := {}
-			for call: Dictionary in first.active.values():
-				_check(not seen.has(call["id"]) and not terminal_ids.has(call["id"]), "Active leads must be unique and unfinished.")
-				seen[call["id"]] = true
+			for lead: Dictionary in first.active.values():
+				_check(not seen.has(lead["id"]) and not terminal_ids.has(lead["id"]), "Active leads must be unique and unfinished.")
+				seen[lead["id"]] = true
 			var previous_id := 0
-			for call in first.waiting:
-				_check(call["id"] > previous_id and not seen.has(call["id"]) and not terminal_ids.has(call["id"]), "The live queue must preserve FIFO and distinct lead identities.")
-				previous_id = call["id"]
-				seen[call["id"]] = true
+			for lead in first.waiting:
+				_check(lead["id"] > previous_id and not seen.has(lead["id"]) and not terminal_ids.has(lead["id"]), "The live queue must preserve FIFO and distinct lead identities.")
+				previous_id = lead["id"]
+				seen[lead["id"]] = true
 			var total_assigned := 0
 			var total_handled := 0
 			var total_sales := 0

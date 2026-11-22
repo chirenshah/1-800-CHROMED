@@ -12,7 +12,7 @@ func resolve_stats(
 		employee_id: String,
 		loadouts: Dictionary,
 		positions: Dictionary = {},
-		active_calls: Dictionary = {},
+		_active_calls: Dictionary = {},
 		temporary_effects: Array[Dictionary] = [],
 		resolve_dependencies := true,
 		financial_context: Dictionary = {}
@@ -371,7 +371,8 @@ func trigger_effects(
 	var operations: Array[Dictionary] = []
 	var employee_ids: Array[String] = []
 	for employee_id: String in loadouts:
-		employee_ids.append(employee_id)
+		if employees.has(employee_id):
+			employee_ids.append(employee_id)
 	employee_ids.sort()
 	for employee_id in employee_ids:
 		var seat := int(positions.get(employee_id, -1))

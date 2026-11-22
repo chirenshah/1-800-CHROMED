@@ -7,6 +7,7 @@ const STARTING_CASH := 500
 
 var company_cash := STARTING_CASH
 var daily_sales_revenue := 0
+var daily_sales_goal := 0
 var day_opening_cash := STARTING_CASH
 var day_cash_effect_net := 0
 var current_day := 1
@@ -17,9 +18,10 @@ var transactions: Array[Dictionary] = []
 var _next_transaction_id := 1
 
 
-func reset_daily_revenue(day: int) -> void:
+func reset_daily_revenue(day: int, sales_goal: int) -> void:
 	current_day = maxi(day, 1)
 	daily_sales_revenue = 0
+	daily_sales_goal = maxi(sales_goal, 0)
 	day_cash_effect_net = 0
 
 
@@ -35,7 +37,6 @@ func settle_sale(
 		event_id: int = 0
 	) -> Dictionary:
 	var settled_amount := maxi(amount, 0)
-	company_cash += settled_amount
 	daily_sales_revenue += settled_amount
 	var transaction := _record_transaction({
 		"type": "sale",
@@ -45,9 +46,10 @@ func settle_sale(
 		"timestamp": timestamp,
 		"requested_amount": settled_amount,
 		"applied_amount": settled_amount,
-		"ledger": ["daily_sales_revenue", "company_cash"],
+		"ledger": ["daily_sales_revenue"],
 		"daily_sales_revenue_delta": settled_amount,
-		"company_cash_delta": settled_amount,
+		"sales_cash_credit": 0,
+		"company_cash_delta": 0,
 	})
 	return transaction
 
@@ -139,9 +141,10 @@ func settle(
 
 	var opening_cash := maxi(cash, 0)
 	var revenue := maxi(gross_revenue, 0)
+	var sales_cash_credit := maxi(revenue - daily_sales_goal, 0)
 	var payroll := maxi(current_upkeep, 0)
 	var debt_opening := maxi(upkeep_debt, 0)
-	var available := opening_cash
+	var available := opening_cash + sales_cash_credit
 	var paid_current := mini(available, payroll)
 	var current_shortfall := payroll - paid_current
 	var cash_after_current := available - paid_current
@@ -160,6 +163,18 @@ func settle(
 	company_cash = cash_closing
 	if writeup_issued:
 		writeups += 1
+	if sales_cash_credit > 0:
+		_record_transaction({
+			"type": "sales_surplus_credit",
+			"source_employee_id": "",
+			"source_augment_id": "",
+			"event_id": 0,
+			"timestamp": timestamp,
+			"requested_amount": sales_cash_credit,
+			"applied_amount": sales_cash_credit,
+			"ledger": ["company_cash"],
+			"company_cash_delta": sales_cash_credit,
+		})
 	_record_transaction({
 		"type": "payroll_settlement",
 		"source_employee_id": "",
@@ -169,13 +184,14 @@ func settle(
 		"requested_amount": payroll + debt_opening,
 		"applied_amount": paid_current + paid_old_debt,
 		"ledger": ["company_cash", "upkeep_debt"],
-		"company_cash_delta": cash_closing - opening_cash,
+		"company_cash_delta": cash_closing - available,
 		"upkeep_debt_delta": debt_closing - debt_opening,
 	})
 	var result := {
 		"day": display_day if display_day > 0 else day,
 		"gross_revenue": revenue,
-		"sales_cash_credited": revenue,
+		"sales_goal": daily_sales_goal,
+		"sales_cash_credited": maxi(revenue - daily_sales_goal, 0),
 		"day_opening_cash": day_opening_cash,
 		"augment_cash_effect_net": day_cash_effect_net,
 		"current_upkeep": payroll,
@@ -183,7 +199,7 @@ func settle(
 		"bench_upkeep": maxi(bench_upkeep, 0),
 		"opening_cash": opening_cash,
 		"available_funds": available,
-		"cash_before_payroll": opening_cash,
+		"cash_before_payroll": available,
 		"debt_brought_forward": debt_opening,
 		"paid_current_upkeep": paid_current,
 		"current_upkeep_shortfall": current_shortfall,
@@ -205,6 +221,7 @@ func to_dict() -> Dictionary:
 	return {
 		"company_cash": maxi(company_cash, 0),
 		"daily_sales_revenue": maxi(daily_sales_revenue, 0),
+		"daily_sales_goal": maxi(daily_sales_goal, 0),
 		"day_opening_cash": maxi(day_opening_cash, 0),
 		"day_cash_effect_net": day_cash_effect_net,
 		"current_day": maxi(current_day, 1),
@@ -233,6 +250,7 @@ func load_dict(data: Dictionary) -> bool:
 			return false
 	company_cash = maxi(int(data.get("company_cash", STARTING_CASH)), 0)
 	daily_sales_revenue = maxi(int(data.get("daily_sales_revenue", 0)), 0)
+	daily_sales_goal = maxi(int(data.get("daily_sales_goal", 0)), 0)
 	day_opening_cash = maxi(int(data.get("day_opening_cash", company_cash)), 0)
 	day_cash_effect_net = int(data.get("day_cash_effect_net", 0))
 	current_day = maxi(int(data.get("current_day", 1)), 1)

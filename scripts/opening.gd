@@ -259,5 +259,6 @@ func _draw() -> void:
 		# The grand reveal resolves to nine very ordinary workstations.
 		var origin := Vector2(size.x - 70.0 * unit, 94.0 * unit)
 		for seat in range(9):
-			var cell := origin + Vector2((seat % 3) * 11, (seat / 3) * 11) * unit
+			var row_index := floori(float(seat) / 3.0)
+			var cell := origin + Vector2((seat % 3) * 11, row_index * 11) * unit
 			draw_rect(Rect2(cell, Vector2(6, 6) * unit), Color(TEAL, 0.65))

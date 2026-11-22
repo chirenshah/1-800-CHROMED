@@ -1,7 +1,7 @@
 extends Control
 
 enum Phase { PREPARE, PLAY, REPORT, REWARD_MANAGEMENT, TERMINATED }
-enum PrepareView { STORE, FLOOR, ROSTER }
+enum PrepareView { FLOOR, STORE, CALENDAR }
 @export_enum("End-of-day snapshot (prototype):end_of_day_snapshot")
 var payroll_sampling_policy: String = "end_of_day_snapshot"
 
@@ -9,32 +9,39 @@ const EMPLOYEE_SCENE := preload("res://scenes/employee.tscn")
 const DAY_TICKS := 48 # Twelve game hours at three real seconds per hour.
 const BASE_SCORE_TARGET := 1000
 const SCORE_TARGET_STEP := 250
+const REFERENCE_WIDTH := 1280.0
+const REFERENCE_HEIGHT := 720.0
+const HEADER_HEIGHT := 72.0
+const BOTTOM_PANEL_HEIGHT := 160.0
+const SIDEBAR_WIDTH := 160.0
 
-@onready var prepare_tab: Button = $PageMargin/Page/Tabs/PrepareTab
-@onready var play_tab: Button = $PageMargin/Page/Tabs/PlayTab
-@onready var report_tab: Button = $PageMargin/Page/Tabs/ReportTab
-@onready var store_view_tab: Button = $PageMargin/Page/Tabs/StoreViewTab
-@onready var floor_view_tab: Button = $PageMargin/Page/Tabs/FloorViewTab
-@onready var roster_view_tab: Button = $PageMargin/Page/Tabs/RosterViewTab
-@onready var items_button: Button = $PageMargin/Page/Tabs/ItemsButton
-@onready var people_button: Button = $PageMargin/Page/Tabs/PeopleButton
-@onready var inventory_panel: InventoryPanel = $PageMargin/Page/InventoryPanel
-@onready var phase_label: Label = $PageMargin/Page/Tabs/PhaseLabel
+@onready var prepare_sidebar: PanelContainer = $PageMargin/Page/Workspace/PrepareSidebar
+@onready var scoreboard: RevenueScoreboard = $PageMargin/Page/Workspace/Scoreboard
+@onready var floor_view_button: Button = $PageMargin/Page/Workspace/PrepareSidebar/Margin/Content/FloorButton
+@onready var store_view_button: Button = $PageMargin/Page/Workspace/PrepareSidebar/Margin/Content/StoreButton
+@onready var calendar_view_button: Button = $PageMargin/Page/Workspace/PrepareSidebar/Margin/Content/CalendarButton
+@onready var begin_workday_button: Button = $PageMargin/Page/Workspace/PrepareSidebar/Margin/Content/BeginWorkdayButton
+@onready var primary_button: Button = $PageMargin/Page/Workspace/PrepareSidebar/Margin/Content/BeginWorkdayButton
+@onready var inventory_panel: InventoryPanel = $PageMargin/Page/BottomPanel/InventoryPanel
+@onready var phase_label: Label = $PageMargin/Page/Header/PhaseLabel
 @onready var day_label: Label = $PageMargin/Page/Header/DayLabel
+@onready var cash_label: Label = $PageMargin/Page/Header/CashLabel
+@onready var daily_goal_label: Label = $PageMargin/Page/Header/DailyGoalLabel
+@onready var writeups_label: Label = $PageMargin/Page/Header/WriteupsLabel
 @onready var shift_clock: Label = $PageMargin/Page/Header/ShiftClock
-@onready var floor_grid: GridContainer = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorScroll/FloorGrid
-@onready var revenue_label: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader/RevenueLabel
-@onready var target_label: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader/TargetLabel
-@onready var status_label: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer/StatusLabel
-@onready var pause_button: Button = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer/PauseButton
-@onready var primary_button: Button = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer/PrimaryButton
-@onready var report_panel: ReportPanel = $PageMargin/Page/Body/ReportPanel
-@onready var slam_board: SalesSlamBoard = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/SalesSlamBoard
-@onready var queue_panel: CallQueuePanel = $PageMargin/Page/Body/CallQueuePanel
-@onready var planning_panel: PlanningPanel = $PageMargin/Page/Body/PlanningPanel
-@onready var store_panel: StorePanel = $PageMargin/Page/Body/StorePanel
-@onready var floor_title: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader/FloorTitle
-@onready var planning_guide: Label = $PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/PlanningGuide
+@onready var floor_grid: GridContainer = $PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/FloorScroll/FloorGrid
+@onready var revenue_label: Label = $PageMargin/Page/Workspace/Scoreboard/Margin/Content/RevenueLabel
+@onready var target_label: Label = $PageMargin/Page/Workspace/Scoreboard/Margin/Content/TargetLabel
+@onready var status_label: Label = $PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/Footer/StatusLabel
+@onready var pause_button: Button = $PageMargin/Page/Workspace/Scoreboard/Margin/Content/PauseButton
+@onready var report_panel: ReportPanel = $PageMargin/Page/Workspace/MainContent/MainPanels/ReportPanel
+@onready var slam_board: SalesSlamBoard = $PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/SalesSlamBoard
+@onready var queue_panel: CallQueuePanel = $PageMargin/Page/BottomPanel/CallQueuePanel
+@onready var planning_panel: PlanningPanel = $PageMargin/Page/Workspace/MainContent/MainPanels/PlanningPanel
+@onready var store_panel: StorePanel = $PageMargin/Page/Workspace/MainContent/MainPanels/StorePanel
+@onready var calendar_panel: CalendarPanel = $PageMargin/Page/Workspace/MainContent/MainPanels/CalendarPanel
+@onready var floor_title: Label = $PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/FloorHeader/FloorTitle
+@onready var planning_guide: Label = $PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/PlanningGuide
 @onready var day_timer: Timer = $DayTimer
 
 var phase := Phase.PREPARE
@@ -61,7 +68,7 @@ func _ready() -> void:
 	_build_floor()
 	augment_manager.bind_financial_ledger(financial_ledger)
 	augment_manager.initialize_store_for_day(day)
-	financial_ledger.reset_daily_revenue(day)
+	financial_ledger.reset_daily_revenue(day, score_target(day))
 	call_queue.sale_settlement_callback = Callable(self, "_settle_sale")
 	call_queue.cash_effect_callback = Callable(self, "_apply_augment_cash_effect")
 	call_queue.financial_context_provider = Callable(self, "_financial_context")
@@ -75,25 +82,14 @@ func _ready() -> void:
 	planning_panel.hire_requested.connect(_hire_employee)
 	planning_panel.fire_requested.connect(_request_fire_employee)
 	planning_panel.return_reward_requested.connect(_return_to_pending_reward)
-	items_button.toggled.connect(func(_pressed: bool) -> void: _toggle_inventory(true))
-	people_button.toggled.connect(func(_pressed: bool) -> void: _toggle_inventory(false))
 	inventory_panel.drop_validator = _can_transfer
 	inventory_panel.transfer_requested.connect(_on_transfer_requested)
 	for card in employee_cards:
 		card.drop_validator = _can_transfer
 		card.dropped.connect(_on_transfer_requested)
-	prepare_tab.pressed.connect(func() -> void: _show_phase(Phase.PREPARE))
-	play_tab.pressed.connect(func() -> void: _show_phase(Phase.PLAY))
-	report_tab.pressed.connect(func() -> void: _show_phase(Phase.REPORT))
-	store_view_tab.pressed.connect(func() -> void: _select_prepare_view(PrepareView.STORE))
-	floor_view_tab.pressed.connect(func() -> void: _select_prepare_view(PrepareView.FLOOR))
-	roster_view_tab.pressed.connect(func() -> void: _select_prepare_view(PrepareView.ROSTER))
 	store_panel.augment_purchase_requested.connect(_purchase_store_augment)
 	store_panel.employee_hire_requested.connect(_hire_store_employee)
 	store_panel.reroll_requested.connect(_reroll_store)
-	store_panel.start_workday_requested.connect(_on_primary_pressed)
-	primary_button.pressed.connect(_on_primary_pressed)
-	pause_button.pressed.connect(_toggle_pause)
 	report_panel.next_day_requested.connect(_prepare_next_day)
 	report_panel.reward_option_selected.connect(_select_reward_option)
 	report_panel.reward_claim_requested.connect(_claim_reward)
@@ -113,10 +109,22 @@ func _ready() -> void:
 	_augment_confirmation.canceled.connect(_cancel_augment_action)
 	add_child(_augment_confirmation)
 	day_timer.timeout.connect(_on_day_timer_timeout)
+	var view_group := ButtonGroup.new()
+	view_group.allow_unpress = false
+	var view_buttons: Array[Button] = [floor_view_button, store_view_button, calendar_view_button]
+	for button in view_buttons:
+		button.button_group = view_group
+	floor_view_button.pressed.connect(func() -> void: _select_prepare_view(PrepareView.FLOOR))
+	store_view_button.pressed.connect(func() -> void: _select_prepare_view(PrepareView.STORE))
+	calendar_view_button.pressed.connect(func() -> void: _select_prepare_view(PrepareView.CALENDAR))
+	begin_workday_button.pressed.connect(_on_primary_pressed)
+	scoreboard.pause_requested.connect(_toggle_pause)
+	scoreboard.end_workday_requested.connect(_on_primary_pressed)
 	_refresh_augment_views()
 	_refresh_financial_ui()
 	resized.connect(_update_layout)
 	_update_layout()
+	call_deferred("_update_layout")
 	_show_score_target()
 	_show_phase(Phase.PREPARE)
 
@@ -126,12 +134,16 @@ func score_target(for_day: int) -> int:
 
 
 func _show_score_target() -> void:
-	target_label.text = "TARGET $%d  /  " % score_target(day)
+	var target := score_target(day)
+	target_label.text = "GOAL $%d" % target
+	daily_goal_label.text = "GOAL  $%d" % target
 
 
 func _build_floor() -> void:
 	for index in FloorPlan.SEAT_COUNT:
 		var card: EmployeeCard = EMPLOYEE_SCENE.instantiate()
+		card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		floor_grid.add_child(card)
 		card.configure(index + 1, floor_plan.profile(floor_plan.seats[index]))
 		card.seat_selected.connect(_select_seat)
@@ -218,16 +230,6 @@ func _cancel_fire_request() -> void:
 	_pending_fire_id = ""
 
 
-func _toggle_inventory(items: bool) -> void:
-	if items:
-		inventory_panel.toggle_items()
-	else:
-		inventory_panel.toggle_people()
-	items_button.set_pressed_no_signal(inventory_panel.items_open())
-	people_button.set_pressed_no_signal(inventory_panel.people_open())
-	_refresh_augment_views()
-
-
 func _refresh_augment_views() -> void:
 	planning_panel.update_augment_state(augment_manager, _is_management_phase())
 	planning_panel.set_pending_reward_management(not augment_manager.pending_reward.is_empty())
@@ -237,11 +239,7 @@ func _refresh_augment_views() -> void:
 
 
 func _refresh_store_panel() -> void:
-	store_panel.show_state(
-		augment_manager, day, phase == Phase.PREPARE,
-		staffed_seats.size() > 0 and augment_manager.pending_reward.is_empty()
-			and financial_ledger.writeups < FinancialLedger.WRITEUPS_TO_TERMINATE
-	)
+	store_panel.show_state(augment_manager, phase == Phase.PREPARE)
 
 
 func _payroll_snapshot() -> Dictionary:
@@ -285,9 +283,11 @@ func _apply_augment_cash_effect(
 func _refresh_financial_ui() -> void:
 	if not is_node_ready():
 		return
-	revenue_label.text = "SALES $%d · CASH $%d" % [
-		call_queue.revenue, augment_manager.budget,
+	cash_label.text = "CASH  $%d" % augment_manager.budget
+	writeups_label.text = "WRITE-UPS  %d/%d" % [
+		financial_ledger.writeups, FinancialLedger.WRITEUPS_TO_TERMINATE,
 	]
+	_show_score_target()
 	var projected := _payroll_snapshot()
 	planning_panel.show_financial_state(
 		augment_manager.budget, financial_ledger.daily_sales_revenue, financial_ledger.upkeep_debt,
@@ -593,22 +593,59 @@ func _refresh_card_stats() -> void:
 func _update_layout() -> void:
 	if not is_node_ready():
 		return
+	var header_ratio := HEADER_HEIGHT / REFERENCE_HEIGHT
+	var bottom_ratio := BOTTOM_PANEL_HEIGHT / REFERENCE_HEIGHT
+	var sidebar_ratio := SIDEBAR_WIDTH / REFERENCE_WIDTH
+	var header := $PageMargin/Page/Header as Control
+	var workspace := $PageMargin/Page/Workspace as Control
+	var main_content := $PageMargin/Page/Workspace/MainContent as Control
+	var sidebar_controls: Array[Control] = [
+		$PageMargin/Page/Workspace/PrepareSidebar,
+		$PageMargin/Page/Workspace/Scoreboard,
+	]
+	var bottom_panel := $PageMargin/Page/BottomPanel as Control
+	_set_region(header, 0.0, 0.0, 1.0, header_ratio)
+	_set_region(workspace, 0.0, header_ratio, 1.0, 1.0 - bottom_ratio)
+	_set_region(bottom_panel, 0.0, 1.0 - bottom_ratio, 1.0, 1.0)
+	_set_region(main_content, 0.0, 0.0, 1.0 - sidebar_ratio, 1.0)
+	for control in sidebar_controls:
+		_set_region(control, 1.0 - sidebar_ratio, 0.0, 1.0, 1.0)
+	var bottom_children: Array[Control] = [
+		$PageMargin/Page/BottomPanel/InventoryPanel,
+		$PageMargin/Page/BottomPanel/CallQueuePanel,
+	]
+	for control in bottom_children:
+		_set_region(control, 0.0, 0.0, 1.0, 1.0)
+	var content_panels: Array[Control] = [
+		$PageMargin/Page/Workspace/MainContent/MainPanels,
+	]
+	for panel in content_panels:
+		_set_region(panel, 0.0, 0.0, 1.0, 1.0)
 	var compact := size.y < 650
-	for edge in ["left", "right"]:
-		$PageMargin.add_theme_constant_override("margin_" + edge, 16 if compact else 32)
-	for edge in ["top", "bottom"]:
-		$PageMargin.add_theme_constant_override("margin_" + edge, 14 if compact else 24)
-	$PageMargin/Page.add_theme_constant_override("separation", 12 if compact else 18)
-	$PageMargin/Page/Header/Brand/Title.add_theme_font_size_override("font_size", 26 if compact else 30)
-	$PageMargin/Page/Body.add_theme_constant_override("separation", 12 if compact else 18)
-	var margin := $PageMargin/Page/Body/FloorPanel/FloorMargin
+	$PageMargin/Page/Header.add_theme_constant_override("separation", 6 if compact else 12)
+	$PageMargin/Page/Header/HeaderMargin/Brand/Title.add_theme_font_size_override("font_size", 20 if compact else 24)
+	$PageMargin/Page/Workspace/MainContent/MainPanels.add_theme_constant_override("separation", 10 if compact else 14)
+	var margin := $PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin
 	for edge in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + edge, 10 if compact else 16)
-	$PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent.add_theme_constant_override("separation", 6 if compact else 12)
+	$PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent.add_theme_constant_override("separation", 6 if compact else 12)
 	floor_grid.add_theme_constant_override("h_separation", 8 if compact else 10)
 	floor_grid.add_theme_constant_override("v_separation", 8 if compact else 10)
+	var card_height := clampf((workspace.size.y - 143.0) / 3.0, 80.0, 115.0)
 	for card in employee_cards:
-		card.set_compact(compact)
+		card.set_compact(compact, card_height)
+	calendar_panel.show_day(day)
+
+
+func _set_region(control: Control, left: float, top: float, right: float, bottom: float) -> void:
+	control.anchor_left = left
+	control.anchor_top = top
+	control.anchor_right = right
+	control.anchor_bottom = bottom
+	control.offset_left = 0.0
+	control.offset_top = 0.0
+	control.offset_right = 0.0
+	control.offset_bottom = 0.0
 
 
 func _select_prepare_view(view: PrepareView) -> void:
@@ -627,64 +664,53 @@ func _show_phase(next_phase: Phase, reset_prepare_view := true) -> void:
 	var report_visible := phase in [Phase.REPORT, Phase.TERMINATED]
 	var management_visible := _is_management_phase()
 	var store_visible := phase == Phase.PREPARE and prepare_view == PrepareView.STORE
-	var roster_visible := phase == Phase.PREPARE and prepare_view == PrepareView.ROSTER
-	var floor_visible := not store_visible and not roster_visible
+	var calendar_visible := phase == Phase.PREPARE and prepare_view == PrepareView.CALENDAR
+	var floor_visible := not store_visible and not calendar_visible
 	report_panel.visible = report_visible
 	queue_panel.visible = phase == Phase.PLAY
 	store_panel.visible = store_visible
-	$PageMargin/Page/Body.visible = not roster_visible
-	$PageMargin/Page/Body/FloorPanel.visible = floor_visible
+	calendar_panel.visible = calendar_visible
+	$PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel.visible = floor_visible
 	planning_panel.visible = management_visible and (
 		phase != Phase.PREPARE or prepare_view == PrepareView.FLOOR
 	)
-	planning_guide.visible = planning_panel.visible
+	planning_guide.visible = floor_visible and not report_visible
 	floor_grid.get_parent().visible = not report_visible
 	slam_board.visible = report_visible
-	revenue_label.visible = phase != Phase.PREPARE
-	store_view_tab.visible = phase == Phase.PREPARE
-	floor_view_tab.visible = phase == Phase.PREPARE
-	roster_view_tab.visible = phase == Phase.PREPARE
-	store_view_tab.set_pressed_no_signal(store_visible)
-	floor_view_tab.set_pressed_no_signal(phase == Phase.PREPARE and prepare_view == PrepareView.FLOOR)
-	roster_view_tab.set_pressed_no_signal(roster_visible)
-	items_button.visible = not store_visible and not roster_visible
-	people_button.visible = not store_visible and not roster_visible
-	if store_visible:
-		inventory_panel.hide_all()
-		items_button.set_pressed_no_signal(false)
-		people_button.set_pressed_no_signal(false)
-	elif roster_visible:
+	prepare_sidebar.visible = phase == Phase.PREPARE
+	scoreboard.visible = phase == Phase.PLAY
+	if phase in [Phase.PREPARE, Phase.REWARD_MANAGEMENT]:
 		inventory_panel.show_all()
+	else:
+		inventory_panel.hide_all()
+	floor_view_button.set_pressed_no_signal(phase == Phase.PREPARE and prepare_view == PrepareView.FLOOR)
+	store_view_button.set_pressed_no_signal(store_visible)
+	calendar_view_button.set_pressed_no_signal(calendar_visible)
+	calendar_panel.show_day(day)
 	_refresh_augment_views()
 	if report_visible and not augment_manager.pending_reward.is_empty():
 		_refresh_reward_ui()
-	prepare_tab.disabled = phase != Phase.PREPARE or financial_ledger.writeups >= FinancialLedger.WRITEUPS_TO_TERMINATE
-	play_tab.disabled = phase != Phase.PLAY
-	report_tab.disabled = not report_visible
+	begin_workday_button.disabled = not _can_start_workday()
 	pause_button.disabled = phase != Phase.PLAY
-	pause_button.visible = phase == Phase.PLAY
-	primary_button.visible = phase in [Phase.PREPARE, Phase.PLAY] and not store_visible and not roster_visible
+	scoreboard.end_workday_button.disabled = phase != Phase.PLAY
 	match phase:
 		Phase.PREPARE:
-			phase_label.text = "CHROME MARKET" if store_visible \
-				else "ROSTER / INVENTORY" if roster_visible else "PREPARATION OPEN"
+			phase_label.text = "PREPARE"
 			status_label.text = "Arrange your team before opening the floor."
-			primary_button.text = "Start Workday"
 			floor_title.text = "FLOOR PLAN"
 			if prepare_view == PrepareView.FLOOR:
 				planning_panel.show_plan(floor_plan, selected_seat, true)
 		Phase.REWARD_MANAGEMENT:
-			phase_label.text = "TEAM MANAGEMENT · REWARD PENDING"
+			phase_label.text = "REWARD MANAGEMENT"
 			status_label.text = "Manage augments or inventory, then return to the same reward offer."
 			floor_title.text = "TEAM MANAGEMENT"
 			planning_panel.show_plan(floor_plan, selected_seat, true)
 		Phase.PLAY:
-			phase_label.text = "FLOOR LIVE"
+			phase_label.text = "WORKDAY"
 			status_label.text = "The floor is operating autonomously."
-			primary_button.text = "End Workday"
 			floor_title.text = "SALES FLOOR"
 		Phase.REPORT:
-			phase_label.text = "REPORT READY"
+			phase_label.text = "REVIEW"
 			status_label.text = "Review the results before preparing the next day."
 			floor_title.text = "DAY CLOSED"
 		Phase.TERMINATED:
@@ -692,6 +718,12 @@ func _show_phase(next_phase: Phase, reset_prepare_view := true) -> void:
 			status_label.text = "Three write-ups were issued. No further workdays can begin."
 			floor_title.text = "RUN TERMINATED"
 	_refresh_floor()
+
+
+func _can_start_workday() -> bool:
+	return phase == Phase.PREPARE and not staffed_seats.is_empty() \
+		and financial_ledger.writeups < FinancialLedger.WRITEUPS_TO_TERMINATE \
+		and augment_manager.pending_reward.is_empty()
 
 
 func _on_primary_pressed() -> void:
@@ -706,6 +738,7 @@ func _start_day() -> void:
 		or financial_ledger.writeups >= FinancialLedger.WRITEUPS_TO_TERMINATE \
 		or not augment_manager.pending_reward.is_empty():
 		return
+	prepare_view = PrepareView.FLOOR
 	financial_ledger.begin_workday()
 	day_payroll_snapshot.clear()
 	call_queue.reset(floor_plan.seats, -1, augment_manager.equipment_instances)
@@ -806,8 +839,8 @@ func _prepare_next_day() -> void:
 	slam_board.stop()
 	day_payroll_snapshot.clear()
 	day = mini(day + 1, 60)
-	financial_ledger.reset_daily_revenue(day)
-	day_label.text = "DAY %02d / 60" % day
+	financial_ledger.reset_daily_revenue(day, score_target(day))
+	day_label.text = _day_label_text()
 	_show_score_target()
 	augment_manager.initialize_store_for_day(day)
 	_refresh_augment_views()
@@ -816,9 +849,16 @@ func _prepare_next_day() -> void:
 	_show_phase(Phase.PREPARE)
 
 
+func _day_label_text() -> String:
+	var month := floori(float(day - 1) / 20.0) + 1
+	var month_day := (day - 1) % 20 + 1
+	return "MONTH %d · DAY %02d / 20" % [month, month_day]
+
+
 func _refresh_floor() -> void:
 	var game_minutes := clampi(floori(call_queue.elapsed_seconds / EmployeeRoster.REAL_SECONDS_PER_GAME_HOUR * 60.0), 0, 720)
 	shift_clock.text = "%02d:%02d / 12:00" % [floori(game_minutes / 60.0), game_minutes % 60]
+	day_label.text = _day_label_text()
 	var state := "PREPARE"
 	if phase in [Phase.REPORT, Phase.TERMINATED]:
 		state = "CLOSED"
@@ -833,12 +873,9 @@ func _refresh_floor() -> void:
 			break_remaining = float(call_queue.employee_stats[employee_id]["break_remaining_seconds"])
 		employee_cards[index].show_call(call_queue.active.get(index, {}), state,
 			call_queue.completed_this_tick.get(index, {}), break_remaining)
-	primary_button.disabled = phase == Phase.PREPARE and (
-		staffed_seats.is_empty() or not augment_manager.pending_reward.is_empty()
-	)
-	revenue_label.text = "SALES $%d · CASH $%d" % [
-		call_queue.revenue, augment_manager.budget,
-	]
+	begin_workday_button.disabled = not _can_start_workday()
+	revenue_label.text = "$%d" % call_queue.revenue
+	scoreboard.show_state(call_queue.revenue, score_target(day), state, phase == Phase.PLAY, paused)
 	queue_panel.update_queue(
 		call_queue.waiting, call_queue.active.size(), call_queue.handled,
 		call_queue.received, state, call_queue.last_dispatch, call_queue.abandoned,

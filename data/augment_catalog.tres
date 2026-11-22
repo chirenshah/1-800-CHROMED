@@ -31,35 +31,35 @@ augments = Array[Dictionary]([
     "effects": [{"type": "position_stat", "stat": "speed", "values": [5.0, 4.0, 3.0, 4.0, 3.0, 2.0, 3.0, 2.0, 1.0], "duration": "continuous", "stacking": "non_stacking"}]},
   {"id": "AUG_011", "name": "Progress Vampire", "description": "On starting a call, takes up to 10 percentage points from adjacent active calls and gains the actual total.", "price": 0, "rarity": "Epic", "available_in_shop": false,
     "effects": [{"type": "progress_transfer", "trigger": "call_started", "selector": "adjacent", "value": 0.1, "duration": "instant", "stacking": "additive"}]},
-  {"id": "AUG_012", "name": "Corporate Saboteur", "description": "On failure, adjacent active calls lose 15 points; holder gains +0.5 Speed for three seconds.", "price": 0, "rarity": "Epic", "available_in_shop": false,
+  {"id": "AUG_012", "name": "Corporate Saboteur", "description": "On failure, adjacent active calls lose 15 points; holder gains +0.5 Speed for three seconds.", "price": 100, "rarity": "Epic", "available_in_shop": true,
     "effects": [
       {"type": "call_progress", "trigger": "failure", "selector": "adjacent", "value": -0.15, "duration": "instant", "stacking": "additive"},
       {"type": "stat_buff", "trigger": "failure", "selector": "self", "stat": "speed", "value": 0.5, "duration": "timed", "seconds": 3.0, "stacking": "additive"}
     ]},
-  {"id": "AUG_013", "name": "Executive Lifestyle", "description": "Doubles Upsell Multiplier and daily upkeep.", "price": 0, "rarity": "Common", "available_in_shop": false,
+  {"id": "AUG_013", "name": "Executive Lifestyle", "description": "Doubles Upsell Multiplier and daily upkeep.", "price": 100, "rarity": "Common", "available_in_shop": true,
     "effects": [
       {"type": "stat_percent", "stat": "upsell_multiplier", "value": 1.0, "duration": "continuous", "stacking": "additive"},
       {"type": "stat_percent", "stat": "daily_upkeep", "value": 1.0, "duration": "continuous", "stacking": "additive"}
     ]},
-  {"id": "AUG_014", "name": "Illegal Firmware", "description": "+40 Conversion; each failed call costs up to $25 cash.", "price": 0, "rarity": "Epic", "available_in_shop": false,
+  {"id": "AUG_014", "name": "Illegal Firmware", "description": "+40 Conversion; each failed call costs up to $25 cash.", "price": 100, "rarity": "Epic", "available_in_shop": true,
     "effects": [
       {"type": "stat_add", "stat": "conversion", "value": 40.0, "duration": "continuous", "stacking": "additive"},
       {"type": "cash_effect", "trigger": "failure", "action": "penalty", "value": 25, "duration": "instant", "stacking": "additive"}
     ]},
-  {"id": "AUG_015", "name": "Desperation Protocol", "description": "+30 Conversion while Company Cash is below $500.", "price": 0, "rarity": "Common", "available_in_shop": false,
+  {"id": "AUG_015", "name": "Desperation Protocol", "description": "+30 Conversion while Company Cash is below $500.", "price": 100, "rarity": "Common", "available_in_shop": true,
     "effects": [
       {"type": "conditional_stat", "stat": "conversion", "operation": "add", "value": 30.0,
        "condition": {"input": "company_cash", "operator": "lt", "value": 500}, "duration": "continuous", "stacking": "additive"}
     ]},
-  {"id": "AUG_016", "name": "Golden Age", "description": "+1 Speed per $1,000 Company Cash.", "price": 0, "rarity": "Legendary", "available_in_shop": false,
+  {"id": "AUG_016", "name": "Golden Age", "description": "+1 Speed per $1,000 Company Cash.", "price": 100, "rarity": "Legendary", "available_in_shop": true,
     "effects": [
       {"type": "cash_scaled_stat", "input": "company_cash", "stat": "speed", "coefficient": 0.001, "duration": "continuous", "stacking": "additive"}
     ]},
-  {"id": "AUG_017", "name": "Corporate Dependency", "description": "+1 Speed per $100 effective daily upkeep.", "price": 0, "rarity": "Rare", "available_in_shop": false,
+  {"id": "AUG_017", "name": "Corporate Dependency", "description": "+1 Speed per $100 effective daily upkeep.", "price": 100, "rarity": "Rare", "available_in_shop": true,
     "effects": [
       {"type": "derived_stat", "source_stat": "daily_upkeep", "target_stat": "speed", "coefficient": 0.01, "duration": "continuous", "stacking": "additive"}
     ]},
-  {"id": "AUG_018", "name": "Golden Parachute", "description": "Below $500 cash, upkeep is $0; otherwise upkeep triples and Conversion gains 50.", "price": 0, "rarity": "Legendary", "available_in_shop": false,
+  {"id": "AUG_018", "name": "Golden Parachute", "description": "Below $500 cash, upkeep is $0; otherwise upkeep triples and Conversion gains 50.", "price": 100, "rarity": "Legendary", "available_in_shop": true,
     "effects": [
       {"type": "conditional_stat", "stat": "daily_upkeep", "operation": "set", "value": 0.0,
        "condition": {"input": "company_cash", "operator": "lt", "value": 500}, "duration": "continuous", "stacking": "non_stacking"},
@@ -68,12 +68,12 @@ augments = Array[Dictionary]([
       {"type": "conditional_stat", "stat": "conversion", "operation": "add", "value": 50.0,
        "condition": {"input": "company_cash", "operator": "gte", "value": 500}, "duration": "continuous", "stacking": "additive"}
     ]},
-  {"id": "AUG_019", "name": "Liquidation Engine", "description": "On conversion, spend up to $100 for +0.1 call progress per $100 actually spent on adjacent callers.", "price": 0, "rarity": "Epic", "available_in_shop": false,
+  {"id": "AUG_019", "name": "Liquidation Engine", "description": "On conversion, spend up to $100 for +0.1 call progress per $100 actually spent on adjacent callers.", "price": 100, "rarity": "Epic", "available_in_shop": true,
     "effects": [
       {"type": "cash_effect", "trigger": "conversion", "selector": "adjacent", "action": "spend_for_progress",
        "value": 100, "progress_per_dollar": 0.001, "duration": "instant", "stacking": "additive"}
     ]},
-  {"id": "AUG_020", "name": "Commission Junkie", "description": "On upsell, grants $25 cash; a completed call without an upsell costs up to $25.", "price": 0, "rarity": "Epic", "available_in_shop": false,
+  {"id": "AUG_020", "name": "Commission Junkie", "description": "On upsell, grants $25 cash; a completed call without an upsell costs up to $25.", "price": 100, "rarity": "Epic", "available_in_shop": true,
     "effects": [
       {"type": "cash_effect", "trigger": "upsell", "action": "grant", "value": 25,
        "duration": "instant", "stacking": "additive"},

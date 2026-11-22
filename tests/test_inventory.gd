@@ -142,15 +142,17 @@ func _test_scene() -> void:
 	for frame in range(4):
 		await process_frame
 	var panel: InventoryPanel = scene.inventory_panel
-	_check(not panel.visible and scene.store_panel.visible and scene.items_button != null
-		and scene.people_button != null,
-		"Prepare opens the Store while the separate inventory remains hidden.")
+	_check(panel.visible and scene.store_panel.visible and panel.person_cells.size() == 6
+		and panel.item_cells.size() == 12 and panel.people_section.visible and panel.items_section.visible,
+		"Prepare opens the Store with both inventory sections persistently visible.")
 	scene._select_prepare_view(scene.PrepareView.FLOOR)
-	scene._toggle_inventory(true)
-	_check(panel.visible and panel.items_open() and not panel.people_open() and panel.item_cells.size() == 12,
-		"The Items button must open the 12-slot item grid.")
-	scene._toggle_inventory(false)
-	_check(panel.people_open() and panel.person_cells.size() == 6, "The Salespeople button must open the six-slot reserve.")
+	_check(panel.visible and scene.floor_view_button.button_pressed and not scene.store_panel.visible,
+		"Selecting Sales Floor must leave both inventory sections visible.")
+	scene._select_prepare_view(scene.PrepareView.CALENDAR)
+	_check(panel.visible and scene.calendar_panel.visible and not scene.floor_view_button.button_pressed,
+		"Selecting Calendar must preserve the bottom inventory.")
+	scene._select_prepare_view(scene.PrepareView.STORE)
+	_check(panel.visible and scene.store_panel.visible, "Returning to Store must preserve inventory state.")
 	scene.augment_manager.budget = 1000
 	scene._hire_employee("dex")
 	scene.augment_manager.store_offers[0] = {

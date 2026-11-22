@@ -1,6 +1,6 @@
-[gd_scene load_steps=10 format=3 uid="uid://p2s4qihj3jyh"]
+[gd_scene load_steps=16 format=3]
 
-[ext_resource type="Script" uid="uid://oqlsuo4hvvgd" path="res://scripts/workday.gd" id="1_workday"]
+[ext_resource type="Script" path="res://scripts/workday.gd" id="1_workday"]
 [ext_resource type="PackedScene" path="res://scenes/report_panel.tscn" id="2_report"]
 [ext_resource type="PackedScene" path="res://scenes/call_queue_panel.tscn" id="3_queue"]
 [ext_resource type="PackedScene" path="res://scenes/planning_panel.tscn" id="4_planning"]
@@ -8,6 +8,8 @@
 [ext_resource type="PackedScene" path="res://scenes/inventory_panel.tscn" id="6_inventory"]
 [ext_resource type="Script" path="res://scripts/sales_slam_board.gd" id="7_slam"]
 [ext_resource type="PackedScene" path="res://scenes/store_panel.tscn" id="8_store"]
+[ext_resource type="PackedScene" path="res://scenes/revenue_scoreboard.tscn" id="9_scoreboard"]
+[ext_resource type="PackedScene" path="res://scenes/calendar_panel.tscn" id="10_calendar"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_floor"]
 bg_color = Color(0.05, 0.067, 0.106, 1)
@@ -16,10 +18,54 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.16, 0.21, 0.29, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_left = 10
-corner_radius_bottom_right = 10
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_sidebar"]
+bg_color = Color(0.05, 0.067, 0.106, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.16, 0.21, 0.29, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_nav"]
+bg_color = Color(0.075, 0.10, 0.15, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.17, 0.23, 0.30, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_nav_active"]
+bg_color = Color(0.08, 0.20, 0.21, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.29, 0.94, 0.82, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_begin"]
+bg_color = Color(0.29, 0.94, 0.82, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.29, 0.94, 0.82, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
 
 [node name="Workday" type="Control" unique_id=713591245]
 layout_mode = 3
@@ -40,158 +86,166 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.035, 0.047, 0.078, 1)
 
-[node name="PageMargin" type="MarginContainer" parent="." unique_id=1365464593]
+[node name="PageMargin" type="Control" parent="." unique_id=1365464593]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 32
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 32
-theme_override_constants/margin_bottom = 24
 
-[node name="Page" type="VBoxContainer" parent="PageMargin" unique_id=51821430]
-layout_mode = 2
-theme_override_constants/separation = 18
+[node name="Page" type="Control" parent="PageMargin" unique_id=51821430]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="Header" type="HBoxContainer" parent="PageMargin/Page" unique_id=1412024122]
-layout_mode = 2
-theme_override_constants/separation = 18
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
 
-[node name="Brand" type="VBoxContainer" parent="PageMargin/Page/Header" unique_id=1643182848]
+[node name="HeaderMargin" type="MarginContainer" parent="PageMargin/Page/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 4
+
+[node name="Brand" type="VBoxContainer" parent="PageMargin/Page/Header/HeaderMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 0
 
-[node name="Eyebrow" type="Label" parent="PageMargin/Page/Header/Brand" unique_id=1007430427]
+[node name="Eyebrow" type="Label" parent="PageMargin/Page/Header/HeaderMargin/Brand"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 11
+text = "GRADE C-7"
+
+[node name="Title" type="Label" parent="PageMargin/Page/Header/HeaderMargin/Brand"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 24
+text = "1-800-CHROMED"
+text_overrun_behavior = 3
+
+[node name="PhaseLabel" type="Label" parent="PageMargin/Page/Header"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
+theme_override_font_sizes/font_size = 12
+text = "PREPARE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DayLabel" type="Label" parent="PageMargin/Page/Header" unique_id=2129501966]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.69, 0.8, 1)
+theme_override_font_sizes/font_size = 12
+text = "MONTH 1 · DAY 01 / 20"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CashLabel" type="Label" parent="PageMargin/Page/Header"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
+theme_override_font_sizes/font_size = 13
+text = "CASH  $500"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DailyGoalLabel" type="Label" parent="PageMargin/Page/Header"]
+custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
 theme_override_font_sizes/font_size = 13
-text = "1-800-CHROMED / GRADE C-7"
+text = "GOAL  $1000"
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Title" type="Label" parent="PageMargin/Page/Header/Brand" unique_id=97646926]
+[node name="WriteupsLabel" type="Label" parent="PageMargin/Page/Header"]
+custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
-theme_override_font_sizes/font_size = 30
-text = "Sales Floor"
-
-[node name="DayLabel" type="Label" parent="PageMargin/Page/Header" unique_id=2129501966]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.62, 0.69, 0.8, 1)
-theme_override_font_sizes/font_size = 16
-text = "DAY 01 / 60"
+theme_override_colors/font_color = Color(0.95, 0.48, 0.44, 1)
+theme_override_font_sizes/font_size = 12
+text = "WRITE-UPS  0/3"
+horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="ShiftClock" type="Label" parent="PageMargin/Page/Header"]
+custom_minimum_size = Vector2(82, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 13
 text = "00:00 / 12:00"
+horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="MusicButton" parent="PageMargin/Page/Header" instance=ExtResource("5_music_button")]
 layout_mode = 2
 size_flags_vertical = 4
 
-[node name="Tabs" type="HBoxContainer" parent="PageMargin/Page" unique_id=591088129]
-layout_mode = 2
-theme_override_constants/separation = 8
+[node name="Workspace" type="Control" parent="PageMargin/Page"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="PrepareTab" type="Button" parent="PageMargin/Page/Tabs" unique_id=979421651]
-layout_mode = 2
-text = "1  PREPARE"
+[node name="MainContent" type="Control" parent="PageMargin/Page/Workspace"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="PlayTab" type="Button" parent="PageMargin/Page/Tabs" unique_id=1788695040]
-layout_mode = 2
-text = "2  PLAY"
+[node name="MainPanels" type="HBoxContainer" parent="PageMargin/Page/Workspace/MainContent"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
 
-[node name="ReportTab" type="Button" parent="PageMargin/Page/Tabs" unique_id=977918931]
-layout_mode = 2
-text = "3  REPORT"
-
-[node name="StoreViewTab" type="Button" parent="PageMargin/Page/Tabs"]
-visible = false
-layout_mode = 2
-toggle_mode = true
-text = "STORE"
-
-[node name="FloorViewTab" type="Button" parent="PageMargin/Page/Tabs"]
-visible = false
-layout_mode = 2
-toggle_mode = true
-text = "SALES FLOOR"
-
-[node name="RosterViewTab" type="Button" parent="PageMargin/Page/Tabs"]
-visible = false
-layout_mode = 2
-toggle_mode = true
-text = "ROSTER / INVENTORY"
-
-[node name="ItemsButton" type="Button" parent="PageMargin/Page/Tabs"]
-layout_mode = 2
-toggle_mode = true
-text = "ITEMS"
-tooltip_text = "Open the 2×6 item inventory."
-
-[node name="PeopleButton" type="Button" parent="PageMargin/Page/Tabs"]
-layout_mode = 2
-toggle_mode = true
-text = "SALESPEOPLE"
-tooltip_text = "Open the 1×6 salesperson reserve."
-
-[node name="PhaseLabel" type="Label" parent="PageMargin/Page/Tabs" unique_id=173177693]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
-text = "PREPARATION OPEN"
-horizontal_alignment = 2
-vertical_alignment = 1
-
-[node name="Body" type="HBoxContainer" parent="PageMargin/Page" unique_id=1780260572]
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/separation = 18
-
-[node name="FloorPanel" type="PanelContainer" parent="PageMargin/Page/Body" unique_id=2125715821]
+[node name="FloorPanel" type="PanelContainer" parent="PageMargin/Page/Workspace/MainContent/MainPanels" unique_id=2125715821]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_styles/panel = SubResource("StyleBox_floor")
 
-[node name="FloorMargin" type="MarginContainer" parent="PageMargin/Page/Body/FloorPanel" unique_id=1086089980]
+[node name="FloorMargin" type="MarginContainer" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel" unique_id=1086089980]
 layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
 
-[node name="FloorContent" type="VBoxContainer" parent="PageMargin/Page/Body/FloorPanel/FloorMargin" unique_id=240618381]
+[node name="FloorContent" type="VBoxContainer" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin" unique_id=240618381]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 12
 
-[node name="FloorHeader" type="HBoxContainer" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent" unique_id=1913698545]
+[node name="FloorHeader" type="HBoxContainer" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent" unique_id=1913698545]
 layout_mode = 2
 
-[node name="FloorTitle" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader" unique_id=1954159595]
+[node name="FloorTitle" type="Label" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/FloorHeader" unique_id=1954159595]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 20
 text = "FLOOR PLAN"
 
-[node name="TargetLabel" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.98, 0.72, 0.4, 1)
-theme_override_font_sizes/font_size = 14
-text = "TARGET $1000  /  "
-
-[node name="RevenueLabel" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorHeader" unique_id=1748836642]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
-theme_override_font_sizes/font_size = 20
-text = "$0"
-
-[node name="PlanningGuide" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent"]
+[node name="PlanningGuide" type="Label" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.62, 0.73, 0.79, 1)
@@ -199,30 +253,28 @@ text = "Calls go to the first available seat, in number order."
 tooltip_text = "Leads go automatically to the first available employee. Select a seat to arrange the team during Prepare."
 autowrap_mode = 2
 
-[node name="FloorScroll" type="ScrollContainer" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent"]
+[node name="FloorScroll" type="ScrollContainer" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
+vertical_scroll_mode = 0
 
-[node name="FloorGrid" type="GridContainer" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/FloorScroll" unique_id=1054994530]
+[node name="FloorGrid" type="GridContainer" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/FloorScroll" unique_id=1054994530]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
 theme_override_constants/h_separation = 10
 theme_override_constants/v_separation = 10
 columns = 3
 
-[node name="SalesSlamBoard" type="Control" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent"]
+[node name="SalesSlamBoard" type="Control" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent"]
 visible = false
 layout_mode = 2
 size_flags_vertical = 3
 script = ExtResource("7_slam")
 
-[node name="Footer" type="HBoxContainer" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent" unique_id=293973583]
+[node name="Footer" type="HBoxContainer" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent" unique_id=293973583]
 layout_mode = 2
-theme_override_constants/separation = 10
 
-[node name="StatusLabel" type="Label" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer" unique_id=1975266708]
+[node name="StatusLabel" type="Label" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/Footer" unique_id=1975266708]
 custom_minimum_size = Vector2(130, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -232,33 +284,124 @@ text = "Arrange your team before opening the floor."
 autowrap_mode = 2
 vertical_alignment = 1
 
-[node name="PauseButton" type="Button" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer" unique_id=738549551]
+[node name="PlanningPanel" parent="PageMargin/Page/Workspace/MainContent/MainPanels" instance=ExtResource("4_planning")]
 layout_mode = 2
-disabled = true
-text = "Pause"
 
-[node name="PrimaryButton" type="Button" parent="PageMargin/Page/Body/FloorPanel/FloorMargin/FloorContent/Footer" unique_id=1912375388]
-custom_minimum_size = Vector2(150, 42)
-layout_mode = 2
-text = "Start Workday"
-
-[node name="CallQueuePanel" parent="PageMargin/Page/Body" instance=ExtResource("3_queue")]
+[node name="StorePanel" parent="PageMargin/Page/Workspace/MainContent/MainPanels" instance=ExtResource("8_store")]
 visible = false
 layout_mode = 2
 
-[node name="PlanningPanel" parent="PageMargin/Page/Body" instance=ExtResource("4_planning")]
-layout_mode = 2
-
-[node name="StorePanel" parent="PageMargin/Page/Body" instance=ExtResource("8_store")]
-layout_mode = 2
-
-[node name="ReportPanel" parent="PageMargin/Page/Body" unique_id=720570923 instance=ExtResource("2_report")]
+[node name="CalendarPanel" parent="PageMargin/Page/Workspace/MainContent/MainPanels" instance=ExtResource("10_calendar")]
 visible = false
 layout_mode = 2
 
-[node name="InventoryPanel" parent="PageMargin/Page" instance=ExtResource("6_inventory")]
+[node name="ReportPanel" parent="PageMargin/Page/Workspace/MainContent/MainPanels" unique_id=720570923 instance=ExtResource("2_report")]
+visible = false
+layout_mode = 2
+
+[node name="PrepareSidebar" type="PanelContainer" parent="PageMargin/Page/Workspace"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBox_sidebar")
+
+[node name="Margin" type="MarginContainer" parent="PageMargin/Page/Workspace/PrepareSidebar"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 12
+
+[node name="Content" type="VBoxContainer" parent="PageMargin/Page/Workspace/PrepareSidebar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NavigationTitle" type="Label" parent="PageMargin/Page/Workspace/PrepareSidebar/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 12
+text = "PREPARE"
+horizontal_alignment = 1
+
+[node name="FloorButton" type="Button" parent="PageMargin/Page/Workspace/PrepareSidebar/Margin/Content"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+toggle_mode = true
+theme_override_styles/normal = SubResource("StyleBox_nav")
+theme_override_styles/hover = SubResource("StyleBox_nav_active")
+theme_override_styles/pressed = SubResource("StyleBox_nav_active")
+text = "SALES FLOOR"
+
+[node name="StoreButton" type="Button" parent="PageMargin/Page/Workspace/PrepareSidebar/Margin/Content"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+toggle_mode = true
+theme_override_styles/normal = SubResource("StyleBox_nav")
+theme_override_styles/hover = SubResource("StyleBox_nav_active")
+theme_override_styles/pressed = SubResource("StyleBox_nav_active")
+text = "STORE"
+
+[node name="CalendarButton" type="Button" parent="PageMargin/Page/Workspace/PrepareSidebar/Margin/Content"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+toggle_mode = true
+theme_override_styles/normal = SubResource("StyleBox_nav")
+theme_override_styles/hover = SubResource("StyleBox_nav_active")
+theme_override_styles/pressed = SubResource("StyleBox_nav_active")
+text = "CALENDAR"
+
+[node name="Spacer" type="Control" parent="PageMargin/Page/Workspace/PrepareSidebar/Margin/Content"]
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="BeginWorkdayButton" type="Button" parent="PageMargin/Page/Workspace/PrepareSidebar/Margin/Content"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBox_begin")
+theme_override_styles/hover = SubResource("StyleBox_nav_active")
+theme_override_styles/disabled = SubResource("StyleBox_nav")
+theme_override_colors/font_color = Color(0.035, 0.047, 0.078, 1)
+theme_override_colors/font_disabled_color = Color(0.62, 0.69, 0.8, 1)
+theme_override_colors/font_pressed_color = Color(0.035, 0.047, 0.078, 1)
+theme_override_font_sizes/font_size = 12
+text = "BEGIN WORKDAY"
+
+[node name="Scoreboard" parent="PageMargin/Page/Workspace" instance=ExtResource("9_scoreboard")]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BottomPanel" type="Control" parent="PageMargin/Page"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="InventoryPanel" parent="PageMargin/Page/BottomPanel" instance=ExtResource("6_inventory")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CallQueuePanel" parent="PageMargin/Page/BottomPanel" instance=ExtResource("3_queue")]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="DayTimer" type="Timer" parent="." unique_id=779337678]
 wait_time = 0.75

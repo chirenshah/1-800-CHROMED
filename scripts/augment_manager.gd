@@ -350,7 +350,7 @@ func replace_slot_from_inventory(employee_id: String, equip_index: int, item_slo
 	return bag.replace_item(employee_id, equip_index, item_slot)
 
 
-func unequip(employee_id: String, slot_index: int) -> bool:
+func unequip(_employee_id: String, _slot_index: int) -> bool:
 	return false
 
 

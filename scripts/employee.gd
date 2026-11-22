@@ -73,16 +73,17 @@ func set_planning_state(editable: bool, is_selected: bool) -> void:
 	_refresh_style()
 
 
-func set_compact(compact: bool) -> void:
-	custom_minimum_size = Vector2(134, 104 if compact else 116)
-	name_label.add_theme_font_size_override("font_size", 16 if compact else 18)
-	seat_label.add_theme_font_size_override("font_size", 10 if compact else 11)
-	role_label.add_theme_font_size_override("font_size", 11 if compact else 13)
-	status_label.add_theme_font_size_override("font_size", 10 if compact else 12)
-	stats_label.add_theme_font_size_override("font_size", 10 if compact else 11)
-	$Margin/Content.add_theme_constant_override("separation", 1 if compact else 4)
+func set_compact(compact: bool, card_height: float = -1.0) -> void:
+	var default_height := 104.0 if compact else 116.0
+	custom_minimum_size = Vector2(134, card_height if card_height > 0.0 else default_height)
+	name_label.add_theme_font_size_override("font_size", 12 if compact else 18)
+	seat_label.add_theme_font_size_override("font_size", 8 if compact else 11)
+	role_label.add_theme_font_size_override("font_size", 9 if compact else 13)
+	status_label.add_theme_font_size_override("font_size", 8 if compact else 12)
+	stats_label.add_theme_font_size_override("font_size", 8 if compact else 11)
+	$Margin/Content.add_theme_constant_override("separation", 0 if compact else 4)
 	for edge in ["left", "right", "top", "bottom"]:
-		$Margin.add_theme_constant_override("margin_" + edge, 6 if compact else 10)
+		$Margin.add_theme_constant_override("margin_" + edge, 4 if compact else 10)
 
 
 func _refresh_style() -> void:
@@ -135,8 +136,8 @@ func _gui_input(event: InputEvent) -> void:
 		seat_selected.emit(seat_number - 1)
 
 
-func show_call(call: Dictionary, state: String, completed: Dictionary = {}, break_remaining: float = 0.0) -> void:
-	var call_id := int(call.get("id", -1))
+func show_call(lead: Dictionary, state: String, completed: Dictionary = {}, break_remaining: float = 0.0) -> void:
+	var call_id := int(lead.get("id", -1))
 	if call_id != _displayed_call_id:
 		if _assignment_tween != null:
 			_assignment_tween.kill()
@@ -147,13 +148,13 @@ func show_call(call: Dictionary, state: String, completed: Dictionary = {}, brea
 			_assignment_tween = create_tween()
 			_assignment_tween.tween_property(self, "modulate", Color.WHITE, 0.25)
 		_displayed_call_id = call_id
-	call_progress.visible = not call.is_empty()
+	call_progress.visible = not lead.is_empty()
 	status_label.visible = staffed and state != "PREPARE"
 	tooltip_text = "Select this workstation to plan its assignment. Intake priority stays with the seat." if state == "PREPARE" else ""
 	if not staffed:
 		status_label.text = "OPEN SEAT"
 		status_label.add_theme_color_override("font_color", Color(0.62, 0.69, 0.8))
-	elif call.is_empty():
+	elif lead.is_empty():
 		status_label.text = "DAY CLOSED" if state == "CLOSED" else "READY"
 		if break_remaining > 0.0 and state in ["LIVE", "PAUSED"]:
 			status_label.text = "BREAK · %.1fs left" % break_remaining
@@ -161,14 +162,14 @@ func show_call(call: Dictionary, state: String, completed: Dictionary = {}, brea
 			status_label.text = "DONE #%03d · READY" % completed["id"]
 		status_label.add_theme_color_override("font_color", Color(0.98, 0.72, 0.25))
 	else:
-		var prefix := "RECYCLING" if call.get("recovery", false) else "ON CALL"
+		var prefix := "RECYCLING" if lead.get("recovery", false) else "ON CALL"
 		if state == "PAUSED":
 			prefix = "PAUSED"
 		elif state == "CLOSED":
 			prefix = "UNFINISHED"
-		status_label.text = "%s #%03d" % [prefix, call["id"]]
+		status_label.text = "%s #%03d" % [prefix, lead["id"]]
 		status_label.add_theme_color_override("font_color",
 			Color(0.29, 0.94, 0.82) if state == "LIVE" else Color(0.98, 0.72, 0.25))
 		call_progress.max_value = 1.0
-		call_progress.value = float(call.get("progress", 0.0))
-		tooltip_text = "Call #%03d · Potential sale $%d" % [call["id"], call["value"]]
+		call_progress.value = float(lead.get("progress", 0.0))
+		tooltip_text = "Call #%03d · Potential sale $%d" % [lead["id"], lead["value"]]

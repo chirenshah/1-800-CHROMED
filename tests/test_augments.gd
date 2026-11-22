@@ -31,6 +31,13 @@ func _run() -> void:
 
 func _test_manager() -> void:
 	var manager := MANAGER.new()
+	for augment_id in [
+		"AUG_012", "AUG_013", "AUG_014", "AUG_015", "AUG_016",
+		"AUG_017", "AUG_018", "AUG_019", "AUG_020",
+	]:
+		var augment := MANAGER.CATALOG.profile(augment_id)
+		_check(augment.get("available_in_shop", false) and int(augment.get("price", 0)) == 100,
+			"%s must be available in the Store for $100." % augment_id)
 	_check(manager.store_offers.size() == MANAGER.STORE_SLOT_COUNT,
 		"A new store contains four standard, one premium, and two recruitment slots.")
 	var standard_ids: Array[String] = []
@@ -238,9 +245,9 @@ func _test_workday_integration() -> void:
 		"Prepare opens the seven-slot Store with five augment cards and two recruitment cards.")
 	scene.augment_manager.store_offers[0] = _augment_offer("AUG_001", "Common", "standard")
 	scene._refresh_augment_views()
-	_check(scene.store_panel.cash_label.text.contains("$500")
+	_check(scene.cash_label.text.contains("$500")
 		and scene.store_panel.augment_buy_buttons[0].text == "BUY · $100",
-		"Store cards show the current Company Cash and the augment's rarity-tier price.")
+		"The header shows Company Cash and the Store card shows the augment's price.")
 	scene._purchase_store_augment(0)
 	scene._equip_augment("nina", 0)
 	_check(scene.augment_manager.budget == 400 and scene.augment_manager.loadout("nina") == ["AUG_001"],
@@ -258,11 +265,16 @@ func _test_workday_integration() -> void:
 	scene.call_queue.revenue = 50
 	scene.call_queue.sale_log.append({"id": 0, "value": 50, "employee_id": "nina", "recovery": false})
 	scene._settle_sale({"employee_id": "nina", "value": 50, "timestamp": 1.0})
+	_check(scene.augment_manager.budget == 400
+		and int(scene._financial_context()["company_cash"]) == 400,
+		"Opening Company Cash remains available to augments but below-goal sales do not increase it.")
 	scene._finish_day()
-	_check(scene.augment_manager.budget == 350
+	_check(scene.augment_manager.budget == 300
 		and scene.augment_manager.pending_reward.get("choices", []).size() == 3
-		and scene.report_panel.next_day_button.disabled,
-		"Workday revenue is added to cash once, then the $100 daily employee upkeep is settled.")
+		and scene.report_panel.next_day_button.disabled
+		and scene.report_panel.finance_label.text.contains("SURPLUS TO CASH  +$0")
+		and scene.report_panel.finance_label.text.contains("Revenue goal: Missed"),
+		"Below-goal revenue remains performance-only while daily employee upkeep is settled from Company Cash.")
 	scene._prepare_next_day()
 	_check(scene.day == 1 and scene.phase == scene.Phase.REPORT and not scene.store_panel.visible,
 		"The next day remains blocked until its reward is resolved.")
@@ -272,6 +284,7 @@ func _test_workday_integration() -> void:
 	scene._prepare_next_day()
 	_check(scene.prepare_view == scene.PrepareView.STORE and scene.store_panel.visible
 		and scene.augment_manager.store_day == scene.day
+		and scene.financial_ledger.daily_sales_goal == scene.score_target(scene.day)
 		and scene.augment_manager.loadout("nina") == ["AUG_001"]
 		and scene.call_queue.equipped_augments.is_empty(),
 		"Next-day Prepare regenerates store stock once while equipment persists.")

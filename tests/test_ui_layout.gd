@@ -50,9 +50,10 @@ func _run() -> void:
 		"The 1280x720 screen must match the specified header, workspace, sidebar, and bottom regions.")
 	_check(scene.prepare_view == scene.PrepareView.STORE and scene.store_panel.visible
 		and scene.prepare_sidebar.visible and scene.inventory_panel.visible
+		and not scene.planning_panel.visible
 		and scene.store_view_button.button_pressed
 		and scene.inventory_panel.people_section.visible and scene.inventory_panel.items_section.visible,
-		"Prepare must default to Store and keep both inventory sections visible.")
+		"Prepare must default to Store, keep both inventory sections visible, and hide the planning panel.")
 	var reserve_rect := scene.inventory_panel.people_section.get_global_rect()
 	var items_rect := scene.inventory_panel.items_section.get_global_rect()
 	_check(reserve_rect.position.x < items_rect.position.x
@@ -64,9 +65,11 @@ func _run() -> void:
 
 	scene._select_prepare_view(scene.PrepareView.FLOOR)
 	await _settle()
+	_check(not scene.planning_panel.visible, "Prepare's Sales Floor view must hide the planning panel.")
 	var first_card_prepare: Rect2 = scene.employee_cards[0].get_global_rect()
 	var last_card_prepare: Rect2 = scene.employee_cards[8].get_global_rect()
 	scene._select_prepare_view(scene.PrepareView.CALENDAR)
+	_check(not scene.planning_panel.visible, "Prepare's Calendar view must hide the planning panel.")
 	scene.calendar_panel.next_month()
 	scene.calendar_panel.next_month()
 	scene.calendar_panel.next_month()
@@ -83,7 +86,7 @@ func _run() -> void:
 	await _settle()
 	_check(scene.phase == scene.Phase.PLAY and scene.prepare_view == scene.PrepareView.FLOOR
 		and scene.scoreboard.visible and not scene.prepare_sidebar.visible
-		and scene.queue_panel.visible and not scene.inventory_panel.visible
+		and scene.queue_panel.visible and not scene.inventory_panel.visible and not scene.planning_panel.visible
 		and scene.floor_grid.get_parent().visible,
 		"Begin Workday must open the Sales Floor, scoreboard, and lead queue.")
 	var first_card_workday: Rect2 = scene.employee_cards[0].get_global_rect()

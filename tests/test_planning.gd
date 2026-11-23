@@ -116,8 +116,12 @@ func _test_scene() -> void:
 		and scene.inventory.owned_count() == 1 and scene.primary_button.disabled == false
 		and panel.views.current_tab == 0 and not panel.detail_scroll.visible
 		and scene.selected_seat == 1 and panel.candidate_id == "zip"
-		and panel.assign_button.text.begins_with("Hire Zip"),
-		"Prepare must start with Nina alone and show a clear next hiring action.")
+		and panel.assign_button.text.begins_with("Hire Zip") and not panel.visible,
+		"Prepare must start with Nina alone and keep the planning panel hidden.")
+	scene._show_phase(scene.Phase.REWARD_MANAGEMENT)
+	await _settle()
+	_check(panel.visible and not scene.queue_panel.visible and panel.candidate_selector.item_count == 19,
+		"Reward management must show the planning panel and all nineteen candidates.")
 	panel.views.current_tab = 1
 	_check(panel.budget_label.visible and panel.equipment_label.visible,
 		"The Augments view must expose cash, inventory, and equipment without duplicating the Store.")
@@ -131,8 +135,6 @@ func _test_scene() -> void:
 	scene.inventory.person_slots[0] = "ada"
 	scene.inventory.person_slots[1] = "echo"
 	scene._sync_floor_plan()
-	_check(panel.visible and not scene.queue_panel.visible and panel.candidate_selector.item_count == 19,
-		"Prepare must show all nineteen candidates in its planner.")
 	for screen_size in [Vector2i(1280, 720), Vector2i(960, 540)]:
 		root.size = screen_size
 		await _settle()
@@ -202,6 +204,9 @@ func _test_scene() -> void:
 	scene._assign_employee(8, "scrap")
 	_check(not scene.floor_plan.seats.has("scrap"), "Unhired salespeople cannot be deployed directly.")
 	_unique_assignments(scene.floor_plan)
+	scene._show_phase(scene.Phase.PREPARE, false)
+	await _settle()
+	_check(not panel.visible, "Returning to Prepare must hide the planning panel.")
 	# No empty-floor workday, including attempts to bypass the disabled button.
 	for seat in range(9):
 		scene._bench_employee(seat)
@@ -230,8 +235,9 @@ func _test_scene() -> void:
 	_check(scene.floor_plan.seats == lineup and not panel.visible, "Report must preserve the planned lineup without editing.")
 	scene._prepare_next_day()
 	await _settle()
-	_check(scene.floor_plan.seats == lineup and panel.visible and scene.call_queue.received == 0
-		and scene.employee_cards[8].planning_enabled, "Next day must retain seating, reset calls, and reopen planning.")
+	_check(scene.floor_plan.seats == lineup and not panel.visible and scene.call_queue.received == 0
+		and scene.employee_cards[8].planning_enabled,
+		"Next day must retain seating and reset calls while keeping the Prepare planning panel hidden.")
 	_unique_assignments(scene.floor_plan)
 	scene.queue_free()
 	await process_frame

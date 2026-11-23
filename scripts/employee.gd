@@ -20,17 +20,26 @@ var drop_validator := Callable()
 var _normal_style: StyleBoxFlat
 var _selected_style: StyleBoxFlat
 var _empty_style: StyleBoxFlat
+var _selected_empty_style: StyleBoxFlat
 var _displayed_call_id := -1
 var _assignment_tween: Tween
 
 
 func _ready() -> void:
 	_normal_style = get_theme_stylebox("panel").duplicate()
+	_normal_style.bg_color = Color(0.07, 0.10, 0.15, 0.82)
 	_selected_style = _normal_style.duplicate()
 	_selected_style.border_color = Color(0.29, 0.94, 0.82)
 	_selected_style.set_border_width_all(2)
 	_empty_style = _normal_style.duplicate()
-	_empty_style.bg_color = Color(0.035, 0.05, 0.08)
+	_empty_style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	_empty_style.border_color = Color(0.0, 0.0, 0.0, 0.0)
+	_empty_style.set_border_width_all(0)
+	_selected_empty_style = _empty_style.duplicate()
+	_selected_empty_style.border_color = Color(0.29, 0.94, 0.82)
+	_selected_empty_style.set_border_width_all(2)
+	status_label.z_index = 1
+	call_progress.z_index = 1
 	focus_entered.connect(_refresh_style)
 	focus_exited.connect(_refresh_style)
 
@@ -38,10 +47,12 @@ func _ready() -> void:
 func configure(number: int, employee: Dictionary, loadout: Array[String] = [], effective_stats: Dictionary = {}) -> void:
 	seat_number = number
 	employee_id = employee.get("id", "")
+	staffed = not employee_id.is_empty()
 	seat_label.text = "SEAT %02d" % number
 	name_label.text = employee.get("name", "+ Add rep")
 	role_label.text = employee.get("archetype", "")
-	staffed = not employee_id.is_empty()
+	seat_label.visible = staffed
+	name_label.visible = staffed
 	role_label.visible = staffed
 	name_label.add_theme_color_override("font_color", Color(0.94, 0.96, 1) if staffed else Color(0.62, 0.73, 0.79))
 	if staffed:
@@ -91,7 +102,7 @@ func _refresh_style() -> void:
 		return
 	var style := _normal_style if staffed else _empty_style
 	if selected or (planning_enabled and has_focus()):
-		style = _selected_style
+		style = _selected_style if staffed else _selected_empty_style
 	add_theme_stylebox_override("panel", style)
 
 

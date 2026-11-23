@@ -6,9 +6,21 @@ enum PrepareView { FLOOR, STORE, CALENDAR }
 var payroll_sampling_policy: String = "end_of_day_snapshot"
 
 const EMPLOYEE_SCENE := preload("res://scenes/employee.tscn")
+const DESK_ROW_TEXTURE: Texture2D = preload("res://assets/sales_floor/desk_row.png")
 const DAY_TICKS := 48 # Twelve game hours at three real seconds per hour.
 const BASE_SCORE_TARGET := 1000
 const SCORE_TARGET_STEP := 250
+const FLOOR_WIDTH := 700.0
+const FLOOR_HEIGHT := 488.0
+const FLOOR_PANEL_BORDER_INSET := 2.0
+const DESK_ROW_WIDTH := 670.0
+const DESK_ROW_HEIGHT := 150.0
+const DESK_ROW_X := 15.0
+const DESK_ROW_NAMES := ["BackRow", "MiddleRow", "FrontRow"]
+const DESK_ROW_Y_OFFSETS := [68.0, 203.0, 338.0]
+const EMPLOYEE_X_OFFSETS := [112.0, 335.0, 558.0]
+const EMPLOYEE_CARD_WIDTH := 134.0
+const EMPLOYEE_CARD_HEIGHT := 105.0
 const REFERENCE_WIDTH := 1280.0
 const REFERENCE_HEIGHT := 720.0
 const HEADER_HEIGHT := 72.0
@@ -29,7 +41,9 @@ const SIDEBAR_WIDTH := 160.0
 @onready var daily_goal_label: Label = $PageMargin/Page/Header/DailyGoalLabel
 @onready var writeups_label: Label = $PageMargin/Page/Header/WriteupsLabel
 @onready var shift_clock: Label = $PageMargin/Page/Header/ShiftClock
-@onready var floor_grid: GridContainer = $PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/FloorScroll/FloorGrid
+@onready var floor_grid: Control = $PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/FloorScroll/FloorGrid
+@onready var sales_floor_art: Control = $PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/FloorScroll/FloorGrid/SalesFloorArt
+@onready var floor_header: Control = $PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/FloorHeader
 @onready var revenue_label: Label = $PageMargin/Page/Workspace/Scoreboard/Margin/Content/RevenueLabel
 @onready var target_label: Label = $PageMargin/Page/Workspace/Scoreboard/Margin/Content/TargetLabel
 @onready var status_label: Label = $PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/Footer/StatusLabel
@@ -66,6 +80,7 @@ var _pending_augment_data: Dictionary = {}
 
 func _ready() -> void:
 	_build_floor()
+	floor_grid.resized.connect(_layout_sales_floor)
 	augment_manager.bind_financial_ledger(financial_ledger)
 	augment_manager.initialize_store_for_day(day)
 	financial_ledger.reset_daily_revenue(day, score_target(day))
@@ -140,14 +155,47 @@ func _show_score_target() -> void:
 
 
 func _build_floor() -> void:
-	for index in FloorPlan.SEAT_COUNT:
-		var card: EmployeeCard = EMPLOYEE_SCENE.instantiate()
-		card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		floor_grid.add_child(card)
-		card.configure(index + 1, floor_plan.profile(floor_plan.seats[index]))
-		card.seat_selected.connect(_select_seat)
-		employee_cards.append(card)
+	for row_index in DESK_ROW_Y_OFFSETS.size():
+		var row := Control.new()
+		row.name = DESK_ROW_NAMES[row_index]
+		row.position = Vector2(0.0, DESK_ROW_Y_OFFSETS[row_index])
+		row.size = Vector2(FLOOR_WIDTH, DESK_ROW_HEIGHT)
+		row.mouse_filter = Control.MOUSE_FILTER_PASS
+		sales_floor_art.add_child(row)
+
+		var slots := Control.new()
+		slots.name = "EmployeeSlots"
+		slots.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		slots.mouse_filter = Control.MOUSE_FILTER_PASS
+		row.add_child(slots)
+
+		var first_seat := row_index * 3
+		for column in EMPLOYEE_X_OFFSETS.size():
+			var index := first_seat + column
+			var card: EmployeeCard = EMPLOYEE_SCENE.instantiate()
+			card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			slots.add_child(card)
+			card.set_compact(true, EMPLOYEE_CARD_HEIGHT)
+			card.position = Vector2(
+				DESK_ROW_X + EMPLOYEE_X_OFFSETS[column] - EMPLOYEE_CARD_WIDTH / 2.0,
+				0.0
+			)
+			card.size = Vector2(EMPLOYEE_CARD_WIDTH, EMPLOYEE_CARD_HEIGHT)
+			card.configure(index + 1, floor_plan.profile(floor_plan.seats[index]))
+			card.seat_selected.connect(_select_seat)
+			employee_cards.append(card)
+
+		var desk_foreground := TextureRect.new()
+		desk_foreground.name = "DeskForeground"
+		desk_foreground.texture = DESK_ROW_TEXTURE
+		desk_foreground.position = Vector2(DESK_ROW_X, 0.0)
+		desk_foreground.size = Vector2(DESK_ROW_WIDTH, DESK_ROW_HEIGHT)
+		desk_foreground.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		desk_foreground.stretch_mode = TextureRect.STRETCH_SCALE
+		desk_foreground.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		desk_foreground.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(desk_foreground)
 	staffed_seats.assign(floor_plan.occupied_seats())
 
 
@@ -627,14 +675,46 @@ func _update_layout() -> void:
 	$PageMargin/Page/Workspace/MainContent/MainPanels.add_theme_constant_override("separation", 10 if compact else 14)
 	var margin := $PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin
 	for edge in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + edge, 10 if compact else 16)
-	$PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent.add_theme_constant_override("separation", 6 if compact else 12)
-	floor_grid.add_theme_constant_override("h_separation", 8 if compact else 10)
-	floor_grid.add_theme_constant_override("v_separation", 8 if compact else 10)
-	var card_height := clampf((workspace.size.y - 143.0) / 3.0, 80.0, 115.0)
+		margin.add_theme_constant_override("margin_" + edge, 0)
 	for card in employee_cards:
-		card.set_compact(compact, card_height)
+		card.set_compact(true, EMPLOYEE_CARD_HEIGHT)
+	_layout_sales_floor()
 	calendar_panel.show_day(day)
+
+
+func _layout_sales_floor() -> void:
+	if not is_node_ready() or floor_grid.size.x <= 0.0 or floor_grid.size.y <= 0.0:
+		return
+	var compact := size.y < 650
+	var main_content_width := size.x * (1.0 - SIDEBAR_WIDTH / REFERENCE_WIDTH)
+	var panel_gap := 0.0
+	var planning_width := 0.0
+	if planning_panel.visible:
+		panel_gap = 10.0 if compact else 14.0
+		planning_width = planning_panel.custom_minimum_size.x
+	var available_floor_width := maxf(
+		0.0,
+		minf(
+			floor_grid.size.x,
+			main_content_width - planning_width - panel_gap - FLOOR_PANEL_BORDER_INSET
+		)
+	)
+	var scale_factor := minf(
+		1.0,
+		minf(available_floor_width / FLOOR_WIDTH, floor_grid.size.y / FLOOR_HEIGHT)
+	)
+	var rendered_size := Vector2(FLOOR_WIDTH, FLOOR_HEIGHT) * scale_factor
+	sales_floor_art.scale = Vector2.ONE * scale_factor
+	sales_floor_art.position = Vector2(
+		(available_floor_width - rendered_size.x) / 2.0,
+		(floor_grid.size.y - rendered_size.y) / 2.0
+	)
+	floor_header.offset_bottom = 32.0 * scale_factor
+	planning_guide.offset_top = 34.0 * scale_factor
+	planning_guide.offset_bottom = 68.0 * scale_factor
+	floor_title.add_theme_font_size_override("font_size", 15 if scale_factor < 0.9 else 20)
+	planning_guide.add_theme_font_size_override("font_size", 9 if scale_factor < 0.9 else 12)
+	status_label.add_theme_font_size_override("font_size", 10 if scale_factor < 0.9 else 13)
 
 
 func _set_region(control: Control, left: float, top: float, right: float, bottom: float) -> void:
@@ -662,7 +742,6 @@ func _show_phase(next_phase: Phase, reset_prepare_view := true) -> void:
 		prepare_view = PrepareView.STORE
 	phase = next_phase
 	var report_visible := phase in [Phase.REPORT, Phase.TERMINATED]
-	var management_visible := _is_management_phase()
 	var store_visible := phase == Phase.PREPARE and prepare_view == PrepareView.STORE
 	var calendar_visible := phase == Phase.PREPARE and prepare_view == PrepareView.CALENDAR
 	var floor_visible := not store_visible and not calendar_visible
@@ -671,9 +750,7 @@ func _show_phase(next_phase: Phase, reset_prepare_view := true) -> void:
 	store_panel.visible = store_visible
 	calendar_panel.visible = calendar_visible
 	$PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel.visible = floor_visible
-	planning_panel.visible = management_visible and (
-		phase != Phase.PREPARE or prepare_view == PrepareView.FLOOR
-	)
+	planning_panel.visible = phase == Phase.REWARD_MANAGEMENT
 	planning_guide.visible = floor_visible and not report_visible
 	floor_grid.get_parent().visible = not report_visible
 	slam_board.visible = report_visible

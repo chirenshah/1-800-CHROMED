@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/workday.gd" id="1_workday"]
 [ext_resource type="PackedScene" path="res://scenes/report_panel.tscn" id="2_report"]
@@ -10,9 +10,10 @@
 [ext_resource type="PackedScene" path="res://scenes/store_panel.tscn" id="8_store"]
 [ext_resource type="PackedScene" path="res://scenes/revenue_scoreboard.tscn" id="9_scoreboard"]
 [ext_resource type="PackedScene" path="res://scenes/calendar_panel.tscn" id="10_calendar"]
+[ext_resource type="Texture2D" path="res://assets/sales_floor/office_background.png" id="11_office_background"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_floor"]
-bg_color = Color(0.05, 0.067, 0.106, 1)
+bg_color = Color(0.05, 0.067, 0.106, 0.48)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -85,6 +86,19 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(0.035, 0.047, 0.078, 1)
+
+[node name="OfficeBackground" type="TextureRect" parent="." unique_id=791428016]
+texture_filter = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("11_office_background")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="PageMargin" type="Control" parent="." unique_id=1365464593]
 layout_mode = 1
@@ -232,21 +246,35 @@ theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 12
 
-[node name="FloorContent" type="VBoxContainer" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin" unique_id=240618381]
+[node name="FloorContent" type="Control" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin" unique_id=240618381]
 layout_mode = 2
-theme_override_constants/separation = 12
+size_flags_vertical = 3
 
 [node name="FloorHeader" type="HBoxContainer" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent" unique_id=1913698545]
-layout_mode = 2
+z_index = 10
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 32.0
+grow_horizontal = 2
+mouse_filter = 2
 
 [node name="FloorTitle" type="Label" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/FloorHeader" unique_id=1954159595]
 layout_mode = 2
+mouse_filter = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 20
 text = "FLOOR PLAN"
 
 [node name="PlanningGuide" type="Label" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent"]
-layout_mode = 2
+z_index = 10
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 34.0
+offset_bottom = 68.0
+grow_horizontal = 2
+mouse_filter = 2
 theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.62, 0.73, 0.79, 1)
 text = "Calls go to the first available seat, in number order."
@@ -254,29 +282,54 @@ tooltip_text = "Leads go automatically to the first available employee. Select a
 autowrap_mode = 2
 
 [node name="FloorScroll" type="ScrollContainer" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent"]
-layout_mode = 2
-size_flags_vertical = 3
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 horizontal_scroll_mode = 0
 vertical_scroll_mode = 0
 
-[node name="FloorGrid" type="GridContainer" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/FloorScroll" unique_id=1054994530]
+[node name="FloorGrid" type="Control" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/FloorScroll" unique_id=1054994530]
 layout_mode = 2
-theme_override_constants/h_separation = 10
-theme_override_constants/v_separation = 10
-columns = 3
+size_flags_horizontal = 3
+size_flags_vertical = 3
+clip_contents = true
+
+[node name="SalesFloorArt" type="Control" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/FloorScroll/FloorGrid"]
+custom_minimum_size = Vector2(700, 488)
+layout_mode = 0
+offset_right = 700.0
+offset_bottom = 488.0
+mouse_filter = 2
 
 [node name="SalesSlamBoard" type="Control" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent"]
 visible = false
-layout_mode = 2
-size_flags_vertical = 3
+z_index = 20
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("7_slam")
 
 [node name="Footer" type="HBoxContainer" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent" unique_id=293973583]
-layout_mode = 2
+z_index = 21
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -30.0
+grow_horizontal = 2
+mouse_filter = 2
 
 [node name="StatusLabel" type="Label" parent="PageMargin/Page/Workspace/MainContent/MainPanels/FloorPanel/FloorMargin/FloorContent/Footer" unique_id=1975266708]
 custom_minimum_size = Vector2(130, 0)
 layout_mode = 2
+mouse_filter = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.72, 0.77, 0.86, 1)

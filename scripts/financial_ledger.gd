@@ -133,7 +133,9 @@ func settle(
 		active_upkeep: int,
 		bench_upkeep: int,
 		display_day: int = -1,
-		timestamp: float = 0.0
+		timestamp: float = 0.0,
+		lead_cost: int = 0,
+		commission: int = 0
 ) -> Dictionary:
 	assert(day > 0, "Settlement day must be positive.")
 	if settlements.has(day):
@@ -194,6 +196,10 @@ func settle(
 		"sales_cash_credited": maxi(revenue - daily_sales_goal, 0),
 		"day_opening_cash": day_opening_cash,
 		"augment_cash_effect_net": day_cash_effect_net,
+		"lead_cost": maxi(lead_cost, 0),
+		"commission": maxi(commission, 0),
+		"base_payroll": maxi(payroll - commission, 0),
+		"net_cash_flow": cash_closing - day_opening_cash,
 		"current_upkeep": payroll,
 		"active_upkeep": maxi(active_upkeep, 0),
 		"bench_upkeep": maxi(bench_upkeep, 0),

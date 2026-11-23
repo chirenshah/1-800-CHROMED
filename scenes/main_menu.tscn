@@ -1,0 +1,321 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_menu"]
+
+[sub_resource type="StyleBoxFlat" id="Panel"]
+bg_color = Color(0.035, 0.057, 0.078, 0.98)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.18, 0.35, 0.39, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_left = 10
+corner_radius_bottom_right = 10
+
+[sub_resource type="StyleBoxFlat" id="ButtonNormal"]
+bg_color = Color(0.055, 0.095, 0.123, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.22, 0.4, 0.43, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="ButtonHover"]
+bg_color = Color(0.082, 0.192, 0.2, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.38, 0.89, 0.8, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="ButtonFocus"]
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.38, 0.89, 0.8, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="ButtonPrimary"]
+bg_color = Color(0.077, 0.218, 0.204, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.7, 0.63, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="ConfirmPanel"]
+bg_color = Color(0.035, 0.057, 0.078, 1)
+border_width_left = 1
+border_width_top = 2
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.38, 0.89, 0.8, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_left = 10
+corner_radius_bottom_right = 10
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_size = 18
+
+[sub_resource type="StyleBoxFlat" id="WarningPanel"]
+bg_color = Color(0.12, 0.115, 0.09, 1)
+border_width_left = 3
+border_color = Color(0.98, 0.72, 0.4, 1)
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="Theme" id="MenuTheme"]
+default_font_size = 17
+Button/colors/font_color = Color(0.9, 0.94, 0.96, 1)
+Button/colors/font_disabled_color = Color(0.48, 0.62, 0.67, 1)
+Button/styles/focus = SubResource("ButtonFocus")
+Button/styles/hover = SubResource("ButtonHover")
+Button/styles/normal = SubResource("ButtonNormal")
+Button/styles/pressed = SubResource("ButtonHover")
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("MenuTheme")
+script = ExtResource("1_menu")
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(430, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("Panel")
+
+[node name="Padding" type="MarginContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 34
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 34
+theme_override_constants/margin_bottom = 24
+
+[node name="Stack" type="VBoxContainer" parent="Center/Panel/Padding"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Eyebrow" type="Label" parent="Center/Panel/Padding/Stack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.38, 0.89, 0.8, 1)
+theme_override_font_sizes/font_size = 13
+text = "CHROMED / EMPLOYEE ACCESS"
+horizontal_alignment = 1
+
+[node name="Title" type="Label" parent="Center/Panel/Padding/Stack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.94, 0.96, 1)
+theme_override_font_sizes/font_size = 48
+text = "1-800-CHROMED"
+horizontal_alignment = 1
+
+[node name="Motto" type="Label" parent="Center/Panel/Padding/Stack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.62, 0.67, 1)
+theme_override_font_sizes/font_size = 15
+text = "Your body. Our business."
+horizontal_alignment = 1
+
+[node name="Space" type="Control" parent="Center/Panel/Padding/Stack"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Home" type="VBoxContainer" parent="Center/Panel/Padding/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="NewQuarter" type="Button" parent="Center/Panel/Padding/Stack/Home"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+theme_override_styles/normal = SubResource("ButtonPrimary")
+text = "New Quarter"
+
+[node name="Resume" type="Button" parent="Center/Panel/Padding/Stack/Home"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+disabled = true
+text = "Resume"
+
+[node name="OpenSettings" type="Button" parent="Center/Panel/Padding/Stack/Home"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "Settings"
+
+[node name="Notice" type="Label" parent="Center/Panel/Padding/Stack/Home"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.76, 0.46, 1)
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Settings" type="VBoxContainer" parent="Center/Panel/Padding/Stack"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MusicToggle" type="CheckButton" parent="Center/Panel/Padding/Stack/Settings"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+text = "Music"
+
+[node name="VolumeRow" type="HBoxContainer" parent="Center/Panel/Padding/Stack/Settings"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="VolumeLabel" type="Label" parent="Center/Panel/Padding/Stack/Settings/VolumeRow"]
+layout_mode = 2
+text = "Volume"
+
+[node name="MusicVolume" type="HSlider" parent="Center/Panel/Padding/Stack/Settings/VolumeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+value = 100.0
+
+[node name="VolumeValue" type="Label" parent="Center/Panel/Padding/Stack/Settings/VolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+text = "100%"
+horizontal_alignment = 2
+
+[node name="Back" type="Button" parent="Center/Panel/Padding/Stack/Settings"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "Back"
+
+[node name="ReplaceOverlay" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Dim" type="ColorRect" parent="ReplaceOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.005, 0.012, 0.022, 0.78)
+
+[node name="ConfirmCenter" type="CenterContainer" parent="ReplaceOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ConfirmPanel" type="PanelContainer" parent="ReplaceOverlay/ConfirmCenter"]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("ConfirmPanel")
+
+[node name="ConfirmPadding" type="MarginContainer" parent="ReplaceOverlay/ConfirmCenter/ConfirmPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 28
+
+[node name="ConfirmContent" type="VBoxContainer" parent="ReplaceOverlay/ConfirmCenter/ConfirmPanel/ConfirmPadding"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="ConfirmEyebrow" type="Label" parent="ReplaceOverlay/ConfirmCenter/ConfirmPanel/ConfirmPadding/ConfirmContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.38, 0.89, 0.8, 1)
+theme_override_font_sizes/font_size = 12
+text = "PERSONNEL FILE / NEW QUARTER"
+
+[node name="ConfirmTitle" type="Label" parent="ReplaceOverlay/ConfirmCenter/ConfirmPanel/ConfirmPadding/ConfirmContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.94, 0.96, 1)
+theme_override_font_sizes/font_size = 26
+text = "Start a new quarter?"
+
+[node name="Warning" type="PanelContainer" parent="ReplaceOverlay/ConfirmCenter/ConfirmPanel/ConfirmPadding/ConfirmContent"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("WarningPanel")
+
+[node name="WarningPadding" type="MarginContainer" parent="ReplaceOverlay/ConfirmCenter/ConfirmPanel/ConfirmPadding/ConfirmContent/Warning"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 13
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 13
+
+[node name="WarningText" type="Label" parent="ReplaceOverlay/ConfirmCenter/ConfirmPanel/ConfirmPadding/ConfirmContent/Warning/WarningPadding"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.83, 0.62, 1)
+theme_override_font_sizes/font_size = 15
+text = "Your current autosave stays available until you finish the first workday. Finishing it replaces that save."
+autowrap_mode = 2
+
+[node name="ConfirmActions" type="HBoxContainer" parent="ReplaceOverlay/ConfirmCenter/ConfirmPanel/ConfirmPadding/ConfirmContent"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CancelNewQuarter" type="Button" parent="ReplaceOverlay/ConfirmCenter/ConfirmPanel/ConfirmPadding/ConfirmContent/ConfirmActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Keep Current Quarter"
+
+[node name="ConfirmNewQuarter" type="Button" parent="ReplaceOverlay/ConfirmCenter/ConfirmPanel/ConfirmPadding/ConfirmContent/ConfirmActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("ButtonPrimary")
+text = "Start New Quarter"

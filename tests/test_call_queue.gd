@@ -84,7 +84,7 @@ func _capture(name: String) -> void:
 
 func _check_bounds(scene, size: Vector2i) -> void:
 	var screen := Rect2(Vector2.ZERO, Vector2(size))
-	var controls: Array[Control] = [scene.primary_button, scene.pause_button,
+	var controls: Array[Control] = [scene.primary_button, scene.pause_button, scene.speed_selector,
 		scene.floor_grid.get_parent(), scene.report_panel if scene.report_panel.visible else scene.queue_panel]
 	for control in controls:
 		if control.is_visible_in_tree():
@@ -113,11 +113,13 @@ func _test_scene() -> void:
 		"Prepare must start with an empty queue.")
 	_check_bounds(scene, root.size)
 	await _capture("prepare")
+	scene._set_lead_plan(MarketingPanel.DEFAULT_SOURCE, 0)
 	for size in [Vector2i(1280, 720), Vector2i(960, 540)]:
 		root.size = size
 		scene._start_day()
 		scene.day_timer.stop()
-		# Explicit fixture load guarantees queue overflow regardless of sampled arrivals.
+		# Unmetered fixture calls exercise UI overflow independently of Marketing.
+		scene.call_queue.reset(scene.floor_plan.seats, 31)
 		for index in range(18):
 			scene.call_queue.receive_call()
 		scene._simulate_tick(0.25)
@@ -202,21 +204,24 @@ func _test_scene() -> void:
 		await _settle()
 		_check(report_scroll.get_global_rect().encloses(scene.report_panel.next_day_button.get_global_rect()),
 			"The next-day action must remain reachable by scrolling the extended report.")
+		scene._skip_reward()
 		scene.report_panel.next_day_button.pressed.emit()
 		scene.day_timer.wait_time = 0.75
 		await _settle()
 		_check(scene.phase == scene.Phase.PREPARE and scene.call_queue.received == 0
 			and scene.call_queue.active.is_empty() and scene.call_queue.waiting.is_empty()
-			and scene.revenue_label.text == "$0" and scene.queue_panel.empty_label.visible,
+			and scene.revenue_label.text.begins_with("SALES $0") and scene.queue_panel.empty_label.visible,
 			"Next day must reset the queue, call cards, and daily counters.")
 		_check(scene.call_queue.abandoned == 0 and scene.call_queue.get_discard_count() == 0
 			and scene.call_queue.discarded_today == 0
 			and scene.call_queue.employee_stats["nina"]["busy_ticks"] == 0
 			and scene.employee_cards[0].status_label.text == "READY", "Next day must clear patience losses, workload, and visible busy state.")
 		_check_bounds(scene, size)
-	# Exercise automatic end-of-day, as well as the early-close path above.
+	# Exercise automatic end-of-day without the previous fixture's write-ups.
+	scene.financial_ledger.writeups = 0
 	scene._start_day()
 	scene.day_timer.stop()
+	scene.call_queue.reset(scene.floor_plan.seats, 31)
 	for step in range(scene.DAY_TICKS):
 		# Keep the floor overloaded explicitly; random arrivals may otherwise remain serviceable.
 		for index in range(4):
@@ -302,6 +307,24 @@ func _test_timer_scheduling() -> void:
 	scene._schedule_next_event()
 	_check(scene.day_timer.one_shot, "The workday timer must schedule one event at a time.")
 	var first_arrival: float = scene.call_queue.next_arrival_seconds
+	_check(scene.speed_selector.item_count == 5 and scene.speed_selector.get_item_text(0) == "Paused"
+		and scene.speed_selector.get_item_text(4) == "Super Fast",
+		"Play must offer all five speed settings.")
+	scene._on_speed_selected(1)
+	_check(is_equal_approx(scene.play_speed, 0.5)
+		and is_equal_approx(scene.day_timer.wait_time, scene._scheduled_remaining_seconds * 2.0),
+		"Slow must double wall-clock time without changing the next model event.")
+	scene._on_speed_selected(4)
+	_check(is_equal_approx(scene.play_speed, 4.0)
+		and is_equal_approx(scene.day_timer.wait_time, scene._scheduled_remaining_seconds / 4.0),
+		"Super Fast must quarter wall-clock time without changing the next model event.")
+	scene._on_speed_selected(0)
+	_check(scene.paused and scene.day_timer.is_stopped() and scene.speed_selector.selected == 0,
+		"Paused speed must stop scheduling and update the selected option.")
+	scene._on_speed_selected(2)
+	_check(not scene.paused and is_equal_approx(scene.day_timer.wait_time, scene._scheduled_remaining_seconds),
+		"Normal must resume the same pending event at its original pace.")
+	scene._schedule_next_event()
 	_check(not is_zero_approx(fmod(first_arrival, MODEL.TICK_SECONDS)),
 		"The seeded timer fixture must exercise an arrival between display ticks.")
 

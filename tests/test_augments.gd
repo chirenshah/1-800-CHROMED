@@ -238,6 +238,8 @@ func _test_workday_integration() -> void:
 	root.add_child(scene)
 	await process_frame
 	var panel: PlanningPanel = scene.planning_panel
+	scene.first_day_complete = true
+	scene._select_prepare_view(scene.PrepareView.STORE)
 	_check(scene.augment_manager.budget == 500 and scene.augment_manager.store_offers.size() == 7
 		and scene.prepare_view == scene.PrepareView.STORE and scene.store_panel.visible
 		and scene.store_panel.augment_buy_buttons.size() == 5
@@ -252,6 +254,7 @@ func _test_workday_integration() -> void:
 	scene._equip_augment("nina", 0)
 	_check(scene.augment_manager.budget == 400 and scene.augment_manager.loadout("nina") == ["AUG_001"],
 		"Purchases enter the shared inventory and can be installed using the existing equipment flow.")
+	scene._set_commission_rate("nina", 30)
 	scene._start_day()
 	_check(scene.call_queue.equipped_augments["nina"] == ["AUG_001"]
 		and scene.store_panel.reroll_button.disabled,

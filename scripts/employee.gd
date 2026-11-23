@@ -4,9 +4,10 @@ class_name EmployeeCard
 signal seat_selected(seat: int)
 signal dropped(data: Dictionary, target_kind: String, target_index: int)
 
-@onready var seat_label: Label = $Margin/Content/Seat
-@onready var name_label: Label = $Margin/Content/Name
-@onready var role_label: Label = $Margin/Content/Role
+@onready var portrait: TextureRect = $Margin/Content/Header/Portrait
+@onready var seat_label: Label = $Margin/Content/Header/Identity/Seat
+@onready var name_label: Label = $Margin/Content/Header/Identity/Name
+@onready var role_label: Label = $Margin/Content/Header/Identity/Role
 @onready var stats_label: Label = $Margin/Content/Stats
 @onready var status_label: Label = $Margin/Content/Status
 @onready var call_progress: ProgressBar = $Margin/Content/CallProgress
@@ -49,7 +50,7 @@ func configure(number: int, employee: Dictionary, loadout: Array[String] = [], e
 	employee_id = employee.get("id", "")
 	staffed = not employee_id.is_empty()
 	seat_label.text = "SEAT %02d" % number
-	name_label.text = employee.get("name", "+ Add rep")
+	name_label.text = employee.get("name", "Drop rep here")
 	role_label.text = employee.get("archetype", "")
 	seat_label.visible = staffed
 	name_label.visible = staffed
@@ -80,7 +81,9 @@ func set_planning_state(editable: bool, is_selected: bool) -> void:
 	planning_enabled = editable
 	selected = is_selected and editable
 	focus_mode = Control.FOCUS_ALL if editable else Control.FOCUS_NONE
-	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if editable else Control.CURSOR_ARROW
+	mouse_default_cursor_shape = Control.CURSOR_DRAG if editable and staffed else Control.CURSOR_ARROW
+	if not staffed:
+		name_label.text = "Drop rep here" if editable else "Open seat"
 	_refresh_style()
 
 

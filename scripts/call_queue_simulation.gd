@@ -55,9 +55,14 @@ var _effect_engine: AugmentEffectEngine
 var _arrival_rng := RandomNumberGenerator.new()
 var _conversion_rng := RandomNumberGenerator.new()
 var _upsell_rng := RandomNumberGenerator.new()
+var lead_plan: Dictionary = {}
 
 
-func reset(lineup: Array[String], arrival_seed: int = -1, loadouts: Dictionary = {}) -> void:
+func reset(
+		lineup: Array[String], arrival_seed: int = -1,
+		loadouts: Dictionary = {}, campaign: Dictionary = {}
+	) -> void:
+	lead_plan = campaign.duplicate(true)
 	waiting.clear()
 	active.clear()
 	employees.assign(lineup)
@@ -117,8 +122,8 @@ func reset(lineup: Array[String], arrival_seed: int = -1, loadouts: Dictionary =
 		# Separate streams keep sales rolls from changing incoming lead timing.
 		_conversion_rng.seed = arrival_seed ^ 0x5EED
 		_upsell_rng.seed = arrival_seed ^ 0x0B5E11
-	next_arrival_seconds = _arrival_delay()
 	received = 0
+	next_arrival_seconds = _next_arrival_time()
 	handled = 0
 	abandoned = 0
 	sales = 0
@@ -228,7 +233,7 @@ func _resolve_events() -> void:
 
 	if next_arrival_seconds <= elapsed_seconds + TIME_EPSILON:
 		_enqueue_call()
-		next_arrival_seconds += _arrival_delay()
+		next_arrival_seconds = _next_arrival_time()
 	_dispatch_waiting()
 	while true:
 		if not _pending_root_events.is_empty():
@@ -610,11 +615,29 @@ func clear_discard_pile() -> void:
 
 
 func _enqueue_call() -> void:
+	if not lead_plan.is_empty() and received >= int(lead_plan.get("quantity", 0)):
+		return
 	received += 1
 	waiting.append({
-		"id": received, "value": 180 + received * 15,
-		"arrived_tick": elapsed_seconds / TICK_SECONDS, "patience_ticks": PATIENCE_TICKS,
+		"id": received, "value": int(lead_plan.get("value", 180 + received * 15)),
+		"source_id": str(lead_plan.get("source_id", "legacy")),
+		"conversion_bonus": float(lead_plan.get("conversion_bonus", 0.0)),
+		"arrived_tick": elapsed_seconds / TICK_SECONDS,
+		"patience_ticks": float(lead_plan.get("patience_ticks", PATIENCE_TICKS)),
 	})
+
+
+func _next_arrival_time() -> float:
+	if lead_plan.is_empty():
+		return elapsed_seconds + _arrival_delay()
+	var quantity := maxi(0, int(lead_plan.get("quantity", 0)))
+	if received >= quantity:
+		return INF
+	# One arrival per randomized slice guarantees the purchased volume arrives
+	# within the shift, while retaining an uneven queue.
+	var duration := maxf(TIME_EPSILON, float(lead_plan.get("duration_seconds", 36.0)))
+	var slice_seconds := duration / quantity
+	return (received + _arrival_rng.randf_range(0.1, 0.9)) * slice_seconds
 
 
 func _arrival_delay() -> float:
@@ -712,7 +735,7 @@ func _makes_sale(employee_id: String, _lead: Dictionary, effective_stats: Dictio
 	var roll := _conversion_rng.randf()
 	var stats: Dictionary = effective_stats \
 		if not effective_stats.is_empty() else _effective_floor_stats().get(employee_id, {})
-	var chance := clampf(float(stats.get("conversion", 0.0)) / 100.0, 0.0, 1.0)
+	var chance := clampf((float(stats.get("conversion", 0.0)) + float(call.get("conversion_bonus", 0.0))) / 100.0, 0.0, 1.0)
 	return roll < chance
 
 

@@ -55,7 +55,7 @@ func _build() -> void:
 	var heading := VBoxContainer.new()
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(heading)
-	var title := _label("CHROME MARKET", 22, Color(0.98, 0.30, 0.76))
+	var title := _label("MARKETPLACE", 22, Color(0.98, 0.30, 0.76))
 	heading.add_child(title)
 	reroll_button = Button.new()
 	reroll_button.text = "REROLL STORE — $100"

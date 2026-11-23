@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/report_panel.gd" id="1_report"]
 
 [node name="ReportPanel" type="PanelContainer"]
-custom_minimum_size = Vector2(320, 0)
+custom_minimum_size = Vector2(380, 0)
 script = ExtResource("1_report")
 
 [node name="Margin" type="MarginContainer" parent="."]
@@ -28,7 +28,7 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
 theme_override_font_sizes/font_size = 13
-text = "REPORT"
+text = "RESULTS"
 
 [node name="Title" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
@@ -38,6 +38,74 @@ text = "Day 1 Performance"
 
 [node name="Divider" type="HSeparator" parent="Margin/Scroll/Content"]
 layout_mode = 2
+
+[node name="FinanceHeading" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 20
+text = "CASH FLOW"
+
+[node name="FinanceSummary" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 23
+text = "+$0 net today"
+
+[node name="FinanceRows" type="GridContainer" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 7
+columns = 2
+
+[node name="FinanceTotalDivider" type="HSeparator" parent="Margin/Scroll/Content"]
+layout_mode = 2
+
+[node name="FinanceClosing" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 19
+text = "Closing cash  $0"
+
+[node name="FinanceDetails" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.74, 0.82, 1)
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 2
+
+[node name="OutcomeDivider" type="HSeparator" parent="Margin/Scroll/Content"]
+layout_mode = 2
+
+[node name="OutcomeHeading" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 16
+text = "DAY STATUS"
+
+[node name="OutcomeLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 2
+
+[node name="DisciplineLabel" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.74, 0.82, 1)
+theme_override_font_sizes/font_size = 13
+text = "Write-ups and failure reasons"
+autowrap_mode = 2
+
+[node name="MetricsDivider" type="HSeparator" parent="Margin/Scroll/Content"]
+layout_mode = 2
+
+[node name="MetricsHeading" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 20
+text = "SHIFT METRICS"
+
+[node name="OverallHeading" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "OVERALL FLOOR"
 
 [node name="RevenueLabel" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
@@ -69,6 +137,12 @@ layout_mode = 2
 text = "Failed normal interactions  0"
 autowrap_mode = 2
 
+[node name="RecoveryHeading" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 14
+text = "LEADS & RECOVERY"
+
 [node name="DiscardedLabel" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
 text = "Leads discarded  0"
@@ -85,6 +159,12 @@ text = "Revenue recovered  $0"
 [node name="RecyclerUtilizationLabel" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
 text = "Recycler utilization  N/A"
+
+[node name="QueueHeading" type="Label" parent="Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 14
+text = "CALL QUEUE"
 
 [node name="ReceivedLabel" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
@@ -104,16 +184,6 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
 text = "Left while waiting  0"
 
-[node name="EmployeeTitle" type="Label" parent="Margin/Scroll/Content"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
-theme_override_font_sizes/font_size = 14
-text = "TEAM WORKLOAD"
-
-[node name="EmployeeRows" type="VBoxContainer" parent="Margin/Scroll/Content"]
-layout_mode = 2
-theme_override_constants/separation = 14
-
 [node name="InsightTitle" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.98, 0.72, 0.25, 1)
@@ -122,28 +192,19 @@ text = "FLOOR ANALYSIS"
 
 [node name="Insight" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
-size_flags_vertical = 3
 theme_override_colors/font_color = Color(0.72, 0.77, 0.86, 1)
 text = "Complete a workday to receive an operational report."
 autowrap_mode = 2
 
-[node name="FinanceHeading" type="Label" parent="Margin/Scroll/Content"]
+[node name="EmployeeTitle" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.29, 0.94, 0.82, 1)
 theme_override_font_sizes/font_size = 14
-text = "PAYROLL & FINANCE"
+text = "SALES REPS"
 
-[node name="FinanceLabel" type="Label" parent="Margin/Scroll/Content"]
+[node name="EmployeeRows" type="VBoxContainer" parent="Margin/Scroll/Content"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
-text = "Gross revenue · upkeep · cash · debt"
-autowrap_mode = 2
-
-[node name="DisciplineLabel" type="Label" parent="Margin/Scroll/Content"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 13
-text = "Write-ups and failure reasons"
-autowrap_mode = 2
+theme_override_constants/separation = 14
 
 [node name="RewardHeading" type="Label" parent="Margin/Scroll/Content"]
 layout_mode = 2
